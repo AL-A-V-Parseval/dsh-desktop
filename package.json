@@ -135,8 +135,8 @@
     "@deepseek-ai/dsh-credentials-local@npm:^0.1.5-rc.2": "file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-credentials-local-0.1.5-rc.2.tgz",
     "@deepseek-ai/dsh-deepseek-llm-api-extensions@npm:0.1.5-rc.2": "file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-deepseek-llm-api-extensions-0.1.5-rc.2.tgz",
     "@deepseek-ai/dsh-deepseek-llm-api-extensions@npm:^0.1.5-rc.2": "file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-deepseek-llm-api-extensions-0.1.5-rc.2.tgz",
-    "@deepseek-ai/dsh-fs-local@npm:0.1.5-rc.2": "file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-fs-local-0.1.5-rc.2.tgz",
-    "@deepseek-ai/dsh-fs-local@npm:^0.1.5-rc.2": "file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-fs-local-0.1.5-rc.2.tgz",
+    "@deepseek-ai/dsh-fs-local@npm:0.1.5-rc.2": "patch:@deepseek-ai/dsh-fs-local@file%3Avendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-fs-local-0.1.5-rc.2.tgz#./patches/dsh-fs-local@0.1.5-rc.2.patch",
+    "@deepseek-ai/dsh-fs-local@npm:^0.1.5-rc.2": "patch:@deepseek-ai/dsh-fs-local@file%3Avendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-fs-local-0.1.5-rc.2.tgz#./patches/dsh-fs-local@0.1.5-rc.2.patch",
     "@deepseek-ai/dsh-fs-observation-policy@npm:0.1.5-rc.2": "file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-fs-observation-policy-0.1.5-rc.2.tgz",
     "@deepseek-ai/dsh-fs-observation-policy@npm:^0.1.5-rc.2": "file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-fs-observation-policy-0.1.5-rc.2.tgz",
     "@deepseek-ai/dsh-fs-sandbox@npm:0.1.5-rc.2": "file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-fs-sandbox-0.1.5-rc.2.tgz",
@@ -552,7 +552,9 @@
     "@deepseek-ai/dsh-web-search-exa@npm:0.1.5-rc.2": "file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-web-search-exa-0.1.5-rc.2.tgz",
     "@deepseek-ai/dsh-web-search-exa@npm:^0.1.5-rc.2": "file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-web-search-exa-0.1.5-rc.2.tgz",
     "@deepseek-ai/dsh-web-search-perplexity@npm:0.1.5-rc.2": "file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-web-search-perplexity-0.1.5-rc.2.tgz",
-    "@deepseek-ai/dsh-web-search-perplexity@npm:^0.1.5-rc.2": "file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-web-search-perplexity-0.1.5-rc.2.tgz"
+    "@deepseek-ai/dsh-web-search-perplexity@npm:^0.1.5-rc.2": "file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-web-search-perplexity-0.1.5-rc.2.tgz",
+    "sharp@npm:^0.35.3": "patch:sharp@npm%3A0.35.3#~/.yarn/patches/sharp-npm-0.35.3-dfa206213d.patch",
+    "sharp@npm:0.35.3": "patch:sharp@npm%3A0.35.3#~/.yarn/patches/sharp-npm-0.35.3-dfa206213d.patch"
   },
   "dependenciesMeta": {
     "@deepseek-ai/dsh-subprocess-local": {

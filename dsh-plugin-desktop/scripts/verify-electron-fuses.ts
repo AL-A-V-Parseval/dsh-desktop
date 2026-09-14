@@ -232,6 +232,12 @@ function requestedArchitectures(
   // itself defaults that target to the Node process architecture.
   if (targetNames.has(DIR_TARGET)) return [architectureNumber(process.arch, description)]
 
+  // Linux --dir produces no string-keyed target names, and electron-builder
+  // defaults that target to the Node process architecture.
+  if (key === 'linux' && targetNames.size === 0) {
+    return [architectureNumber(process.arch, description)]
+  }
+
   throw new Error(
     `dsh-plugin-desktop: cannot determine requested Electron architecture(s) for ${key}`,
   )
