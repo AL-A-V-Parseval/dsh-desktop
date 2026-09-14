@@ -9,7 +9,7 @@ DSH Desktop 是一个本地优先的开源桌面应用。本政策说明 DSH Des
 
 本政策中的“我们”指在 GitHub 组织 [`anywhere-labs`](https://github.com/anywhere-labs) 下维护和发布 DSH Desktop 官方版本、并运营 `dshdesktop.cn` 官方服务的 **Anywhere Labs 项目维护团队**。项目是独立的社区开源项目，与 DeepSeek 不存在隶属、合作、授权或背书关系。
 
-隐私问题或权利请求请发送至 [t4wefan@qq.com](mailto:t4wefan@qq.com)。请不要在公开 GitHub Issue 中提交安装标识、日志、凭据或其他私密信息。
+隐私问题或权利请求请发送至 [ji070122@outlook.com](mailto:ji070122@outlook.com)。请不要在公开 GitHub Issue 中提交安装标识、日志、凭据或其他私密信息。
 
 ## 1. 适用范围
 
@@ -201,7 +201,7 @@ Vercel、Upstash、GitHub、npm、ModelScope、模型供应商及社区来源可
 
 ## 11. 您的选择和权利
 
-根据适用法律，您可能有权请求查阅、复制、更正、删除或限制处理个人信息，撤回同意，反对特定处理，获取可携带副本，以及向主管机构投诉。请通过 [t4wefan@qq.com](mailto:t4wefan@qq.com) 联系我们。为定位版本服务中的记录，我们可能请您私下提供本机安装 UUID；请勿公开发布该值。
+根据适用法律，您可能有权请求查阅、复制、更正、删除或限制处理个人信息，撤回同意，反对特定处理，获取可携带副本，以及向主管机构投诉。请通过 [ji070122@outlook.com](mailto:ji070122@outlook.com) 联系我们。为定位版本服务中的记录，我们可能请您私下提供本机安装 UUID；请勿公开发布该值。
 
 我们无法从远程替您删除本机文件。您可以在应用关闭后删除相应本地数据；删除安装 UUID 会在下次启动时生成新值。已经不可逆汇总或无法再关联到您的数据，可能无法恢复或单独删除。
 

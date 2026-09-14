@@ -9,7 +9,7 @@ DSH Desktop is a local-first, open-source desktop application. This policy expla
 
 In this policy, “we” means the **Anywhere Labs project maintainer team** that maintains and publishes the official DSH Desktop distribution under the [`anywhere-labs`](https://github.com/anywhere-labs) GitHub organization and operates the official `dshdesktop.cn` services. DSH Desktop is an independent community project and has no affiliation, partnership, authorization, or endorsement relationship with DeepSeek.
 
-For privacy questions or rights requests, email [t4wefan@qq.com](mailto:t4wefan@qq.com). Do not put installation identifiers, logs, credentials, or other private information in a public GitHub Issue.
+For privacy questions or rights requests, email [ji070122@outlook.com](mailto:ji070122@outlook.com). Do not put installation identifiers, logs, credentials, or other private information in a public GitHub Issue.
 
 ## 1. Scope
 
@@ -201,7 +201,7 @@ No measure provides absolute security. Third-party plugins, privileged local pro
 
 ## 11. Your choices and rights
 
-Depending on applicable law, you may have rights to access, copy, correct, delete, or restrict processing of personal data; withdraw consent; object to particular processing; receive a portable copy; and complain to a supervisory authority. Contact [t4wefan@qq.com](mailto:t4wefan@qq.com). To locate version-service records, we may ask you to provide your local installation UUID privately. Do not publish it.
+Depending on applicable law, you may have rights to access, copy, correct, delete, or restrict processing of personal data; withdraw consent; object to particular processing; receive a portable copy; and complain to a supervisory authority. Contact [ji070122@outlook.com](mailto:ji070122@outlook.com). To locate version-service records, we may ask you to provide your local installation UUID privately. Do not publish it.
 
 We cannot remotely delete files on your device. You can remove relevant local data while the application is closed; deleting the installation UUID causes a new value to be generated at the next launch. Data that has already been irreversibly aggregated or can no longer be linked to you may not be recoverable or individually deletable.
 
