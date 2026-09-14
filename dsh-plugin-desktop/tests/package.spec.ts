@@ -1083,7 +1083,7 @@ describe('published package surface', () => {
     expect(lockfile).not.toContain('@koromix/koffi-win32-x64@npm:3.1.4')
   })
 
-  it('starts the Windows Job runner in Electron Node mode without changing target environment', () => {
+  it('starts the private subprocess runner in Electron Node mode without changing target environment', () => {
     const workspaceRequire = createRequire(new URL('package.json', packageRoot))
     const root = dirname(workspaceRequire.resolve('@deepseek-ai/dsh-subprocess-local/package.json'))
     const index = readFileSync(join(root, 'lib/index.js'), 'utf8')
@@ -1113,8 +1113,25 @@ describe('published package surface', () => {
     expect(runner.DSH_SUBPROCESS_RUNNER).toBe('windows')
     expect(target).toEqual({ PATH: 'target-path', electron_run_as_node: '0', NODE_OPTIONS: '--trace-warnings' })
     expect(evaluate('win32')).not.toHaveProperty('ELECTRON_RUN_AS_NODE')
-    expect(evaluate('darwin', '43.3.0')).not.toHaveProperty('ELECTRON_RUN_AS_NODE')
-    expect(evaluate('linux', '43.3.0', '/request')).not.toHaveProperty('ELECTRON_RUN_AS_NODE')
+    expect(evaluate('linux')).not.toHaveProperty('ELECTRON_RUN_AS_NODE')
+    expect(evaluate('darwin', '43.3.0').ELECTRON_RUN_AS_NODE).toBe('1')
+    expect(evaluate('linux', '43.3.0', '/request').ELECTRON_RUN_AS_NODE).toBe('1')
+  })
+
+  it('routes sharp through the real-Node bridge instead of Electron on Linux', () => {
+    const workspaceRequire = createRequire(new URL('package.json', packageRoot))
+    const root = dirname(dirname(workspaceRequire.resolve('sharp')))
+    const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
+      main?: string
+      module?: string
+      exports?: { '.': { import: { default: string }, require: { default: string } } }
+    }
+    expect(manifest.main).toBe('./bridge/core.cjs')
+    expect(manifest.module).toBe('./bridge/core.cjs')
+    expect(manifest.exports?.['.']?.import?.default).toBe('./bridge/core.cjs')
+    expect(manifest.exports?.['.']?.require?.default).toBe('./bridge/core.cjs')
+    expect(existsSync(join(root, 'bridge', 'core.cjs'))).toBe(true)
+    expect(existsSync(join(root, 'bridge', 'worker.cjs'))).toBe(true)
   })
 
   it('hides official plugin-manager and general subprocess consoles on Windows', () => {

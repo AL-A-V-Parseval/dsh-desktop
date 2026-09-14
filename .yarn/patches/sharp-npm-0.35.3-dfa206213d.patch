@@ -1,0 +1,246 @@
+diff --git a/bridge/core.cjs b/bridge/core.cjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..7462ead398a3f663d44c77cec1c06ae9085cff44
+--- /dev/null
++++ b/bridge/core.cjs
+@@ -0,0 +1,141 @@
++'use strict'
++
++/**
++ * Sharp bridge for Electron on Linux.
++ *
++ * Electron's Linux binaries leak glib symbols into the process space, which
++ * corrupts libvips/GObject state and segfaults the process on the first image
++ * operation (electron#46323). Under Electron this module keeps the exact sharp
++ * API surface the app uses but performs every real operation in a separate
++ * real-Node process (see worker.cjs). Outside Electron (build scripts, the
++ * worker itself, plain Node) it is the unmodified sharp.
++ */
++
++if (process.versions.electron === undefined) {
++  module.exports = require('../dist/index.cjs')
++} else {
++  const { spawn } = require('node:child_process')
++  const { existsSync } = require('node:fs')
++  const { join } = require('node:path')
++
++  const toRealPath = (value) => value.replace(/app\.asar(?!\.unpacked)/u, 'app.asar.unpacked')
++
++  const nodeBinary = () => {
++    if (process.env.DSH_SHARP_NODE) return process.env.DSH_SHARP_NODE
++    for (const candidate of ['/usr/bin/node', '/usr/local/bin/node', '/opt/homebrew/bin/node']) {
++      if (existsSync(candidate)) return candidate
++    }
++    return 'node'
++  }
++
++  const encodeInput = (input) => {
++    if (input === undefined || input === null) return null
++    if (Buffer.isBuffer(input)) return { __buffer: input.toString('base64') }
++    if (ArrayBuffer.isView(input)) {
++      return { __buffer: Buffer.from(input.buffer, input.byteOffset, input.byteLength).toString('base64') }
++    }
++    if (input instanceof ArrayBuffer) return { __buffer: Buffer.from(input).toString('base64') }
++    return input
++  }
++
++  const runWorker = (request) => new Promise((resolve) => {
++    const worker = join(toRealPath(__dirname), 'worker.cjs')
++    const environment = { ...process.env }
++    delete environment.ELECTRON_RUN_AS_NODE
++    let child
++    try {
++      child = spawn(nodeBinary(), [worker], { stdio: ['pipe', 'pipe', 'pipe'], env: environment })
++    } catch (error) {
++      resolve({ ok: false, error: error instanceof Error ? error.message : String(error) })
++      return
++    }
++    let stdout = ''
++    let stderr = ''
++    child.stdout.on('data', (chunk) => { stdout += chunk.toString('utf8') })
++    child.stderr.on('data', (chunk) => { stderr += chunk.toString('utf8') })
++    child.on('error', (error) => {
++      resolve({ ok: false, error: error instanceof Error ? error.message : String(error) })
++    })
++    child.on('close', () => {
++      try {
++        resolve(JSON.parse(stdout))
++      } catch {
++        resolve({ ok: false, error: stderr.trim() || 'sharp bridge worker exited without a result' })
++      }
++    })
++    child.stdin.on('error', () => {})
++    child.stdin.end(JSON.stringify(request))
++  })
++
++  const CHAIN_METHODS = [
++    'rotate', 'toColourspace', 'resize', 'raw', 'png', 'jpeg', 'webp', 'gif', 'avif',
++    'toFormat', 'sharpen', 'flatten', 'withMetadata', 'extend', 'blur', 'trim',
++    'grayscale', 'normalise', 'normalize', 'tint', 'gamma', 'modulate', 'composite',
++    'linear', 'removeAlpha', 'ensureAlpha', 'timeout', 'recomb', 'median', 'negate',
++    'threshold', 'boolean', 'affine', 'unwrap', 'clahe',
++  ]
++
++  class Pipeline {
++    constructor(input, inputOpts, calls) {
++      this.input = input
++      this.inputOpts = inputOpts
++      this.calls = calls
++    }
++
++    _chain(name, args) {
++      return new Pipeline(this.input, this.inputOpts, [...this.calls, [name, args]])
++    }
++
++    clone() {
++      return new Pipeline(this.input, this.inputOpts, [...this.calls])
++    }
++
++    async _run(terminal, terminalArgs) {
++      const result = await runWorker({
++        input: encodeInput(this.input),
++        inputOpts: this.inputOpts === undefined ? null : this.inputOpts,
++        calls: this.calls,
++        terminal,
++        terminalArgs,
++      })
++      if (!result.ok) throw new Error(result.error || 'sharp operation failed in bridge worker')
++      return result
++    }
++
++    async metadata() {
++      const result = await this._run('metadata', [])
++      return result.metadata
++    }
++
++    async toBuffer(...args) {
++      const result = await this._run('toBuffer', args)
++      const data = Buffer.from(result.data, 'base64')
++      if (result.info !== undefined) return { data, info: result.info }
++      return data
++    }
++
++    async toFile(...args) {
++      const result = await this._run('toFile', args)
++      return result.info
++    }
++
++    async stats() {
++      const result = await this._run('stats', [])
++      return result.stats
++    }
++  }
++
++  for (const method of CHAIN_METHODS) {
++    if (typeof Pipeline.prototype[method] === 'function') continue
++    Pipeline.prototype[method] = function chained(...args) {
++      return this._chain(method, args)
++    }
++  }
++
++  const sharp = (input, options) => new Pipeline(input, options, [])
++  sharp.versions = { get vips() { return '8.18.3 (bridged)' }, get sharp() { return '0.35.3 (bridged)' } }
++
++  module.exports = sharp
++  module.exports.default = sharp
++  module.exports.sharp = sharp
++}
+diff --git a/bridge/worker.cjs b/bridge/worker.cjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..998a1dbe9f3507244c5b74db1083210a0c19fd8b
+--- /dev/null
++++ b/bridge/worker.cjs
+@@ -0,0 +1,60 @@
++'use strict'
++
++/**
++ * Real-Node sharp worker for the bridge. Runs outside Electron, so the glib
++ * symbol leak that crashes Electron does not apply. One JSON request in, one
++ * JSON response out, then exit.
++ */
++
++const sharp = require('../dist/index.cjs')
++
++function decodeInput(input) {
++  if (input === null || input === undefined) return null
++  if (typeof input === 'object' && Object.prototype.hasOwnProperty.call(input, '__buffer')) {
++    return Buffer.from(input.__buffer, 'base64')
++  }
++  return input
++}
++
++async function main() {
++  let raw = ''
++  for await (const chunk of process.stdin) raw += chunk
++  if (raw.length === 0) throw new Error('sharp bridge worker received no request')
++  const request = JSON.parse(raw)
++
++  let image = sharp(decodeInput(request.input), request.inputOpts === null ? undefined : request.inputOpts)
++  for (const [method, args] of request.calls ?? []) {
++    if (typeof image[method] !== 'function') throw new Error(`sharp bridge: unknown method ${method}`)
++    image = image[method](...(args ?? []))
++  }
++  if (typeof image[request.terminal] !== 'function') {
++    throw new Error(`sharp bridge: unknown terminal ${request.terminal}`)
++  }
++  const args = request.terminalArgs ?? []
++  const result = await image[request.terminal](...args)
++
++  if (request.terminal === 'metadata') {
++    return { ok: true, metadata: result }
++  }
++  if (request.terminal === 'stats') {
++    return { ok: true, stats: result }
++  }
++  if (Buffer.isBuffer(result) || ArrayBuffer.isView(result)) {
++    return { ok: true, data: Buffer.from(result).toString('base64') }
++  }
++  if (result && typeof result === 'object' && (Buffer.isBuffer(result.data) || ArrayBuffer.isView(result.data))) {
++    return { ok: true, data: Buffer.from(result.data).toString('base64'), info: result.info }
++  }
++  return { ok: true, info: result }
++}
++
++main()
++  .then((response) => {
++    process.stdout.write(JSON.stringify(response))
++  })
++  .catch((error) => {
++    process.stdout.write(JSON.stringify({
++      ok: false,
++      error: error && error.message ? error.message : String(error),
++    }))
++  })
+diff --git a/package.json b/package.json
+index 61432901e67b7eeaf95981fcc9cd0c1926e98489..c76f8d7c9b12ed88699031eb2fd11c72eef46b0f 100644
+--- a/package.json
++++ b/package.json
+@@ -114,23 +114,24 @@
+   },
+   "type": "commonjs",
+   "files": [
++    "bridge",
+     "dist",
+     "install",
+     "lib/index.d.ts",
+     "src/*.{cc,h,gyp}"
+   ],
+-  "main": "./dist/index.cjs",
+-  "module": "./dist/index.mjs",
++  "main": "./bridge/core.cjs",
++  "module": "./bridge/core.cjs",
+   "types": "./dist/index.d.mts",
+   "exports": {
+     ".": {
+       "import": {
+         "types": "./dist/index.d.mts",
+-        "default": "./dist/index.mjs"
++        "default": "./bridge/core.cjs"
+       },
+       "require": {
+         "types": "./dist/index.d.cts",
+-        "default": "./dist/index.cjs"
++        "default": "./bridge/core.cjs"
+       }
+     }
+   },

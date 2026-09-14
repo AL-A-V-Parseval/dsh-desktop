@@ -84,6 +84,10 @@ export const ALLOWED_SMART_UNPACK_PACKAGE_ROOTS = [
   // pnpm embeds executable and native helper payloads.
   'node_modules/pnpm',
   'node_modules/sharp',
+  // Loaded by the real-Node sharp bridge worker outside the ASAR archive.
+  'node_modules/@img/colour',
+  'node_modules/detect-libc',
+  'node_modules/semver',
 ] as const
 
 /** Platform package families selected by native dependencies at package time. */
