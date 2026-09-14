@@ -49,11 +49,11 @@ Launcher 会在组合一个 generation 之前，读取当前 `@deepseek-ai/dsh-s
 
 用户可以从托盘选择另一种模式，也可以手工编辑 DSH home 中的 `settings.yaml` 文档。托盘会更新已注册的 `dsh-desktop` settings namespace，手工编辑则修改 settings provider 观察的同一文件。修改提交后会请求一次有序重启：先 dispose 当前 Cordis 树，仅当零退出码的 shutdown 成功时才让 Electron relaunch。应用绝不会在存活的 renderer generation 中热切换 root slot、原生窗口材质或 Loader row。
 
-Linux 只支持兼容模式。其托盘模式命令会被禁用，自定义窗口模式值会被拒绝，而不会静默降级。
+Linux 支持兼容、扩展与增强三种模式。其托盘模式命令已启用，扩展 / 增强窗口通过 Electron 的 Window Controls Overlay 保留原生最小化 / 最大化 / 关闭按钮；Linux 窗口材质固定为 `off`。
 
 ## 兼容模式
 
-`dsh-desktop.mode` 默认为 `compatibility`。在 macOS 与 Windows 上，该模式会在当前 DSH profile 的官方 Web surface 上方创建一条独立的 36 CSS 像素 Desktop frame，并保留原生红绿灯或窗口按钮。居中的标识、模式 pill、拖动区域与图标操作只属于该 frame；完整官方页面从它下方开始，不参与 frame 的布局或安全区计算。Linux 保留普通原生 frame 作为兼容 fallback。
+`dsh-desktop.mode` 默认为 `compatibility`。在 macOS 与 Windows 上，该模式会在当前 DSH profile 的官方 Web surface 上方创建一条独立的 36 CSS 像素 Desktop frame，并保留原生红绿灯或窗口按钮。居中的标识、模式 pill、拖动区域与图标操作只属于该 frame；完整官方页面从它下方开始，不参与 frame 的布局或安全区计算。Linux 的兼容模式保留普通原生 frame 作为 fallback。
 
 desktop Client module 会校验模式与平台 marker，在兼容模式下只注册独立 frame overlay 与固定 launcher 操作，不替换任何官方呈现。它不提供或替换 `layout` service，不注册 `root` 或 `sidebar` occupant，也不改动 conversation surface。Desktop 自有的启动健康报告属于能力 effect；兼容模式仍会保留被选 profile 自身的 layout、sidebar 与 conversation 组合，普通 `desktop` 与 `web` profile 因而会原样保留官方 row。上游 dialog 仍是内容 overlay，并被限制在 Desktop frame 下方。
 
@@ -89,7 +89,7 @@ desktop Client 会在所有呈现模式中提供不可变的 `desktopWindow` 原
 
 desktop sidebar surface 会把上游 sidebar-fill token 局部设为透明，因此官方 sidebar 与 session 列表渐隐可以透出原生材质，而无需改变其组件样式。
 
-在 macOS 上，增强窗口恢复最初的 hidden-inset 几何：红绿灯位于 `x=16, y=16`，内容使用紧凑的 20 CSS 像素 inset，原生拖拽区域为 32 CSS 像素。其 90 CSS 像素收起列会把官方 56 像素 rail 居中放在该紧凑 inset 下方，并继续支持可选的原生 `sidebar` vibrancy。按钮、链接、输入框、可编辑字段、菜单、标签页、开关、对话框与显式 `.dshDesktopNoDrag` contribution 会通过精确的 `app-region: no-drag` 排除规则保持可交互。在 Windows 上，官方 sidebar 保持兼容模式几何：收起 56 像素、默认展开 280 像素，并沿用相同的上游过渡行为；透明 surface 会透出当前系统支持且用户选择的材质。增强窗口保留最初的 32 CSS 像素内部 caption row 与原生 overlay 控件；这套几何与兼容/扩展模式的 36 像素独立 frame 无关。Linux 会拒绝增强模式，而不会静默降级到与持久化设置不同的呈现。
+在 macOS 上，增强窗口恢复最初的 hidden-inset 几何：红绿灯位于 `x=16, y=16`，内容使用紧凑的 20 CSS 像素 inset，原生拖拽区域为 32 CSS 像素。其 90 CSS 像素收起列会把官方 56 像素 rail 居中放在该紧凑 inset 下方，并继续支持可选的原生 `sidebar` vibrancy。按钮、链接、输入框、可编辑字段、菜单、标签页、开关、对话框与显式 `.dshDesktopNoDrag` contribution 会通过精确的 `app-region: no-drag` 排除规则保持可交互。在 Windows 上，官方 sidebar 保持兼容模式几何：收起 56 像素、默认展开 280 像素，并沿用相同的上游过渡行为；透明 surface 会透出当前系统支持且用户选择的材质。增强窗口保留最初的 32 CSS 像素内部 caption row 与原生 overlay 控件；这套几何与兼容/扩展模式的 36 像素独立 frame 无关。在 Linux 上，增强窗口使用同样的 32 CSS 像素 caption row，并由原生 Window Controls Overlay 支撑，材质固定为 `off`。
 
 ## 开发
 
@@ -259,7 +259,7 @@ corepack.cmd yarn dist:win-portable
 
 - 添加或删除 profile bundle 后必须重启 DSH Desktop；Launcher 不监听 profile manifest。从托盘选择其他 profile 时会自动完成该重启。
 - 切换兼容模式、扩展窗口或增强模式，或修改材质，按设计都会重启应用；存活的 generation 不会热切换 Loader row、slot 所有权或原生材质。
-- Linux 不支持扩展窗口与增强模式。Linux 继续使用兼容呈现。
+- Linux 支持全部三种呈现模式；扩展与增强模式依赖 Window Controls Overlay，并保持不透明（`off`）材质。
 - macOS 与 Windows 托盘终端会提供私有 `dsh`、`pnpm` 与 `node` shim。除此之外，Host runtime 会在当前 Electron 进程的 `PATH` 中公开内置 `pnpm` 命令作为 ambient compatibility，并提供受管 `desktopPnpm` service；这些命令都不会加入系统 `PATH`，Linux 目前也没有 desktop 终端命令。
 - 在 Windows 上，ambient `pnpm` 命令与 lifecycle Node helper 是 `.cmd` shim。`desktopPnpm.run()` 会启动准确的已打包 pnpm entry，从而避免 manager process 的 shell lookup；上游 `dsh plugin`、PowerShell 与命令提示符则可通过 command interpreter 解析 ambient shim。第三方插件直接调用 Node `spawn('pnpm', { shell: false })`，或 lifecycle script 直接以 `shell: false` 执行其 `.cmd` `npm_node_execpath`，仍属于不可移植行为，应改用该 service 或 shell-aware 启动路径。
 - `dshmarket@1.2.3` 仍是用户可选安装的第三方 package，而不是内置 marketplace。只有重新审计的版本同时消费可选 Desktop service、保留普通 DSH fallback，并包含再分发所需的完整 license notice 后，才会重新评估预装。

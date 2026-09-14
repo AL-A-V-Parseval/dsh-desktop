@@ -29,25 +29,29 @@ This fork is **Linux-focused**: it fixes the upstream desktop's inability to run
 
 - Upstream baseline: the latest `master` of [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) (build base `580ac428ef`, product version 2.0.10)
 - Target platform: **Linux x64**
-- Artifacts: a portable archive (tar.gz) and a Debian/Ubuntu package (.deb); neither is code-signed
+- Artifacts: a portable archive (tar.gz) and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships with a detached GPG signature, and the `.deb` also carries an internal `debsigs` signature
 
 ## Changes in this fork
 
-### 1. Route sharp through a real-Node bridge (fixes the Host crash / endless "reconnecting")
+### 1. Extended and enhanced window modes on Linux
+
+Earlier this fork only provided compatibility mode. Electron supports the **Window Controls Overlay** on Linux (`titleBarStyle: "hidden"` + `titleBarOverlay`), so this fork also enables **extended** and **enhanced** modes: the frameless window keeps the native minimize/maximize/close buttons, extended mode uses an independent command bar, and enhanced mode uses a 32-pixel caption row. Linux window material stays `off`. Switch modes from Desktop settings or the window mode control (applied on restart).
+
+### 2. Route sharp through a real-Node bridge (fixes the Host crash / endless "reconnecting")
 
 Electron on Linux leaks glib symbols into the process space, which corrupts libvips/GObject state and makes the first image operation call a null `g_object_unref`, crashing the DSH Host with SIGSEGV (exit 139). The UI then reconnects forever.
 
 This fork stops loading sharp directly in the Electron host and instead forwards every image operation to a separate **real-Node** process. Outside Electron (build scripts, plain Node, and the worker itself) the unmodified sharp is still used.
 
-### 2. Run the private subprocess runner in Node mode on every Electron host
+### 3. Run the private subprocess runner in Node mode on every Electron host
 
 Fixes all subprocess tools failing on Linux (`subprocess scope exited before its bootstrap consumed the launch request`). The private runner now sets `ELECTRON_RUN_AS_NODE=1` whenever it is launched by a packaged Electron host (previously Windows-only).
 
-### 3. Fix the upstream packaging smoke's asar stats issue
+### 4. Fix the upstream packaging smoke's asar stats issue
 
 Upstream now disables ASAR entirely. The packaging smoke lists `resources/`, which contains Electron's own `default_app.asar`; Electron's `fs.stat(..., { bigint: true })` returns Number fields for that `.asar` path, so `dsh-fs-local`'s `info.mode & 511n` threw `Cannot mix BigInt and other types` and packaging aborted. This fork makes `dsh-fs-local` tolerate Number stats, so Linux packaging (including the smoke) completes.
 
-### 4. Synchronized unit tests
+### 5. Synchronized unit tests
 
 Both `tests/package.spec.ts` editions update the RunAsNode cases and add a sharp-bridge case; `verify-packaged-runtime.ts` / `verify-electron-fuses.ts` are adapted for Linux.
 
@@ -60,16 +64,16 @@ Grab the Linux x64 build from [Releases](https://github.com/Jic2007/dsh-desktop/
 ### Portable archive (tar.gz)
 
 ```sh
-tar -xzf DSH-Desktop-2.0.10-linux-x64-portable.tar.gz
-cd DSH-Desktop-2.0.10-linux-x64
+tar -xzf DSH-Desktop-2.0.10-linux.1-x64-portable.tar.gz
+cd DSH-Desktop-2.0.10-linux.1-x64
 ./dsh-plugin-desktop
 ```
 
 ### Debian / Ubuntu package (.deb)
 
 ```sh
-sudo apt install ./dsh-desktop_2.0.10_amd64.deb
-# or: sudo dpkg -i dsh-desktop_2.0.10_amd64.deb && sudo apt -f install
+sudo apt install ./dsh-desktop_2.0.10-linux.1_amd64.deb
+# or: sudo dpkg -i dsh-desktop_2.0.10-linux.1_amd64.deb && sudo apt -f install
 ```
 
 After installing, launch it from the application menu or run `dsh-desktop`. The `.deb`:
@@ -87,6 +91,19 @@ Both forms require:
 - A **real Node** installation (used by the sharp bridge; searched in `/usr/bin/node`, `/usr/local/bin/node`, `/opt/homebrew/bin/node`, overridable via `DSH_SHARP_NODE`)
 - User data is written to `~/.config/DSH Desktop`
 
+### Verify signatures
+
+- `SHA256SUMS` ships with a detached GPG signature, `SHA256SUMS.asc` (key `Jic2007 <ji070122@outlook.com>`, fingerprint `7B0C 9365 5F35 FA86 48AC 58BC 8E97 ED35 D906 329C`, public key `Jic2007-release-key.asc`).
+- The `.deb` also carries an internal `debsigs` origin signature.
+
+```sh
+gpg --import Jic2007-release-key.asc
+gpg --verify SHA256SUMS.asc SHA256SUMS
+sha256sum -c SHA256SUMS
+# optional: internal .deb signature (requires debsigs)
+debsigs --verify dsh-desktop_2.0.10-linux.1_amd64.deb
+```
+
 ## Build from source
 
 ```sh
@@ -101,7 +118,7 @@ For development: `corepack yarn dev`
 ## Known limitations
 
 - Linux only. For Windows / macOS use the [upstream project](https://github.com/anywhere-labs/dsh-desktop).
-- The build is unsigned and intended for testing / personal use; Linux tray and native integration details are not additionally polished.
+- Builds are signed (`SHA256SUMS.asc` plus the internal `.deb` signature); Linux tray and native integration details are not additionally polished.
 - The sharp bridge starts a real Node process per operation, which adds a small process-startup cost; market icons and attachments are low-frequency, so this is acceptable.
 
 ## Documentation
