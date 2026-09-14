@@ -2,6 +2,8 @@
 
 [中文](CODE_OF_CONDUCT.md) | English
 
+This Code of Conduct applies to **DSH Desktop for Linux** ([Jic2007/dsh-desktop](https://github.com/Jic2007/dsh-desktop)), a community fork of [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop). The original covenant is published by the upstream project; this repository adopts it to govern all interaction in this project's spaces.
+
 ## Our Pledge
 
 We as members, contributors, and leaders pledge to make participation in our
@@ -61,8 +63,11 @@ representative at an online or offline event.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement at
-[t4wefan@qq.com](mailto:t4wefan@qq.com).
+reported by:
+
+- Opening an [issue](https://github.com/Jic2007/dsh-desktop/issues) for non-sensitive matters.
+- Contacting the maintainer privately on GitHub, [@Jic2007](https://github.com/Jic2007), for sensitive or confidential reports.
+
 All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the
