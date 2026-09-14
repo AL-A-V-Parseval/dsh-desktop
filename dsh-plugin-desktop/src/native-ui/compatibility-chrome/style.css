@@ -50,6 +50,9 @@ html, body, #root { background: transparent; font-size: 13px; }
 .dshDesktopFrameTitlebar[data-platform="win32"] {
   padding: 0 146px 0 8px;
 }
+.dshDesktopFrameTitlebar[data-platform="linux"] {
+  padding: 0 104px 0 8px;
+}
 .dshDesktopFrameIdentity {
   position: absolute;
   left: 50%;
@@ -251,6 +254,7 @@ html, body, #root { background: transparent; font-size: 13px; }
 }
 .dshDesktopFrameTitlebar[data-platform="darwin"] .dshDesktopFrameActions { margin-left: auto; }
 .dshDesktopFrameTitlebar[data-platform="win32"] .dshDesktopFrameActions { margin-right: auto; }
+.dshDesktopFrameTitlebar[data-platform="linux"] .dshDesktopFrameActions { margin-right: auto; }
 .dshDesktopNativeActions { display: flex; align-items: center; gap: 6px; -webkit-app-region: no-drag; }
 .dshDesktopNativeActions[data-placement="titlebar"] {
   position: relative;
@@ -299,6 +303,7 @@ html, body, #root { background: transparent; font-size: 13px; }
 }
 .dshDesktopFrameTitlebar[data-platform="darwin"] .dshDesktopActionMenu { right: 0; }
 .dshDesktopFrameTitlebar[data-platform="win32"] .dshDesktopActionMenu { left: 0; }
+.dshDesktopFrameTitlebar[data-platform="linux"] .dshDesktopActionMenu { left: 0; }
 .dshDesktopActionMenuItem {
   display: flex;
   align-items: center;
@@ -328,6 +333,7 @@ html, body, #root { background: transparent; font-size: 13px; }
 }
 .dshDesktopFrameTitlebar[data-platform="darwin"] .dshDesktopNativeActionError { right: 0; }
 .dshDesktopFrameTitlebar[data-platform="win32"] .dshDesktopNativeActionError { left: 0; }
+.dshDesktopFrameTitlebar[data-platform="linux"] .dshDesktopNativeActionError { left: 0; }
 .dshDesktopNativeActionError {
   max-width: 260px;
   color: var(--dsw-alias-state-error-primary);

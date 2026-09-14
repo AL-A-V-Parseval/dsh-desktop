@@ -154,7 +154,23 @@ function customChromeWindowOptions(
       thickFrame: true,
     }
   }
-  throw new Error('dsh-plugin-desktop: custom desktop shell modes are supported on macOS and Windows')
+  if (platform === 'linux') {
+    // Electron exposes the Window Controls Overlay API on Linux, so the same
+    // frameless hidden-titlebar contract used by Windows keeps the native
+    // minimize/maximize/close buttons while the renderer owns the command bar.
+    return {
+      ...options,
+      autoHideMenuBar: true,
+      titleBarStyle: 'hidden',
+      titleBarOverlay: {
+        color: '#00000000',
+        symbolColor: '#7f858f',
+        height: geometry.titlebarHeight,
+      },
+      hasShadow: true,
+    }
+  }
+  throw new Error('dsh-plugin-desktop: custom desktop shell modes are supported on macOS, Windows, and Linux')
 }
 
 /**

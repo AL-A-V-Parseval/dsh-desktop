@@ -3,6 +3,7 @@
 import {
   EXTENDED_INNER_CORNER_RADIUS,
   DESKTOP_FRAME_HEIGHT,
+  LINUX_CAPTION_CONTROLS_WIDTH,
   MACOS_TRAFFIC_LIGHT_SAFE_WIDTH,
   WINDOWS_CAPTION_CONTROLS_WIDTH,
 } from '../window-chrome.ts'
@@ -123,6 +124,9 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
 }
 .dshDesktopFrameTitlebar[data-platform="win32"] {
   padding: 0 ${WINDOWS_CAPTION_CONTROLS_WIDTH + 8}px 0 8px;
+}
+.dshDesktopFrameTitlebar[data-platform="linux"] {
+  padding: 0 ${LINUX_CAPTION_CONTROLS_WIDTH + 8}px 0 8px;
 }
 .dshDesktopFrameIdentity {
   position: absolute;
@@ -325,6 +329,7 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
 }
 .dshDesktopFrameTitlebar[data-platform="darwin"] .dshDesktopFrameActions { margin-left: auto; }
 .dshDesktopFrameTitlebar[data-platform="win32"] .dshDesktopFrameActions { margin-right: auto; }
+.dshDesktopFrameTitlebar[data-platform="linux"] .dshDesktopFrameActions { margin-right: auto; }
 .dshDesktopNativeActions { display: flex; align-items: center; gap: 6px; -webkit-app-region: no-drag; }
 .dshDesktopNativeActions[data-placement="titlebar"] {
   position: relative;
@@ -373,6 +378,7 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
 }
 .dshDesktopFrameTitlebar[data-platform="darwin"] .dshDesktopActionMenu { right: 0; }
 .dshDesktopFrameTitlebar[data-platform="win32"] .dshDesktopActionMenu { left: 0; }
+.dshDesktopFrameTitlebar[data-platform="linux"] .dshDesktopActionMenu { left: 0; }
 .dshDesktopActionMenuItem {
   display: flex;
   align-items: center;
@@ -402,6 +408,7 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
 }
 .dshDesktopFrameTitlebar[data-platform="darwin"] .dshDesktopNativeActionError { right: 0; }
 .dshDesktopFrameTitlebar[data-platform="win32"] .dshDesktopNativeActionError { left: 0; }
+.dshDesktopFrameTitlebar[data-platform="linux"] .dshDesktopNativeActionError { left: 0; }
 .dshDesktopNativeActionError {
   max-width: 260px;
   color: var(--dsw-alias-state-error-primary);

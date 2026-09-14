@@ -15,7 +15,8 @@ describe('compatibility HTML chrome', () => {
     expect(read('native-ui/compatibility-chrome/style.css')).toContain(frame
       .replaceAll('${DESKTOP_FRAME_HEIGHT}', '36')
       .replaceAll('${MACOS_TRAFFIC_LIGHT_SAFE_WIDTH + 8}', '88')
-      .replaceAll('${WINDOWS_CAPTION_CONTROLS_WIDTH + 8}', '146'))
+      .replaceAll('${WINDOWS_CAPTION_CONTROLS_WIDTH + 8}', '146')
+      .replaceAll('${LINUX_CAPTION_CONTROLS_WIDTH + 8}', '104'))
     const view = read('client/DesktopFrameTitlebarView.tsx')
     expect(view).toContain('delay={150}')
     expect(view).toContain('closeDelay={200}')

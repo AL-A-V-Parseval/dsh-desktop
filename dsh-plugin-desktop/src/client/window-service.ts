@@ -4,6 +4,7 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import {
   ADVANCED_MACOS_DRAG_REGION_HEIGHT,
   ADVANCED_WINDOWS_TITLEBAR_HEIGHT,
+  LINUX_CAPTION_CONTROLS_WIDTH,
   MACOS_TRAFFIC_LIGHT_SAFE_WIDTH,
   WINDOWS_CAPTION_CONTROLS_WIDTH,
 } from '../window-chrome.ts'
@@ -47,7 +48,7 @@ export function desktopWindowService(environment: DesktopClientEnvironment): Des
       ),
     })
   }
-  if (environment.platform === 'win32') {
+  if (environment.platform === 'win32' || environment.platform === 'linux') {
     return Object.freeze({
       ...environment,
       availableMaterials,
@@ -55,7 +56,7 @@ export function desktopWindowService(environment: DesktopClientEnvironment): Des
       dragRegion: frozenDragRegion(
         ADVANCED_WINDOWS_TITLEBAR_HEIGHT,
         0,
-        WINDOWS_CAPTION_CONTROLS_WIDTH,
+        environment.platform === 'win32' ? WINDOWS_CAPTION_CONTROLS_WIDTH : LINUX_CAPTION_CONTROLS_WIDTH,
       ),
     })
   }

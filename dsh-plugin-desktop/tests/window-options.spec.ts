@@ -203,12 +203,32 @@ describe('compatibility BrowserWindow options', () => {
     expect(DESKTOP_FRAME_HEIGHT).toBe(36)
   })
 
-  it('rejects enhanced mode on Linux', () => {
-    expect(() => advancedWindowOptions(
-      { ...spec, mode: 'advanced' },
+  it('uses native Linux Window Controls Overlay for extended and enhanced modes', () => {
+    const extended = extendedWindowOptions(
+      { ...spec, mode: 'extended', material: 'off' },
       {} as NativeImage,
       'linux',
       preload,
-    )).toThrow('supported on macOS and Windows')
+    )
+    expect(extended.titleBarStyle).toBe('hidden')
+    expect(extended.titleBarOverlay).toEqual(expect.objectContaining({ height: DESKTOP_FRAME_HEIGHT }))
+    expect(extended).not.toHaveProperty('transparent')
+    expect(desktopWindowOptions(
+      { ...spec, mode: 'extended', material: 'off' },
+      {} as NativeImage,
+      'linux',
+      preload,
+    )).toEqual(extended)
+
+    const advanced = advancedWindowOptions(
+      { ...spec, mode: 'advanced', material: 'off' },
+      {} as NativeImage,
+      'linux',
+      preload,
+    )
+    expect(advanced.titleBarStyle).toBe('hidden')
+    expect(advanced.titleBarOverlay).toEqual(expect.objectContaining({
+      height: ADVANCED_WINDOWS_TITLEBAR_HEIGHT,
+    }))
   })
 })

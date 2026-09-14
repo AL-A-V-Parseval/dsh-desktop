@@ -262,7 +262,10 @@ export class ElectronShellGeneration {
     } catch (cause) {
       this.options.logError(`dsh-plugin-desktop: failed to restore main-window state: ${cause instanceof Error ? cause.message : String(cause)}`)
     }
-    const isolated = spec.mode !== 'advanced' && platform.platform !== 'linux'
+    // Extended mode owns the same independent chrome on every platform. Linux
+    // compatibility keeps its ordinary native frame, so only extended opts in.
+    const isolated = spec.mode !== 'advanced'
+      && (platform.platform !== 'linux' || spec.mode === 'extended')
     const windowOptions = desktopWindowOptions(spec, icon, platform.platform, this.options.preloadPath)
     const window = new BrowserWindow({
       ...windowOptions,
