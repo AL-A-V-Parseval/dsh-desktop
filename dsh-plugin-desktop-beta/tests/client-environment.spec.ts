@@ -74,6 +74,8 @@ describe('desktop client environment', () => {
       .toEqual({ version: '2.0.3', mode: 'extended', platform: 'win32', material: 'mica', micaSupported: true })
     expect(parseDesktopClientEnvironment('?dsh-desktop-mode=extended&dsh-desktop-platform=win32&dsh-desktop-version=2.0.3&dsh-desktop-material=acrylic&dsh-desktop-mica=0'))
       .toEqual({ version: '2.0.3', mode: 'extended', platform: 'win32', material: 'off', micaSupported: false })
+    expect(parseDesktopClientEnvironment('?dsh-desktop-mode=extended&dsh-desktop-platform=linux&dsh-desktop-version=2.0.3&dsh-desktop-material=transparent'))
+      .toEqual({ version: '2.0.3', mode: 'extended', platform: 'linux', material: 'transparent', micaSupported: false })
   })
 
   it.each([
@@ -84,6 +86,7 @@ describe('desktop client environment', () => {
     ['?dsh-desktop-mode=advanced&dsh-desktop-platform=darwin', 'dsh-desktop-material'],
     ['?dsh-desktop-mode=advanced&dsh-desktop-platform=darwin&dsh-desktop-material=off', 'dsh-desktop-version'],
     ['?dsh-desktop-mode=advanced&dsh-desktop-platform=win32&dsh-desktop-version=2.0.3&dsh-desktop-material=mica&dsh-desktop-mica=0', 'incompatible'],
+    ['?dsh-desktop-mode=extended&dsh-desktop-platform=linux&dsh-desktop-version=2.0.3&dsh-desktop-material=mica', 'incompatible'],
   ])('fails loud for malformed marker %s', (search, field) => {
     expect(() => parseDesktopClientEnvironment(search)).toThrow(field)
   })
@@ -410,6 +413,22 @@ describe('advanced desktop layout', () => {
         height: ADVANCED_WINDOWS_TITLEBAR_HEIGHT,
         leftInset: 0,
         rightInset: WINDOWS_CAPTION_CONTROLS_WIDTH,
+      },
+    })
+    expect(desktopWindowService({
+      version: '2.0.3', mode: 'advanced', platform: 'linux', material: 'transparent', micaSupported: false,
+    })).toEqual({
+      version: '2.0.3',
+      mode: 'advanced',
+      platform: 'linux',
+      material: 'transparent',
+      micaSupported: false,
+      availableMaterials: ['off', 'transparent'],
+      safeAreaInsets: { top: ADVANCED_WINDOWS_TITLEBAR_HEIGHT, right: 0, bottom: 0, left: 0 },
+      dragRegion: {
+        height: ADVANCED_WINDOWS_TITLEBAR_HEIGHT,
+        leftInset: 0,
+        rightInset: LINUX_CAPTION_CONTROLS_WIDTH,
       },
     })
     expect(desktopWindowService({

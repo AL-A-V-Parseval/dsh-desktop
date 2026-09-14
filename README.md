@@ -35,7 +35,7 @@ DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harne
 
 ### 1. Linux 支持扩展 / 增强窗口模式
 
-此前 fork 只提供兼容模式。Electron 在 Linux 上支持 **Window Controls Overlay**（`titleBarStyle: "hidden"` + `titleBarOverlay`），因此本 fork 让 **扩展模式** 与 **增强模式** 也能在 Linux 上运行：无边框窗口仍保留原生最小化 / 最大化 / 关闭按钮，扩展模式使用独立命令栏，增强模式使用 32 像素 caption row。Linux 窗口材质固定为 `off`。可在桌面设置或窗口模式按钮中切换（切换后重启生效）。
+此前 fork 只提供兼容模式。Electron 在 Linux 上支持 **Window Controls Overlay**（`titleBarStyle: "hidden"` + `titleBarOverlay`），因此本 fork 让 **扩展模式** 与 **增强模式** 也能在 Linux 上运行：无边框窗口仍保留原生最小化 / 最大化 / 关闭按钮，扩展模式使用独立命令栏，增强模式使用 32 像素 caption row。Linux 窗口材质可选 `off` 或 `transparent`（没有原生模糊 API，透明效果是否模糊由系统合成器决定）。可在桌面设置或窗口模式按钮中切换（切换后重启生效）。
 
 ### 2. sharp 走真实 Node 桥接（修复 Host 反复崩溃 / 前端一直「重连」）
 

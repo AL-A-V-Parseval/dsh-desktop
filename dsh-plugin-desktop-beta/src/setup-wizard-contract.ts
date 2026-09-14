@@ -4,6 +4,7 @@ export type DesktopSetupWizardPlatform = 'darwin' | 'win32' | 'linux'
 export type DesktopSetupWizardMode = 'compatibility' | 'extended' | 'advanced'
 export type DesktopSetupWizardMacosMaterial = 'off' | 'transparent'
 export type DesktopSetupWizardWindowsMaterial = 'off' | 'mica'
+export type DesktopSetupWizardLinuxMaterial = 'off' | 'transparent'
 export type DesktopSetupWizardNetworkExposure = 'loopback' | 'lan'
 export type DesktopSetupWizardMarket = 'disabled' | 'community-market' | 'dsh-market'
 
@@ -20,6 +21,7 @@ export interface DesktopSetupWizardSelection {
   readonly mode: DesktopSetupWizardMode
   readonly macosMaterial: DesktopSetupWizardMacosMaterial
   readonly windowsMaterial: DesktopSetupWizardWindowsMaterial
+  readonly linuxMaterial: DesktopSetupWizardLinuxMaterial
   readonly openBrowser: boolean
   readonly networkExposure: DesktopSetupWizardNetworkExposure
   readonly aaEnabled?: boolean
@@ -44,6 +46,7 @@ const SELECTION_KEYS = Object.freeze([
   'mode',
   'macosMaterial',
   'windowsMaterial',
+  'linuxMaterial',
   'openBrowser',
   'networkExposure',
   'aaEnabled',
@@ -86,6 +89,10 @@ function isWindowsMaterial(value: unknown): value is DesktopSetupWizardWindowsMa
   return value === 'off' || value === 'mica'
 }
 
+function isLinuxMaterial(value: unknown): value is DesktopSetupWizardLinuxMaterial {
+  return value === 'off' || value === 'transparent'
+}
+
 function isNetworkExposure(value: unknown): value is DesktopSetupWizardNetworkExposure {
   return value === 'loopback' || value === 'lan'
 }
@@ -111,6 +118,7 @@ function hasSelectionValues(value: Record<string, unknown>): boolean {
     && isMode(value.mode)
     && isMacosMaterial(value.macosMaterial)
     && isWindowsMaterial(value.windowsMaterial)
+    && isLinuxMaterial(value.linuxMaterial)
     && typeof value.openBrowser === 'boolean'
     && isNetworkExposure(value.networkExposure)
     && isMarket(value.market)

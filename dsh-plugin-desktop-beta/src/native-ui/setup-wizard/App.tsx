@@ -129,6 +129,7 @@ function normalizedSelection(input: DesktopSetupWizardInput): DesktopSetupWizard
     windowsMaterial: input.platform === 'win32' && input.windowsMaterial === 'mica' && !input.micaSupported
       ? 'off'
       : input.windowsMaterial,
+    linuxMaterial: input.linuxMaterial,
     openBrowser: browserAccess,
     networkExposure: browserAccess ? input.networkExposure : 'loopback',
     market: input.market,
@@ -143,6 +144,7 @@ function finish(selection: DesktopSetupWizardSelection): void {
   url.searchParams.set('mode', selection.mode)
   url.searchParams.set('macosMaterial', selection.macosMaterial)
   url.searchParams.set('windowsMaterial', selection.windowsMaterial)
+  url.searchParams.set('linuxMaterial', selection.linuxMaterial)
   url.searchParams.set('openBrowser', String(browserAccess))
   url.searchParams.set('networkExposure', browserAccess ? selection.networkExposure : 'loopback')
   url.searchParams.set('market', selection.market)
@@ -300,15 +302,18 @@ function MaterialOptions({
     { value: 'off', title: copy.materialOff, body: copy.materialOffBody },
     ...(input.micaSupported ? [{ value: 'mica' as const, title: copy.materialMica, body: copy.materialMicaBody }] : []),
   ] : [
-    { value: 'off', title: copy.materialOff, body: copy.unavailableOnLinux },
+    { value: 'off', title: copy.materialOff, body: copy.materialOffBody },
+    { value: 'transparent', title: copy.materialTransparent, body: copy.materialTransparentLinuxBody },
   ]
   const selected = input.platform === 'darwin' ? selection.macosMaterial
-    : input.platform === 'win32' ? selection.windowsMaterial : 'off'
+    : input.platform === 'win32' ? selection.windowsMaterial : selection.linuxMaterial
   const choose = (value: MaterialOption['value']): void => {
     if (input.platform === 'darwin' && (value === 'off' || value === 'transparent')) {
       update({ ...selection, macosMaterial: value })
     } else if (input.platform === 'win32' && (value === 'off' || value === 'mica')) {
       update({ ...selection, windowsMaterial: value })
+    } else if (input.platform === 'linux' && (value === 'off' || value === 'transparent')) {
+      update({ ...selection, linuxMaterial: value })
     }
   }
   return <RadioGroup
@@ -321,7 +326,6 @@ function MaterialOptions({
     value={selected}
   >{options.map(option => <Choice
     body={option.body}
-    disabled={input.platform === 'linux'}
     id={`setup-window-material-${option.value}`}
     key={option.value}
     selected={selected === option.value}

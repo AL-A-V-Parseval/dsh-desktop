@@ -18,12 +18,15 @@ import { dirname, extname, isAbsolute, resolve } from 'node:path'
 import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 import { parseDocument } from 'yaml'
 import {
+  DEFAULT_LINUX_WINDOW_MATERIAL,
   DEFAULT_MACOS_WINDOW_MATERIAL,
   DEFAULT_WINDOWS_WINDOW_MATERIAL,
+  parseLinuxWindowMaterial,
   parseMacosWindowMaterial,
   parseWindowsWindowMaterial,
 } from './window-material.ts'
 import type {
+  DesktopSetupWizardLinuxMaterial,
   DesktopSetupWizardMacosMaterial,
   DesktopSetupWizardMode,
   DesktopSetupWizardNetworkExposure,
@@ -50,6 +53,8 @@ export interface DesktopSetupWizardSettings {
   readonly macosMaterial: DesktopSetupWizardMacosMaterial
   /** Preserve both platform preferences when Setup runs on either platform. */
   readonly windowsMaterial: DesktopSetupWizardWindowsMaterial
+  /** Preserve both platform preferences when Setup runs on either platform. */
+  readonly linuxMaterial: DesktopSetupWizardLinuxMaterial
   /** Persisted compatibility key for ordinary-browser access permission. */
   readonly openBrowser: boolean
   /** Native Web listener exposure; LAN requires browser access permission. */
@@ -205,6 +210,7 @@ function projectSettings(
     mode,
     macosMaterial: parseMacosWindowMaterial(desktop.macosMaterial),
     windowsMaterial: parseWindowsWindowMaterial(desktop.windowsMaterial),
+    linuxMaterial: parseLinuxWindowMaterial(desktop.linuxMaterial),
     openBrowser,
     networkExposure: desktopNetworkExposureForBrowserAccess(openBrowser, networkExposure),
     notifications: notificationSettings(notifications),
@@ -221,6 +227,9 @@ function normalizedUpdate(
   }
   if (value.windowsMaterial !== 'off' && value.windowsMaterial !== 'mica') {
     throw new TypeError(`${BIN_NAME}: Windows Setup Wizard material must be off or mica`)
+  }
+  if (value.linuxMaterial !== 'off' && value.linuxMaterial !== 'transparent') {
+    throw new TypeError(`${BIN_NAME}: Linux Setup Wizard material must be off or transparent`)
   }
   if (typeof value.openBrowser !== 'boolean') {
     throw new TypeError(`${BIN_NAME}: Setup Wizard openBrowser must be a boolean`)
@@ -248,6 +257,7 @@ function normalizedUpdate(
     mode: requestedMode,
     macosMaterial: value.macosMaterial,
     windowsMaterial: value.windowsMaterial,
+    linuxMaterial: value.linuxMaterial,
     openBrowser,
     networkExposure,
     notifications: Object.freeze({
@@ -268,6 +278,7 @@ export function sameDesktopSetupWizardSettings(
   return current.mode === next.mode
     && current.macosMaterial === next.macosMaterial
     && current.windowsMaterial === next.windowsMaterial
+    && current.linuxMaterial === next.linuxMaterial
     && current.openBrowser === next.openBrowser
     && current.networkExposure === next.networkExposure
     && current.notifications.enabled === next.notifications.enabled
@@ -284,6 +295,7 @@ function applyYamlUpdate(
   document.setIn([DESKTOP_NAMESPACE, 'mode'], next.mode)
   document.setIn([DESKTOP_NAMESPACE, 'macosMaterial'], next.macosMaterial)
   document.setIn([DESKTOP_NAMESPACE, 'windowsMaterial'], next.windowsMaterial)
+  document.setIn([DESKTOP_NAMESPACE, 'linuxMaterial'], next.linuxMaterial)
   document.setIn([DESKTOP_NAMESPACE, 'openBrowser'], next.openBrowser)
   document.setIn([DESKTOP_NAMESPACE, 'networkExposure'], next.networkExposure)
   for (const [key, value] of Object.entries(next.notifications)) {
@@ -301,6 +313,7 @@ function applyJsonUpdate(
   desktop.mode = next.mode
   desktop.macosMaterial = next.macosMaterial
   desktop.windowsMaterial = next.windowsMaterial
+  desktop.linuxMaterial = next.linuxMaterial
   desktop.openBrowser = next.openBrowser
   desktop.networkExposure = next.networkExposure
   output[DESKTOP_NAMESPACE] = desktop
@@ -462,6 +475,7 @@ export function defaultDesktopSetupWizardSettings(
     mode: 'compatibility',
     macosMaterial: DEFAULT_MACOS_WINDOW_MATERIAL,
     windowsMaterial: DEFAULT_WINDOWS_WINDOW_MATERIAL,
+    linuxMaterial: DEFAULT_LINUX_WINDOW_MATERIAL,
     openBrowser: false,
     networkExposure: 'loopback',
     notifications: Object.freeze({

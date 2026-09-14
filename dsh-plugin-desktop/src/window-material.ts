@@ -5,12 +5,19 @@ import type { DesktopPlatform, DesktopShellMode } from './runtime.ts'
 
 export type MacosWindowMaterial = 'off' | 'transparent'
 export type WindowsWindowMaterial = 'off' | 'mica'
+/**
+ * Linux custom-chrome translucency. Linux exposes no native blur/mica API, so
+ * the only useful material is a fully transparent window background that the
+ * compositor may blur on its own.
+ */
+export type LinuxWindowMaterial = 'off' | 'transparent'
 /** Persisted compatibility value accepted only so pre-removal settings still boot. */
 export type PersistedWindowsWindowMaterial = WindowsWindowMaterial | 'acrylic'
 export type DesktopWindowMaterial = MacosWindowMaterial | WindowsWindowMaterial
 
 export const DEFAULT_MACOS_WINDOW_MATERIAL: MacosWindowMaterial = 'transparent'
 export const DEFAULT_WINDOWS_WINDOW_MATERIAL: WindowsWindowMaterial = 'off'
+export const DEFAULT_LINUX_WINDOW_MATERIAL: LinuxWindowMaterial = 'off'
 export const WINDOWS_MICA_MIN_BUILD = 22_621
 
 /** Extract the NT build number from a Windows `os.release()` value. */
@@ -35,6 +42,12 @@ export function parseMacosWindowMaterial(value: unknown): MacosWindowMaterial {
   throw new Error('dsh-desktop.macosMaterial must be "off" or "transparent"')
 }
 
+export function parseLinuxWindowMaterial(value: unknown): LinuxWindowMaterial {
+  if (value === undefined) return DEFAULT_LINUX_WINDOW_MATERIAL
+  if (value === 'off' || value === 'transparent') return value
+  throw new Error('dsh-desktop.linuxMaterial must be "off" or "transparent"')
+}
+
 export function parseWindowsWindowMaterial(value: unknown): WindowsWindowMaterial {
   if (value === undefined) return DEFAULT_WINDOWS_WINDOW_MATERIAL
   if (value === 'off' || value === 'mica') return value
@@ -52,11 +65,12 @@ export function effectiveDesktopWindowMaterial(
   macosMaterial: MacosWindowMaterial,
   windowsMaterial: PersistedWindowsWindowMaterial,
   windowsBuild: number | undefined,
+  linuxMaterial: LinuxWindowMaterial = DEFAULT_LINUX_WINDOW_MATERIAL,
 ): DesktopWindowMaterial {
-  // Material now applies to every non-Linux presentation. Keep mode in the
-  // resolver signature so callers cannot accidentally bypass shell context.
+  // Keep mode in the resolver signature so callers cannot accidentally bypass
+  // shell context.
   void mode
-  if (platform === 'linux') return 'off'
+  if (platform === 'linux') return linuxMaterial
   if (platform === 'darwin') return macosMaterial
   if (windowsMaterial === 'acrylic') return 'off'
   if (windowsMaterial === 'mica' && !windowsSupportsSystemBackdrop(windowsBuild)) return 'off'

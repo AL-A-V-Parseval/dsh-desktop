@@ -27,7 +27,7 @@ export function desktopWindowService(environment: DesktopClientEnvironment): Des
       ? environment.micaSupported
         ? ['off', 'mica'] as const
         : ['off'] as const
-      : ['off'] as const)
+      : ['off', 'transparent'] as const)
   if (environment.mode === 'compatibility' || environment.mode === 'extended') {
     return Object.freeze({
       ...environment,

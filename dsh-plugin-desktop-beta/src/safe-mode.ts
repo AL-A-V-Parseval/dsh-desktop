@@ -38,6 +38,7 @@ export const DESKTOP_SAFE_MODE_DEFAULTS: Readonly<{
     mode: 'compatibility',
     macosMaterial: 'off',
     windowsMaterial: 'off',
+    linuxMaterial: 'off',
     openBrowser: false,
     networkExposure: 'loopback',
     notifications: Object.freeze({

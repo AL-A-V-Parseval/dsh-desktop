@@ -889,6 +889,7 @@ virtualStoreDirMaxLength: 60
       port: 43_189,
       macosMaterial: 'transparent',
       windowsMaterial: 'off',
+      linuxMaterial: 'off',
       openBrowser: false,
       networkExposure: 'loopback',
     })
@@ -897,6 +898,7 @@ virtualStoreDirMaxLength: 60
       port: 43_120,
       macosMaterial: 'transparent',
       windowsMaterial: 'off',
+      linuxMaterial: 'off',
       openBrowser: false,
       networkExposure: 'loopback',
     })

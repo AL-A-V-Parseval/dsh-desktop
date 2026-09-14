@@ -65,6 +65,7 @@ describe('Desktop Safe Mode environment', () => {
         mode: 'compatibility',
         macosMaterial: 'off',
         windowsMaterial: 'off',
+        linuxMaterial: 'off',
         openBrowser: false,
         networkExposure: 'loopback',
         notifications: {

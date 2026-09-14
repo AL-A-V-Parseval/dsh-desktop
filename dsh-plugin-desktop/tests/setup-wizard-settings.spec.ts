@@ -41,6 +41,7 @@ function values(overrides: Partial<DesktopSetupWizardSettings> = {}): DesktopSet
     mode: 'compatibility',
     macosMaterial: 'transparent',
     windowsMaterial: 'mica',
+    linuxMaterial: 'off',
     openBrowser: true,
     networkExposure: 'lan',
     notifications: {
@@ -105,7 +106,7 @@ describe('Desktop Setup Wizard settings document', () => {
       '',
     ].join('\n'), { mode: 0o600 })
 
-    const next = values()
+    const next = values({ linuxMaterial: 'transparent' })
     await expect(updateDesktopSetupWizardSettings(path, next)).resolves.toEqual(next)
 
     const text = readFileSync(path, 'utf8')
@@ -117,6 +118,7 @@ describe('Desktop Setup Wizard settings document', () => {
       mode: 'compatibility',
       macosMaterial: 'transparent',
       windowsMaterial: 'mica',
+      linuxMaterial: 'transparent',
       port: 61201,
       logLevel: 'warn',
       futureField: 'preserved',

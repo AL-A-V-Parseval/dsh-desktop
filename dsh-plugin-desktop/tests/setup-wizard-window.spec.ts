@@ -59,6 +59,7 @@ function input(overrides: Partial<DesktopSetupWizardInput> = {}): DesktopSetupWi
     mode: 'compatibility',
     macosMaterial: 'transparent',
     windowsMaterial: 'mica',
+    linuxMaterial: 'off',
     openBrowser: true,
     networkExposure: 'loopback',
     aaEnabled: false,
@@ -73,6 +74,7 @@ function completeUrl(selection: DesktopSetupWizardSelection = input()): string {
   url.searchParams.set('mode', selection.mode)
   url.searchParams.set('macosMaterial', selection.macosMaterial)
   url.searchParams.set('windowsMaterial', selection.windowsMaterial)
+  url.searchParams.set('linuxMaterial', selection.linuxMaterial)
   url.searchParams.set('openBrowser', String(selection.openBrowser))
   url.searchParams.set('networkExposure', selection.networkExposure)
   url.searchParams.set('market', selection.market)
@@ -100,6 +102,7 @@ describe('Desktop Setup Wizard action parser', () => {
         mode: 'compatibility',
         macosMaterial: 'transparent',
         windowsMaterial: 'mica',
+        linuxMaterial: 'off',
         openBrowser: true,
         networkExposure: 'loopback',
         aaEnabled: false,
@@ -196,6 +199,7 @@ describe('DesktopSetupWizardWindow', () => {
       mode: source.mode,
       macosMaterial: source.macosMaterial,
       windowsMaterial: source.windowsMaterial,
+      linuxMaterial: source.linuxMaterial,
       openBrowser: source.openBrowser,
       networkExposure: source.networkExposure,
       aaEnabled: false,

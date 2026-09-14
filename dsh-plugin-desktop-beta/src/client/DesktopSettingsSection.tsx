@@ -20,6 +20,7 @@ export interface DesktopShellSettings {
   readonly mode: 'compatibility' | 'extended' | 'advanced'
   readonly macosMaterial: 'off' | 'transparent'
   readonly windowsMaterial: 'off' | 'acrylic' | 'mica'
+  readonly linuxMaterial: 'off' | 'transparent'
   readonly port: number
   readonly openBrowser: boolean
   readonly networkExposure: 'loopback' | 'lan'
@@ -459,6 +460,11 @@ export function DesktopSettingsSection({
           throw new Error(`dsh-plugin-desktop: unavailable Windows material ${JSON.stringify(next)}`)
         }
         await desktopSettings.set('windowsMaterial', next)
+      } else if (platform === 'linux') {
+        if (next !== 'off' && next !== 'transparent') {
+          throw new Error(`dsh-plugin-desktop: invalid Linux material ${JSON.stringify(next)}`)
+        }
+        await desktopSettings.set('linuxMaterial', next)
       }
       requestRestart()
     })
@@ -683,34 +689,34 @@ export function DesktopSettingsSection({
             status={mode === 'advanced' ? t('selected') : undefined}
           />
         </div>
-        {platform !== 'linux' && (
-          <label className="dshDesktopSettingsMaterialField">
-            <span className="dshDesktopSettingsMaterialCopy">
-              <span className="dshDesktopSettingsChoiceTitle">{t('windowMaterial')}</span>
-              <span className="dshDesktopSettingsChoiceBody">{t('windowMaterialBody')}</span>
-            </span>
-            <select
-              className="dshDesktopSettingsSelect"
-              value={platform === 'darwin'
-                ? desktop.value?.macosMaterial ?? 'transparent'
+        <label className="dshDesktopSettingsMaterialField">
+          <span className="dshDesktopSettingsMaterialCopy">
+            <span className="dshDesktopSettingsChoiceTitle">{t('windowMaterial')}</span>
+            <span className="dshDesktopSettingsChoiceBody">{t('windowMaterialBody')}</span>
+          </span>
+          <select
+            className="dshDesktopSettingsSelect"
+            value={platform === 'darwin'
+              ? desktop.value?.macosMaterial ?? 'transparent'
+              : platform === 'linux'
+                ? desktop.value?.linuxMaterial ?? 'off'
                 : desktop.value?.windowsMaterial === 'acrylic'
                   || (!micaSupported && desktop.value?.windowsMaterial === 'mica')
                   ? 'off'
                   : desktop.value?.windowsMaterial ?? 'off'}
-              disabled={!settingsWritable || busy !== undefined || restart !== 'none'}
-              onChange={event => { setMaterial(event.currentTarget.value) }}
-            >
-              <option value="off">{t('windowMaterialOff')}</option>
-              {platform === 'darwin'
-                ? <option value="transparent">{t('windowMaterialTransparent')}</option>
-                : (
-                    <>
-                      {micaSupported && <option value="mica">{t('windowMaterialMica')}</option>}
-                    </>
-                  )}
-            </select>
-          </label>
-        )}
+            disabled={!settingsWritable || busy !== undefined || restart !== 'none'}
+            onChange={event => { setMaterial(event.currentTarget.value) }}
+          >
+            <option value="off">{t('windowMaterialOff')}</option>
+            {platform === 'darwin' || platform === 'linux'
+              ? <option value="transparent">{t('windowMaterialTransparent')}</option>
+              : (
+                  <>
+                    {micaSupported && <option value="mica">{t('windowMaterialMica')}</option>}
+                  </>
+                )}
+          </select>
+        </label>
       </section>
 
       <section className="dshDesktopSettingsGroup" aria-labelledby="dsh-desktop-web-title">

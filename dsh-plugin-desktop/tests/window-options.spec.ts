@@ -19,6 +19,7 @@ const spec: DesktopShellSpec = {
   mode: 'compatibility',
   macosMaterial: 'transparent',
   windowsMaterial: 'off',
+  linuxMaterial: 'off',
   material: 'off',
   width: 1280,
   height: 840,
@@ -230,5 +231,26 @@ describe('compatibility BrowserWindow options', () => {
     expect(advanced.titleBarOverlay).toEqual(expect.objectContaining({
       height: ADVANCED_WINDOWS_TITLEBAR_HEIGHT,
     }))
+  })
+
+  it('makes Linux custom-chrome windows transparent when the material is transparent', () => {
+    const extended = extendedWindowOptions(
+      { ...spec, mode: 'extended', material: 'transparent' },
+      {} as NativeImage,
+      'linux',
+      preload,
+    )
+    expect(extended.transparent).toBe(true)
+    expect(extended.backgroundColor).toBe('#00000000')
+    expect(extended.titleBarStyle).toBe('hidden')
+
+    const advanced = advancedWindowOptions(
+      { ...spec, mode: 'advanced', material: 'transparent' },
+      {} as NativeImage,
+      'linux',
+      preload,
+    )
+    expect(advanced.transparent).toBe(true)
+    expect(advanced.backgroundColor).toBe('#00000000')
   })
 })
