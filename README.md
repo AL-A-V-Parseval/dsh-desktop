@@ -27,9 +27,9 @@ DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harne
 
 本 fork **聚焦 Linux**：修复上游桌面端在 Linux 上无法稳定运行的问题，让 `bash` / `glob` / `grep` 等子进程工具、插件市场与附件等能力在 Linux 上可用。
 
-- 上游基线：DSH Desktop **2.0.10**（`8a8225a`）
+- 上游基线：上游 [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) 最新 `master`（构建基线 `580ac428ef`，产品版本 2.0.10）
 - 目标平台：**Linux x64**
-- 构建产物为便携目录，未做代码签名
+- 产物：便携包（tar.gz）与 Debian/Ubuntu 安装包（.deb），未做代码签名
 
 ## 本 fork 相对上游的改动
 
@@ -43,19 +43,21 @@ Linux 版 Electron 会向进程空间泄漏 glib 符号，与 sharp/libvips 的 
 
 修复 Linux 下所有子进程工具失败（`subprocess scope exited before its bootstrap consumed the launch request`）：私有 runner 通过打包后的 Electron 启动时，现在会设置 `ELECTRON_RUN_AS_NODE=1`（原先仅 Windows 生效）。
 
-### 3. Linux `--dir` 打包校验与解包 allowlist
+### 3. 修复上游打包 smoke 的 asar stats 问题
 
-为 Linux `--dir` 增加架构回退、扩展 `asarUnpack` 与解包 allowlist，使 Linux 打包流程可完整通过。
+上游现已全面禁用 ASAR。打包 smoke 会列出 `resources/`（其中包含 Electron 自带的 `default_app.asar`），而 Electron 对该 `.asar` 路径的 `fs.stat(..., { bigint: true })` 返回 Number 字段，导致 `dsh-fs-local` 的 `info.mode & 511n` 抛出 `Cannot mix BigInt and other types`、打包中断。本 fork 让 `dsh-fs-local` 兼容 Number stats，Linux 打包（含 smoke）可完整通过。
 
 ### 4. 同步单元测试
 
-两版 `tests/package.spec.ts` 更新了 Linux `asarUnpack` 与 RunAsNode 用例，并新增 sharp bridge 用例。
+两版 `tests/package.spec.ts` 更新了 RunAsNode 用例并新增 sharp bridge 用例；`verify-packaged-runtime.ts` / `verify-electron-fuses.ts` 适配 Linux。
 
 具体实现见 `.yarn/patches/`、`patches/` 与提交历史。
 
 ## 下载与运行
 
-从 [Releases](https://github.com/Jic2007/dsh-desktop/releases) 获取 Linux x64 便携包：
+从 [Releases](https://github.com/Jic2007/dsh-desktop/releases) 获取 Linux x64 安装包，提供两种形式。
+
+### 便携包（tar.gz）
 
 ```sh
 tar -xzf DSH-Desktop-2.0.10-linux-x64-portable.tar.gz
@@ -63,7 +65,23 @@ cd DSH-Desktop-2.0.10-linux-x64
 ./dsh-plugin-desktop
 ```
 
-运行要求：
+### Debian / Ubuntu 安装包（.deb）
+
+```sh
+sudo apt install ./dsh-desktop_2.0.10_amd64.deb
+# 或：sudo dpkg -i dsh-desktop_2.0.10_amd64.deb && sudo apt -f install
+```
+
+安装后可从应用菜单启动，或在终端运行 `dsh-desktop`。`.deb` 会：
+
+- 安装到 `/opt/dsh-desktop`
+- 提供 `/usr/bin/dsh-desktop` 命令、`.desktop` 菜单项与图标
+- 在 `postinst` 中设置 `chrome-sandbox` 的 setuid 权限
+- 声明 `Recommends: nodejs`（sharp 桥接需要真实 Node）
+
+卸载：`sudo apt remove dsh-desktop`（用户数据 `~/.config/DSH Desktop` 不会被删除）。
+
+两种形式都要求：
 
 - Linux x64，且具备可运行 Electron 的桌面会话
 - 系统需安装**真实 Node**（sharp 桥接使用；默认依次查找 `/usr/bin/node`、`/usr/local/bin/node`、`/opt/homebrew/bin/node`，可用环境变量 `DSH_SHARP_NODE` 指定）

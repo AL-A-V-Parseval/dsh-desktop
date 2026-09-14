@@ -1,14 +1,16 @@
 # 参与贡献
 
-感谢你愿意参与 DSH Desktop。这是一个社区项目，无论你是普通用户、插件作者还是开发者，都有适合你的贡献方式。
+感谢你愿意为 **DSH Desktop for Linux** 做出贡献。本仓库是 [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) 的社区 fork，聚焦让 DSH Desktop 在 Linux 上稳定可用；无论你是普通用户、插件作者还是开发者，都有适合你的贡献方式。
+
+> 与上游桌面版必要功能无关的 PR、以及其他插件收录相关的 PR，可能不会被接受。本仓库主要接受 **Linux 适配与修复** 相关的改动。
 
 ## 普通用户：使用、反馈与传播
 
-- 遇到问题或异常，[提 issue](https://github.com/anywhere-labs/deepseek-harness-desktop/issues)：说明操作系统（macOS / Windows）、应用版本和复现步骤。
+- 遇到问题或异常，[提 issue](https://github.com/Jic2007/dsh-desktop/issues)：说明你的发行版、应用版本、安装方式（.deb / tar.gz）和复现步骤。
 - 有功能想法或改进建议，也欢迎提 issue 讨论。
-- 参与[社区交流](README.md#社区交流)（微信群、QQ 群、Discord），帮助其他用户解决问题。
 - 写使用教程、体验文章，或帮助完善和翻译文档。
-- 在[友情链接](README.md#友情链接)中收录生态项目。
+
+> 本 fork 不设独立社群，讨论请在本仓库 issue 进行；上游 Windows / macOS 相关问题请到[上游仓库](https://github.com/anywhere-labs/dsh-desktop/issues)。
 
 ## 插件作者：扩展生态
 
@@ -32,27 +34,28 @@ corepack yarn check   # 完整 headless gate：构建、类型检查、测试与
 corepack yarn dev     # 有图形环境时启动应用
 ```
 
+构建 Linux 未打包应用与安装包：
+
+```sh
+DSH_AA_SOURCE_REF=pinned corepack yarn package:dir   # 产物：dsh-plugin-desktop/dist/linux-unpacked/
+```
+
+本仓库的 `.deb` 使用 `ar` + `xz` 手工打包（不依赖 `dpkg-deb`），脚本与产物说明见根目录 `README.md` 与 Release。
+
 ### 仓库边界（开始前务必了解）
 
 - `deepseek-harness/` 是固定版本的上游子模块，**桌面开发不修改其中的任何文件**；上游内容更新走独立的 pin 提交。
 - 桌面代码位于 `dsh-plugin-desktop/`；`dsh-community-fabric/` 保存社区标准 Draft，`dsh-community-market/` 保存市场壳设计。两个社区 package 当前都只有文档、尚不可加载，三个自有 package 共用外层 Yarn workspace。
+- 上游第三方运行时通过 `patches/` 与 `.yarn/patches/` 打补丁；修改这些补丁时，同时更新根 `package.json` 的 `resolutions` 与 `yarn.lock`。
 - 构建、类型检查、单元测试和冒烟检查必须保持 headless-safe。
 
 ### 提交与 PR
 
-与桌面版必要功能无关的 PR，以及其他插件收录相关的 PR，我们可能不会接受。
-
-目前我们接受与桌面版必要功能相关的 PR（如问题修复、新功能等），非常欢迎各位开发者提出此类 PR。
-
-- 提交信息使用 conventional commits 风格（例如 `fix(desktop): ...`、`docs: ...`）。
-- 提交前运行 `yarn check` 并保证全绿。
+- 提交信息使用 conventional commits 风格（例如 `fix(linux): ...`、`docs: ...`）。
+- 提交前运行 `yarn check` 并保证全绿；改动打包相关代码时，另运行一次 `package:dir` 确认 smoke 通过。
 - 变更生产依赖后，运行 `yarn workspace dsh-plugin-desktop verify:notices` 刷新第三方许可清单，并提交更新后的 `dsh-plugin-desktop/THIRD_PARTY_NOTICES.md`。
-- 文档改动请中英同步，并更新 `README.i18n.yaml` 的双语 hash 记录。
+- 文档改动请中英同步；README 改动后需更新 `README.i18n.yaml` 的双语 hash 记录（`node scripts/verify-bilingual-docs.mjs` 会校验）。
 - PR 描述说明改动内容、动机和验证方式；CI 通过后再合并。
-
-## 加入技术团队
-
-如果你希望加入我们的技术团队，欢迎通过 [t4wefan@qq.com](mailto:t4wefan@qq.com) 联系我们。
 
 ## 行为准则
 

@@ -27,9 +27,9 @@ DSH Desktop integrates the local Web UI, Host service, and plugin system of [Dee
 
 This fork is **Linux-focused**: it fixes the upstream desktop's inability to run stably on Linux, restoring subprocess tools (`bash` / `glob` / `grep`), the plugin market, and attachments.
 
-- Upstream baseline: DSH Desktop **2.0.10** (`8a8225a`)
+- Upstream baseline: the latest `master` of [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) (build base `580ac428ef`, product version 2.0.10)
 - Target platform: **Linux x64**
-- The build output is a portable directory and is not code-signed
+- Artifacts: a portable archive (tar.gz) and a Debian/Ubuntu package (.deb); neither is code-signed
 
 ## Changes in this fork
 
@@ -43,19 +43,21 @@ This fork stops loading sharp directly in the Electron host and instead forwards
 
 Fixes all subprocess tools failing on Linux (`subprocess scope exited before its bootstrap consumed the launch request`). The private runner now sets `ELECTRON_RUN_AS_NODE=1` whenever it is launched by a packaged Electron host (previously Windows-only).
 
-### 3. Linux `--dir` packaging verification and unpack allowlist
+### 3. Fix the upstream packaging smoke's asar stats issue
 
-Adds an architecture fallback for Linux `--dir` and extends `asarUnpack` / the unpack allowlist so Linux packaging completes.
+Upstream now disables ASAR entirely. The packaging smoke lists `resources/`, which contains Electron's own `default_app.asar`; Electron's `fs.stat(..., { bigint: true })` returns Number fields for that `.asar` path, so `dsh-fs-local`'s `info.mode & 511n` threw `Cannot mix BigInt and other types` and packaging aborted. This fork makes `dsh-fs-local` tolerate Number stats, so Linux packaging (including the smoke) completes.
 
 ### 4. Synchronized unit tests
 
-Both `tests/package.spec.ts` editions update the Linux `asarUnpack` and RunAsNode cases and add a sharp-bridge case.
+Both `tests/package.spec.ts` editions update the RunAsNode cases and add a sharp-bridge case; `verify-packaged-runtime.ts` / `verify-electron-fuses.ts` are adapted for Linux.
 
 See `.yarn/patches/`, `patches/`, and the commit history for details.
 
 ## Download and run
 
-Grab the Linux x64 portable archive from [Releases](https://github.com/Jic2007/dsh-desktop/releases):
+Grab the Linux x64 build from [Releases](https://github.com/Jic2007/dsh-desktop/releases). Two forms are provided.
+
+### Portable archive (tar.gz)
 
 ```sh
 tar -xzf DSH-Desktop-2.0.10-linux-x64-portable.tar.gz
@@ -63,7 +65,23 @@ cd DSH-Desktop-2.0.10-linux-x64
 ./dsh-plugin-desktop
 ```
 
-Requirements:
+### Debian / Ubuntu package (.deb)
+
+```sh
+sudo apt install ./dsh-desktop_2.0.10_amd64.deb
+# or: sudo dpkg -i dsh-desktop_2.0.10_amd64.deb && sudo apt -f install
+```
+
+After installing, launch it from the application menu or run `dsh-desktop`. The `.deb`:
+
+- installs to `/opt/dsh-desktop`
+- provides the `/usr/bin/dsh-desktop` command, a `.desktop` menu entry, and an icon
+- sets the `chrome-sandbox` setuid permission in `postinst`
+- declares `Recommends: nodejs` (the sharp bridge needs a real Node)
+
+Uninstall with `sudo apt remove dsh-desktop` (user data in `~/.config/DSH Desktop` is kept).
+
+Both forms require:
 
 - Linux x64 with a desktop session able to run Electron
 - A **real Node** installation (used by the sharp bridge; searched in `/usr/bin/node`, `/usr/local/bin/node`, `/opt/homebrew/bin/node`, overridable via `DSH_SHARP_NODE`)
