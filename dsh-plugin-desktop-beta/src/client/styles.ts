@@ -117,7 +117,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   [class*="_navCell"],
   [class*="_arrow"]
 ) {
-  background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 48%, transparent) !important;
+  background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 42%, transparent) !important;
   background-image: var(--dsh-glass-noise);
   background-size: 140px 140px;
   -webkit-backdrop-filter: var(--dsh-glass-control-blur);
@@ -135,6 +135,15 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   [class*="_navCell"]:hover:not([aria-current="true"])
 ) {
   background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 68%, transparent) !important;
+}
+/* Settings and other modals: frost the dialog surface itself. A translucent
+   control sitting on an opaque panel reads as a flat fill, so the panel has
+   to carry the material too for the controls on top of it to look like
+   liquid glass. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [aria-modal="true"] {
+  background-color: color-mix(in srgb, var(--dsw-alias-bg-layer-2) 68%, transparent) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
 }
 /* Sidebar and message box: overlay the frosted material on top of whatever
    background the theme or a third-party appearance plugin painted (wallpaper,
