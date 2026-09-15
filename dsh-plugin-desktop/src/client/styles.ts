@@ -192,6 +192,95 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   box-shadow: var(--dsh-glass-shadow);
   color: var(--dsw-alias-label-primary);
 }
+/* Apple-style motion: popovers and menus spring in, the modal glass settles,
+   and controls press/raise with short springy easings rather than snapping. */
+@keyframes dsh-glass-pop-in {
+  from { opacity: 0; transform: scale(0.94) translateY(-6px); filter: blur(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+}
+@keyframes dsh-glass-modal-in {
+  from { opacity: 0; transform: scale(0.975) translateY(10px); filter: blur(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  [role="menu"],
+  [role="listbox"],
+  [role="tooltip"],
+  .dshDesktopVersionPopover,
+  .dshDesktopActionMenu,
+  .dshDesktopSettingsMenu,
+  .dshShadcnHoverCardContent
+) {
+  animation: dsh-glass-pop-in 280ms cubic-bezier(0.22, 1.2, 0.36, 1) backwards;
+  transform-origin: top center;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [aria-modal="true"] {
+  animation: dsh-glass-modal-in 320ms cubic-bezier(0.22, 1.1, 0.36, 1) backwards;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  [class*="_selector"],
+  [class*="_stepper"],
+  [class*="_themeCube"],
+  [class*="_navCell"],
+  [class*="_arrow"],
+  .dshDesktopSettingsSelect,
+  .dshDesktopSettingsInput,
+  .dshDesktopSettingsButton,
+  .dshDesktopSettingsButtonSecondary,
+  .dshDesktopSettingsButtonDanger,
+  .dshDesktopSettingsHeaderButton,
+  .dshDesktopSettingsBadge
+) {
+  transition:
+    transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  [class*="_selector"],
+  [class*="_stepper"],
+  [class*="_themeCube"],
+  [class*="_navCell"],
+  [class*="_arrow"],
+  .dshDesktopSettingsSelect,
+  .dshDesktopSettingsInput,
+  .dshDesktopSettingsButton,
+  .dshDesktopSettingsButtonSecondary,
+  .dshDesktopSettingsButtonDanger,
+  .dshDesktopSettingsHeaderButton,
+  .dshDesktopSettingsBadge
+):active {
+  transform: scale(0.97);
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  [class*="_themeCube"],
+  [class*="_navCell"]
+):hover:not(:active) {
+  transform: translateY(-1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+    [role="menu"],
+    [role="listbox"],
+    [role="tooltip"],
+    [aria-modal="true"],
+    [class*="_selector"],
+    [class*="_stepper"],
+    [class*="_themeCube"],
+    [class*="_navCell"],
+    [class*="_arrow"],
+    .dshDesktopVersionPopover,
+    .dshDesktopActionMenu,
+    .dshDesktopSettingsMenu,
+    .dshShadcnHoverCardContent
+  ) {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
 `
 
 /** Install shared panel styles; mode selectors keep enhanced and extended chrome independent. */
