@@ -260,6 +260,16 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 ):hover:not(:active) {
   transform: translateY(-1px);
 }
+/* The upstream menus unmount with no exit state, so the retract plays on a
+   fixed clone that installGlassExitAnimations() mirrors before it is dropped. */
+@keyframes dsh-glass-pop-out {
+  from { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+  to { opacity: 0; transform: scale(0.96) translateY(-4px); filter: blur(5px); }
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] .dshGlassRetract {
+  animation: dsh-glass-pop-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  transform-origin: top center;
+}
 @media (prefers-reduced-motion: reduce) {
   body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
     [role="menu"],
@@ -280,6 +290,9 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
     transition: none !important;
     transform: none !important;
   }
+  body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] .dshGlassRetract {
+    display: none !important;
+  }
 }
 `
 
@@ -291,4 +304,93 @@ export function installDesktopOwnedStyles(): () => void {
   style.textContent = DESKTOP_OWNED_STYLES
   document.head.appendChild(style)
   return () => { style.remove() }
+}
+
+const GLASS_POPOVER_SELECTOR = [
+  '[role="menu"]',
+  '[role="listbox"]',
+  '[role="tooltip"]',
+  '.dshDesktopVersionPopover',
+  '.dshDesktopActionMenu',
+  '.dshDesktopSettingsMenu',
+  '.dshShadcnHoverCardContent',
+].join(', ')
+
+/**
+ * Upstream unmounts menus, listboxes, and popovers immediately, so the pop-in
+ * animation has no counterpart. A MutationObserver only sees the node after it
+ * is detached, where its rect is already 0x0, so instead hook the DOM removal
+ * calls to capture the rect while the popover is still laid out, then mirror it
+ * as a fixed, inert clone and run the retract animation before dropping it.
+ */
+export function installGlassExitAnimations(): () => void {
+  if (typeof Node === 'undefined' || typeof document === 'undefined' || !document.body) return () => {}
+  if (document.body.dataset.dshGlassExit === 'on') return () => {}
+  document.body.dataset.dshGlassExit = 'on'
+
+  const pending = new Map<HTMLElement, DOMRect>()
+  const handled = new WeakSet<HTMLElement>()
+  const retract = (node: HTMLElement, rect: DOMRect): void => {
+    if (rect.width < 8 || rect.height < 8) return
+    const clone = node.cloneNode(true) as HTMLElement
+    clone.classList.add('dshGlassRetract')
+    clone.setAttribute('aria-hidden', 'true')
+    clone.style.position = 'fixed'
+    clone.style.left = `${rect.left}px`
+    clone.style.top = `${rect.top}px`
+    clone.style.width = `${rect.width}px`
+    clone.style.height = `${rect.height}px`
+    clone.style.margin = '0'
+    clone.style.pointerEvents = 'none'
+    document.body.appendChild(clone)
+    let done = false
+    const drop = (): void => { if (done) return; done = true; clone.remove() }
+    clone.addEventListener('animationend', drop, { once: true })
+    window.setTimeout(drop, 400)
+  }
+  let scheduled = false
+  const flush = (): void => {
+    scheduled = false
+    const items = [...pending.entries()]
+    pending.clear()
+    for (const [node, rect] of items) retract(node, rect)
+  }
+  const consider = (node: Node | null): void => {
+    if (!(node instanceof HTMLElement) || handled.has(node)) return
+    if (node.classList.contains('dshGlassRetract') || node.closest('.dshGlassRetract')) return
+    if (document.body.dataset.dshDesktopPlatform !== 'linux') return
+    if (document.body.dataset.dshDesktopMaterial !== 'transparent') return
+    const target = node.matches(GLASS_POPOVER_SELECTOR) ? node : node.querySelector(GLASS_POPOVER_SELECTOR)
+    if (!(target instanceof HTMLElement) || handled.has(target)) return
+    handled.add(target)
+    pending.set(target, target.getBoundingClientRect())
+    if (scheduled) return
+    scheduled = true
+    ;(window.requestAnimationFrame ?? (cb => window.setTimeout(cb, 16)))(flush)
+  }
+
+  const proto = Node.prototype
+  const elementProto = Element.prototype
+  const originalRemoveChild = proto.removeChild
+  const originalReplaceChild = proto.replaceChild
+  const originalRemove = elementProto.remove
+  proto.removeChild = function <T extends Node>(child: T): T {
+    consider(child)
+    return originalRemoveChild.call(this, child) as T
+  }
+  proto.replaceChild = function <T extends Node>(newChild: Node, oldChild: T): T {
+    consider(oldChild)
+    return originalReplaceChild.call(this, newChild, oldChild) as T
+  }
+  elementProto.remove = function (): void {
+    consider(this)
+    originalRemove.call(this)
+  }
+
+  return () => {
+    proto.removeChild = originalRemoveChild
+    proto.replaceChild = originalReplaceChild
+    elementProto.remove = originalRemove
+    delete document.body.dataset.dshGlassExit
+  }
 }

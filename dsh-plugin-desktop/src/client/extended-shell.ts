@@ -10,7 +10,7 @@ import type { DesktopClientEnvironment } from './environment.ts'
 import { installExtendedStyles } from './extended-styles.ts'
 import { DesktopLayoutState } from './layout-state.ts'
 import { installDesktopLayout } from './layout-service.ts'
-import { installDesktopOwnedStyles } from './styles.ts'
+import { installDesktopOwnedStyles, installGlassExitAnimations } from './styles.ts'
 import { DesktopThemePresenter } from './theme-presenter.ts'
 
 /** Own the extended root/sidebar surface without reusing enhanced-mode chrome. */
@@ -25,6 +25,11 @@ function applyExtendedOwnedShell(
   ctx.effect(
     () => installDesktopOwnedStyles(),
     'desktop: extended owned layout styles',
+  )
+
+  ctx.effect(
+    () => installGlassExitAnimations(),
+    'desktop: glass popover exit animations',
   )
 
   ctx.effect(() => {

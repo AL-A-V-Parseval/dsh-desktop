@@ -5,7 +5,7 @@ import type { DesktopClientEnvironment } from './environment.ts'
 import { AdvancedFrame } from './AdvancedFrame.tsx'
 import { DesktopLayoutState } from './layout-state.ts'
 import { installDesktopLayout } from './layout-service.ts'
-import { installDesktopOwnedStyles } from './styles.ts'
+import { installDesktopOwnedStyles, installGlassExitAnimations } from './styles.ts'
 import { DesktopThemePresenter } from './theme-presenter.ts'
 
 /** Own the enhanced layout and root slot without installing an independent frame. */
@@ -22,7 +22,9 @@ export function applyAdvancedShell(ctx: ClientContext, environment: DesktopClien
     document.body.dataset.dshDesktopPlatform = environment.platform
     document.body.dataset.dshDesktopMaterial = environment.material
     const removeStyles = installDesktopOwnedStyles()
+    const removeExitAnimations = installGlassExitAnimations()
     return () => {
+      removeExitAnimations()
       removeStyles()
       delete document.body.dataset.dshDesktopMode
       delete document.body.dataset.dshDesktopPlatform
