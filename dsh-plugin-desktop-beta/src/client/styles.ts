@@ -73,12 +73,19 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   --dsh-glass-control-border: color-mix(in srgb, #ffffff 6%, transparent);
   --dsh-glass-control-rim: color-mix(in srgb, #ffffff 3%, transparent);
   --dsh-glass-popover-border: color-mix(in srgb, #ffffff 28%, transparent);
+  /* Apple-style specular edge: a bright top hairline, a shaded bottom edge,
+     and a faint rim, with the centre kept clear instead of lit. */
+  --dsh-glass-edge-light: color-mix(in srgb, #ffffff 30%, transparent);
+  --dsh-glass-edge-shade: color-mix(in srgb, #000000 30%, transparent);
+  --dsh-glass-edge-rim: color-mix(in srgb, #ffffff 10%, transparent);
+  --dsh-glass-edge: inset 0 1px 0 var(--dsh-glass-edge-light), inset 0 -1px 1px var(--dsh-glass-edge-shade), inset 0 0 0 1px var(--dsh-glass-edge-rim);
+  --dsh-glass-lift: 0 2px 6px color-mix(in srgb, #000000 30%, transparent);
   --dsh-glass-surface-overlay: linear-gradient(180deg, color-mix(in srgb, var(--dsw-alias-bg-layer-1) 30%, transparent), color-mix(in srgb, var(--dsw-alias-bg-layer-1) 44%, transparent));
   --dsh-glass-control-blur: blur(16px) saturate(160%);
   --dsh-glass-popover-blur: blur(22px) saturate(170%);
   --dsh-glass-surface-blur: blur(20px) saturate(160%);
   --dsh-glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.09'/%3E%3C/svg%3E");
-  --dsh-glass-shadow: 0 24px 64px color-mix(in srgb, #000000 44%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 16%, transparent);
+  --dsh-glass-shadow: 0 24px 64px color-mix(in srgb, #000000 44%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 26%, transparent), inset 0 -1px 0 color-mix(in srgb, #000000 26%, transparent);
 }
 /* Desktop-owned controls: full glass; we own their state styling. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
@@ -95,7 +102,8 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   background-size: 140px 140px;
   -webkit-backdrop-filter: var(--dsh-glass-control-blur);
   backdrop-filter: var(--dsh-glass-control-blur);
-  border-color: var(--dsh-glass-control-border);
+  border-color: transparent;
+  box-shadow: var(--dsh-glass-edge);
 }
 /* Third-party controls (dropdown triggers, appearance cards, settings nav):
    replace the control's own fill with a translucent glass so the shared
@@ -109,14 +117,12 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   [class*="_navCell"],
   [class*="_arrow"]
 ) {
-  background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 52%, transparent) !important;
-  background-image:
-    linear-gradient(180deg, color-mix(in srgb, #ffffff 5%, transparent), color-mix(in srgb, #ffffff 1%, transparent)),
-    var(--dsh-glass-noise);
-  background-size: 100% 100%, 140px 140px;
+  background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 48%, transparent) !important;
+  background-image: var(--dsh-glass-noise);
+  background-size: 140px 140px;
   -webkit-backdrop-filter: var(--dsh-glass-control-blur);
   backdrop-filter: var(--dsh-glass-control-blur);
-  box-shadow: inset 0 0 0 1px var(--dsh-glass-control-rim);
+  box-shadow: var(--dsh-glass-lift), var(--dsh-glass-edge);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
   [class*="_themeCube"][aria-pressed="true"],
@@ -145,15 +151,15 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   pointer-events: none;
   background-image: var(--dsh-glass-surface-overlay), var(--dsh-glass-noise);
   background-size: 100% 100%, 140px 140px;
-  box-shadow: inset 0 0 0 1px var(--dsh-glass-control-border), inset -1px 0 0 color-mix(in srgb, #ffffff 8%, transparent);
+  box-shadow: var(--dsh-glass-edge), inset -1px 0 0 color-mix(in srgb, #ffffff 8%, transparent);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [data-slot="conversation.composer"] [class*="_card"] {
   background-image: var(--dsh-glass-surface-overlay), var(--dsh-glass-noise);
   background-size: 100% 100%, 140px 140px;
   -webkit-backdrop-filter: var(--dsh-glass-surface-blur);
   backdrop-filter: var(--dsh-glass-surface-blur);
-  box-shadow: inset 0 0 0 1px var(--dsh-glass-control-border);
-  border-color: var(--dsh-glass-control-border);
+  box-shadow: var(--dsh-glass-lift), var(--dsh-glass-edge);
+  border-color: transparent;
 }
 /* Menus, listboxes, and popovers. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
