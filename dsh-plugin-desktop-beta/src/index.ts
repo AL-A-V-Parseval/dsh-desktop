@@ -131,6 +131,8 @@ export interface DesktopSettings {
   networkExposure: DesktopNetworkExposure
   /** Log verbosity threshold applied to the file logger. */
   logLevel: 'debug' | 'info' | 'warn' | 'error'
+  /** Whether the renderer plays its glass motion in the next generation. */
+  motion: boolean
 }
 
 /** Schema registered with the standard settings service. */
@@ -143,19 +145,6 @@ export const DesktopSettingsSchema: z<DesktopSettings> = z.object({
   openBrowser: z.boolean().default(false),
   networkExposure: z.union(['loopback', 'lan'] as const).default('loopback'),
   logLevel: z.union(['debug', 'info', 'warn', 'error'] as const).default('info'),
-})
-
-/** Live appearance preferences applied by the renderer without a restart. */
-export const DESKTOP_APPEARANCE_SETTINGS_NAMESPACE = 'dsh-desktop-appearance'
-
-/** Desktop renderer appearance toggles that take effect immediately. */
-export interface DesktopAppearanceSettings {
-  /** Whether the renderer plays its Apple-style glass motion. */
-  motion: boolean
-}
-
-/** Schema for the live appearance namespace. */
-export const DesktopAppearanceSettingsSchema: z<DesktopAppearanceSettings> = z.object({
   motion: z.boolean().default(true),
 })
 
@@ -279,11 +268,7 @@ export function apply(ctx: Context, config: Config): void {
       },
     },
   )
-  ctx.settings.register(
-    DESKTOP_APPEARANCE_SETTINGS_NAMESPACE,
-    DesktopAppearanceSettingsSchema,
-    { applies: 'live' },
-  )
+
   const rendererOrigin = `http://127.0.0.1:${String(ctx.webServer.port)}`
   ctx.effect(
     () => ctx.webServer.register({

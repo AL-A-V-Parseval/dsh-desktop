@@ -8,6 +8,7 @@ import type {
 import type { LocaleId } from '@deepseek-ai/dsh-client-locale'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
 import type { ThemePreference } from '@deepseek-ai/dsh-client-ui-theme'
+import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   apply,
@@ -217,11 +218,11 @@ function createHarness(
     notify: async (next, prev) => { await watcher?.(next, prev) },
     notifyLocale: (preference) => {
       localePreference = preference
-      for (const listener of settingsUpdated) listener('locale', { preference })
+      for (const listener of settingsUpdated) listener(settingsNamespace('locale'), { preference })
     },
     notifyTheme: (preference) => {
       themePreference = preference
-      for (const listener of settingsUpdated) listener('ui-theme', { preference })
+      for (const listener of settingsUpdated) listener(settingsNamespace('ui-theme'), { preference })
     },
   }
 }
@@ -239,6 +240,7 @@ describe('desktop Host plugin', () => {
       openBrowser: false,
       networkExposure: 'loopback',
       logLevel: 'info',
+      motion: true,
     })
     expect(() => DesktopSettingsSchema({ port: -1 } as DesktopSettings)).toThrow()
     expect(() => DesktopSettingsSchema({ port: 1.5 } as DesktopSettings)).toThrow()
@@ -348,7 +350,7 @@ describe('desktop Host plugin', () => {
       mode: 'compatibility',
       url: 'http://127.0.0.1:43120/?dsh-desktop-mode=compatibility&dsh-desktop-platform=darwin&dsh-desktop-version=2.0.0&dsh-desktop-material=transparent&dsh-desktop-titlebar-inset=36',
       authenticationUrl: 'http://127.0.0.1:43120/?token=test-token',
-      productName: 'DSH Desktop Beta',
+      productName: 'DSH Desktop',
       windowTitle: 'DeepSeek Harness Desktop',
       rendererAccessHeader: {
         name: 'x-dsh-desktop-renderer',
@@ -524,15 +526,15 @@ describe('desktop Host plugin', () => {
     apply(harness.ctx, config)
 
     await harness.notify(
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
+      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info', motion: true },
+      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info', motion: true },
     )
     expect(harness.restart).not.toHaveBeenCalled()
 
     harness.restart.mockImplementation(() => new Promise<void>(() => {}))
     await harness.notify(
-      { mode: 'advanced', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
+      { mode: 'advanced', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info', motion: true },
+      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info', motion: true },
     )
     await vi.runAllTimersAsync()
     expect(harness.restart).toHaveBeenCalledOnce()
@@ -545,8 +547,8 @@ describe('desktop Host plugin', () => {
     harness.restart.mockImplementation(() => new Promise<void>(() => {}))
 
     await harness.notify(
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'off', linuxMaterial: 'off', port: 43_120, openBrowser: true, networkExposure: 'lan', logLevel: 'info' },
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'off', linuxMaterial: 'off', port: 43_120, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
+      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'off', linuxMaterial: 'off', port: 43_120, openBrowser: true, networkExposure: 'lan', logLevel: 'info', motion: true },
+      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'off', linuxMaterial: 'off', port: 43_120, openBrowser: false, networkExposure: 'loopback', logLevel: 'info', motion: true },
     )
     await vi.runAllTimersAsync()
     expect(harness.restart).not.toHaveBeenCalled()
@@ -556,8 +558,8 @@ describe('desktop Host plugin', () => {
     const enabledHarness = createHarness('darwin', true)
     apply(enabledHarness.ctx, config)
     await enabledHarness.notify(
-      { mode: 'advanced', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 43_120, openBrowser: true, networkExposure: 'loopback', logLevel: 'info' },
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 43_120, openBrowser: true, networkExposure: 'loopback', logLevel: 'info' },
+      { mode: 'advanced', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 43_120, openBrowser: true, networkExposure: 'loopback', logLevel: 'info', motion: true },
+      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 43_120, openBrowser: true, networkExposure: 'loopback', logLevel: 'info', motion: true },
     )
     await vi.runAllTimersAsync()
     expect(enabledHarness.restart).toHaveBeenCalledOnce()
@@ -571,15 +573,15 @@ describe('desktop Host plugin', () => {
     apply(harness.ctx, config)
 
     await harness.notify(
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'debug' },
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
+      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'debug', motion: true },
+      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info', motion: true },
     )
     expect(harness.restart).not.toHaveBeenCalled()
 
     harness.restart.mockImplementation(() => new Promise<void>(() => {}))
     await harness.notify(
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 43_189, openBrowser: false, networkExposure: 'loopback', logLevel: 'debug' },
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'debug' },
+      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 43_189, openBrowser: false, networkExposure: 'loopback', logLevel: 'debug', motion: true },
+      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'debug', motion: true },
     )
     await vi.runAllTimersAsync()
     expect(harness.restart).toHaveBeenCalledOnce()
@@ -592,8 +594,8 @@ describe('desktop Host plugin', () => {
 
     harness.restart.mockImplementation(() => new Promise<void>(() => {}))
     await harness.notify(
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'mica', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
+      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'mica', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info', motion: true },
+      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', linuxMaterial: 'off', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info', motion: true },
     )
     await vi.runAllTimersAsync()
 
@@ -651,6 +653,7 @@ describe('desktop Host plugin', () => {
       openBrowser: false,
       networkExposure: 'loopback',
       logLevel: 'info',
+      motion: true,
     }
     expect(() => options?.validate?.({ ...settings, mode: 'advanced' })).not.toThrow()
     expect(() => options?.validate?.({ ...settings, mode: 'extended' })).not.toThrow()
@@ -681,6 +684,7 @@ describe('desktop Host plugin', () => {
       openBrowser: false,
       networkExposure: 'lan',
       logLevel: 'info',
+      motion: true,
     })).not.toThrow()
   })
 })

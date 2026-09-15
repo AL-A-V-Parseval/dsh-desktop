@@ -5,7 +5,6 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
   DesktopSettingsSection,
-  type DesktopAppearanceSettings,
   type DesktopNotificationSettings,
   type DesktopShellSettings,
 } from './DesktopSettingsSection.tsx'
@@ -20,7 +19,6 @@ export const DESKTOP_SETTINGS_LOCALE_NAMESPACE = 'desktop.settings'
 
 /** Host settings namespaces bound through the standard client settings service. */
 export const DESKTOP_SHELL_SETTINGS_NAMESPACE = 'dsh-desktop'
-export const DESKTOP_APPEARANCE_SETTINGS_NAMESPACE = 'dsh-desktop-appearance'
 export const DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE = 'dsh-desktop-notifications'
 
 /** Shared client controls consumed by settings and Desktop-owned window chrome. */
@@ -67,9 +65,6 @@ export function applyDesktopSettings(
   const desktopSettings = ctx.settingsScope.bind<DesktopShellSettings>({
     namespace: DESKTOP_SHELL_SETTINGS_NAMESPACE,
   })
-  const appearanceSettings = ctx.settingsScope.bind<DesktopAppearanceSettings>({
-    namespace: DESKTOP_APPEARANCE_SETTINGS_NAMESPACE,
-  })
   const notificationSettings = ctx.settingsScope.bind<DesktopNotificationSettings>({
     namespace: DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE,
   })
@@ -87,18 +82,34 @@ export function applyDesktopSettings(
     () => installDesktopSettingsStyles(),
     'dsh-plugin-desktop: settings styles',
   )
-  // Mirror the live appearance preference onto the body so the glass motion
-  // styles and the popover retract observer can react without a restart.
+  // Apply the motion preference once, from the generation that is booting, so
+  // changing it only takes effect after a restart. The settings mirror becomes
+  // ready without necessarily notifying subscribers, so retry until it is ready
+  // and then stop watching: later updates are ignored until the next launch.
   ctx.effect(() => {
+    let applied = false
+    let poll: number | undefined
+    const stopPolling = (): void => {
+      if (poll !== undefined) {
+        window.clearInterval(poll)
+        poll = undefined
+      }
+    }
     const apply = (): void => {
-      const enabled = appearanceSettings.getSnapshot().value?.motion !== false
-      if (enabled) delete document.body.dataset.dshDesktopMotion
-      else document.body.dataset.dshDesktopMotion = 'off'
+      if (applied) return
+      const snapshot = desktopSettings.getSnapshot()
+      if (snapshot.status !== 'ready') return
+      applied = true
+      stopPolling()
+      if (snapshot.value?.motion === false) document.body.dataset.dshDesktopMotion = 'off'
+      else delete document.body.dataset.dshDesktopMotion
     }
     apply()
-    const unsubscribe = appearanceSettings.subscribe(apply)
+    if (!applied) poll = window.setInterval(apply, 50)
+    const giveUp = window.setTimeout(stopPolling, 5_000)
     return () => {
-      unsubscribe()
+      stopPolling()
+      window.clearTimeout(giveUp)
       delete document.body.dataset.dshDesktopMotion
     }
   }, 'dsh-plugin-desktop: glass motion preference')
@@ -115,7 +126,6 @@ export function applyDesktopSettings(
       micaSupported: environment.micaSupported,
       setMode,
       desktopSettings,
-      appearanceSettings,
       notificationSettings,
     }),
   }, DesktopSettingsSection))

@@ -67,6 +67,7 @@ const CSS = `
 .dshDesktopSettingsChoice[aria-disabled="true"]:not([data-selected="true"]) { opacity: .58; }
 .dshDesktopSettingsChoiceCopy { display: block; flex: 1; min-width: 0; }
 .dshDesktopSettingsToggleLabel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.dshDesktopSettingsToggleLabelStacked { display: block; flex: 1; min-width: 0; }
 .dshDesktopSettingsChoiceAside { flex: 0 0 auto; margin-left: 12px; }
 .dshDesktopSettingsDeleteConfirm { display: flex; align-items: flex-end; flex-direction: column; gap: 8px; max-width: 320px; }
 .dshDesktopSettingsDeleteWarning { color: var(--dsw-alias-state-warning-primary); font-size: 12px; line-height: 1.4; text-align: right; }
@@ -351,7 +352,7 @@ const CSS = `
 .dshDesktopSettingsToggle[aria-checked="true"] .dshDesktopSettingsToggleKnob {
   transform: translateX(18px);
 }
-/* Apple-style press: the knob stretches and settles back with a spring. */
+/* Press feedback: the knob stretches and settles back with a spring. */
 .dshDesktopSettingsToggle:active .dshDesktopSettingsToggleKnob { width: 26px; }
 .dshDesktopSettingsToggle[aria-checked="true"]:active .dshDesktopSettingsToggleKnob {
   width: 26px;

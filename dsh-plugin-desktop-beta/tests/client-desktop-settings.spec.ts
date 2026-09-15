@@ -32,7 +32,6 @@ import {
 } from '../src/client/desktop-settings-api.ts'
 import {
   applyDesktopSettings,
-  DESKTOP_APPEARANCE_SETTINGS_NAMESPACE,
   DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE,
   DESKTOP_SETTINGS_LOCALE_NAMESPACE,
   DESKTOP_SHELL_SETTINGS_NAMESPACE,
@@ -574,7 +573,7 @@ describe('Desktop native action presentation', () => {
 })
 
 describe('Desktop settings Slot registration', () => {
-  it('registers the official Desktop section, native actions, and all settings scopes', async () => {
+  it('registers the official Desktop section, native actions, and both settings scopes', async () => {
     const scope = {
       getSnapshot: () => ({
         status: 'loading' as const,
@@ -613,8 +612,7 @@ describe('Desktop settings Slot registration', () => {
     })
 
     expect(bind).toHaveBeenNthCalledWith(1, { namespace: DESKTOP_SHELL_SETTINGS_NAMESPACE })
-    expect(bind).toHaveBeenNthCalledWith(2, { namespace: DESKTOP_APPEARANCE_SETTINGS_NAMESPACE })
-    expect(bind).toHaveBeenNthCalledWith(3, { namespace: DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE })
+    expect(bind).toHaveBeenNthCalledWith(2, { namespace: DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE })
     expect(inject).toHaveBeenCalledWith('settings.section', expect.any(Function))
     expect(inject).toHaveBeenCalledWith('settings.action', expect.any(Function))
     const [options, component] = register.mock.calls[0] as unknown as [

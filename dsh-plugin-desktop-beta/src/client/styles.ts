@@ -73,7 +73,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   --dsh-glass-control-border: color-mix(in srgb, #ffffff 6%, transparent);
   --dsh-glass-control-rim: color-mix(in srgb, #ffffff 3%, transparent);
   --dsh-glass-popover-border: color-mix(in srgb, #ffffff 28%, transparent);
-  /* Apple-style specular edge: a bright top hairline, a shaded bottom edge,
+  /* Specular edge: a bright top hairline, a shaded bottom edge,
      and a faint rim, with the centre kept clear instead of lit. */
   --dsh-glass-edge-light: color-mix(in srgb, #ffffff 30%, transparent);
   --dsh-glass-edge-shade: color-mix(in srgb, #000000 30%, transparent);
@@ -192,8 +192,8 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   box-shadow: var(--dsh-glass-shadow);
   color: var(--dsw-alias-label-primary);
 }
-/* Apple-style motion: popovers and menus spring in, the modal glass settles,
-   and controls press/raise with short springy easings rather than snapping. */
+/* Glass motion: popovers and menus spring in, the modal glass settles, and
+   controls press/raise with short springy easings rather than snapping. */
 @keyframes dsh-glass-pop-in {
   from { opacity: 0; transform: scale(0.94) translateY(-6px); filter: blur(6px); }
   to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }

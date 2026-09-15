@@ -369,7 +369,7 @@ html, body, #root { background: transparent; font-size: 13px; }
   box-shadow: 0 24px 64px color-mix(in srgb, #000000 44%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 16%, transparent);
 }
 
-/* Apple-style press feedback and pop animation. */
+/* Press feedback and pop animation. */
 .dshDesktopFrameVersion:active,
 .dshDesktopFrameMode:active { transform: scale(0.95); }
 .dshDesktopTitlebarIconButton:active:not(:disabled) { transform: scale(0.9); }

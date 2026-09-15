@@ -25,10 +25,6 @@ export interface DesktopShellSettings {
   readonly openBrowser: boolean
   readonly networkExposure: 'loopback' | 'lan'
   readonly logLevel: 'debug' | 'info' | 'warn' | 'error'
-}
-
-/** Browser view of the Host `dsh-desktop-appearance` settings namespace. */
-export interface DesktopAppearanceSettings {
   readonly motion: boolean
 }
 
@@ -49,7 +45,6 @@ export interface DesktopSettingsSectionInjected {
   readonly micaSupported: boolean
   readonly setMode: (mode: DesktopShellSettings['mode']) => Promise<void>
   readonly desktopSettings: SettingsScope<DesktopShellSettings>
-  readonly appearanceSettings: SettingsScope<DesktopAppearanceSettings>
   readonly notificationSettings: SettingsScope<DesktopNotificationSettings>
 }
 
@@ -233,12 +228,14 @@ function RepositoryLink({ href, children }: { href: string; children: ReactNode 
 
 function ToggleRow({
   label,
+  body,
   badge,
   checked,
   disabled,
   onChange,
 }: {
   label: ReactNode
+  body?: ReactNode
   badge?: ReactNode
   checked: boolean
   disabled: boolean
@@ -247,10 +244,22 @@ function ToggleRow({
   const labelId = useId()
   return (
     <div className="dshDesktopSettingsToggleRow">
-      <span className="dshDesktopSettingsToggleLabel" id={labelId}>
-        {label}
-        {badge !== undefined && <span className="dshDesktopSettingsBadge">{badge}</span>}
-      </span>
+      {body === undefined
+        ? (
+          <span className="dshDesktopSettingsToggleLabel" id={labelId}>
+            {label}
+            {badge !== undefined && <span className="dshDesktopSettingsBadge">{badge}</span>}
+          </span>
+          )
+        : (
+          <span className="dshDesktopSettingsToggleLabel dshDesktopSettingsToggleLabelStacked" id={labelId}>
+            <span className="dshDesktopSettingsChoiceTitle">
+              {label}
+              {badge !== undefined && <span className="dshDesktopSettingsBadge">{badge}</span>}
+            </span>
+            <span className="dshDesktopSettingsChoiceBody">{body}</span>
+          </span>
+          )}
       <button
         type="button"
         role="switch"
@@ -382,11 +391,9 @@ export function DesktopSettingsSection({
   micaSupported,
   setMode: persistMode,
   desktopSettings,
-  appearanceSettings,
   notificationSettings,
 }: DesktopSettingsSectionProps) {
   const desktop = useScope(desktopSettings)
-  const appearance = useScope(appearanceSettings)
   const notifications = useScope(notificationSettings)
   const [view, setView] = useState<DesktopSettingsView>()
   const [profileName, setProfileName] = useState('')
@@ -446,9 +453,8 @@ export function DesktopSettingsSection({
 
   const requestRestart = (): void => { setRestart('restarting') }
   const settingsWritable = desktop.status === 'ready' && desktop.writable
-  const appearanceWritable = appearance.status === 'ready' && appearance.writable
   const notificationsWritable = notifications.status === 'ready' && notifications.writable
-  const motionEnabled = appearance.value?.motion !== false
+  const motionEnabled = desktop.value?.motion !== false
   const storedMode = desktop.value?.mode ?? initialMode
   const configuredNetworkExposure = desktop.value?.networkExposure ?? 'loopback'
   const browserAccess = desktopBrowserAccessEnabled(
@@ -549,7 +555,10 @@ export function DesktopSettingsSection({
   }
 
   const setMotion = (checked: boolean): void => {
-    void run('motion', async () => { await appearanceSettings.set('motion', checked) })
+    void run('motion', async () => {
+      await desktopSettings.set('motion', checked)
+      requestRestart()
+    })
   }
 
   const setNotification = (field: keyof DesktopNotificationSettings, checked: boolean): void => {
@@ -796,15 +805,13 @@ export function DesktopSettingsSection({
           />
         </label>
         {platform === 'linux' && (
-          <>
-            <ToggleRow
-              label={t('motion')}
-              checked={motionEnabled}
-              disabled={!appearanceWritable || busy !== undefined}
-              onChange={setMotion}
-            />
-            <p className="dshDesktopSettingsNotice">{t('motionBody')}</p>
-          </>
+          <ToggleRow
+            label={t('motion')}
+            body={t('motionBody')}
+            checked={motionEnabled}
+            disabled={!settingsWritable || busy !== undefined || restart !== 'none'}
+            onChange={setMotion}
+          />
         )}
       </section>
 
