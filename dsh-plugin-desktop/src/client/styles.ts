@@ -68,8 +68,8 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   filter: brightness(0.94) saturate(0.94);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] {
-  --dsh-glass-control-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 44%, transparent);
-  --dsh-glass-popover-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 40%, transparent);
+  --dsh-glass-control-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 26%, transparent);
+  --dsh-glass-popover-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 30%, transparent);
   --dsh-glass-control-border: color-mix(in srgb, #ffffff 6%, transparent);
   --dsh-glass-control-rim: color-mix(in srgb, #ffffff 3%, transparent);
   --dsh-glass-popover-border: color-mix(in srgb, #ffffff 28%, transparent);
@@ -80,7 +80,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   --dsh-glass-edge-rim: color-mix(in srgb, #ffffff 10%, transparent);
   --dsh-glass-edge: inset 0 1px 0 var(--dsh-glass-edge-light), inset 0 -1px 1px var(--dsh-glass-edge-shade), inset 0 0 0 1px var(--dsh-glass-edge-rim);
   --dsh-glass-lift: 0 2px 6px color-mix(in srgb, #000000 30%, transparent);
-  --dsh-glass-surface-overlay: linear-gradient(180deg, color-mix(in srgb, var(--dsw-alias-bg-layer-1) 30%, transparent), color-mix(in srgb, var(--dsw-alias-bg-layer-1) 44%, transparent));
+  --dsh-glass-surface-overlay: linear-gradient(180deg, color-mix(in srgb, var(--dsw-alias-bg-layer-1) 24%, transparent), color-mix(in srgb, var(--dsw-alias-bg-layer-1) 34%, transparent));
   --dsh-glass-control-blur: blur(16px) saturate(160%);
   --dsh-glass-popover-blur: blur(22px) saturate(170%);
   --dsh-glass-surface-blur: blur(20px) saturate(160%);
@@ -117,7 +117,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   [class*="_navCell"],
   [class*="_arrow"]
 ) {
-  background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 42%, transparent) !important;
+  background-color: transparent !important;
   background-image: var(--dsh-glass-noise);
   background-size: 140px 140px;
   -webkit-backdrop-filter: var(--dsh-glass-control-blur);
@@ -141,7 +141,9 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
    to carry the material too for the controls on top of it to look like
    liquid glass. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [aria-modal="true"] {
-  background-color: color-mix(in srgb, var(--dsw-alias-bg-layer-2) 68%, transparent) !important;
+  background-color: transparent !important;
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--dsw-alias-bg-layer-2) 26%, transparent), color-mix(in srgb, var(--dsw-alias-bg-layer-2) 34%, transparent)), var(--dsh-glass-noise);
+  background-size: 100% 100%, 140px 140px;
   -webkit-backdrop-filter: blur(30px) saturate(180%);
   backdrop-filter: blur(30px) saturate(180%);
 }
@@ -163,6 +165,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   box-shadow: var(--dsh-glass-edge), inset -1px 0 0 color-mix(in srgb, #ffffff 8%, transparent);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [data-slot="conversation.composer"] [class*="_card"] {
+  background-color: transparent !important;
   background-image: var(--dsh-glass-surface-overlay), var(--dsh-glass-noise);
   background-size: 100% 100%, 140px 140px;
   -webkit-backdrop-filter: var(--dsh-glass-surface-blur);
