@@ -79,7 +79,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   --dsh-glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.09'/%3E%3C/svg%3E");
   --dsh-glass-shadow: 0 24px 64px color-mix(in srgb, #000000 44%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 16%, transparent);
 }
-/* Controls only: selects, inputs, buttons, nav cells, steppers, theme cubes. */
+/* Desktop-owned controls: full glass; we own their state styling. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
   .dshDesktopSettingsSelect,
   .dshDesktopSettingsInput,
@@ -87,12 +87,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   .dshDesktopSettingsButtonSecondary,
   .dshDesktopSettingsButtonDanger,
   .dshDesktopSettingsHeaderButton,
-  .dshDesktopSettingsBadge,
-  [class*="_selector"],
-  [class*="_stepper"],
-  [class*="_themeCube"],
-  [class*="_navCell"],
-  [class*="_arrow"]
+  .dshDesktopSettingsBadge
 ) {
   background-color: var(--dsh-glass-control-fill) !important;
   background-image: var(--dsh-glass-noise);
@@ -100,6 +95,24 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   -webkit-backdrop-filter: var(--dsh-glass-control-blur);
   backdrop-filter: var(--dsh-glass-control-blur);
   border-color: var(--dsh-glass-control-border);
+}
+/* Third-party controls: overlay the glass as a translucent layer and a rim
+   shadow, leaving the plugin's own background, border, and selected/active/
+   hover states intact. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  [class*="_selector"],
+  [class*="_stepper"],
+  [class*="_themeCube"],
+  [class*="_navCell"],
+  [class*="_arrow"]
+) {
+  background-image:
+    linear-gradient(180deg, color-mix(in srgb, #ffffff 10%, transparent), color-mix(in srgb, #ffffff 2%, transparent)),
+    var(--dsh-glass-noise);
+  background-size: 100% 100%, 140px 140px;
+  -webkit-backdrop-filter: var(--dsh-glass-control-blur);
+  backdrop-filter: var(--dsh-glass-control-blur);
+  box-shadow: inset 0 0 0 1px var(--dsh-glass-control-border);
 }
 /* Sidebar: translucent frosted fill only. A backdrop-filter here would become
    the containing block for the fixed Settings overlay hosted inside the
