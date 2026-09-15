@@ -54,6 +54,58 @@ html:has([aria-modal="true"]) .dshDesktopWindowsCaptionRow::before { -webkit-app
   .dshDesktopFrame,
   .dshDesktopResizeHandle { transition: none !important; }
 }
+/* WWDC25-style liquid glass: floating overlays and panels become translucent
+   frosted surfaces over the solid app content. Scoped to the Linux material. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] {
+  --dsh-glass-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 60%, transparent);
+  --dsh-glass-fill-weak: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 40%, transparent);
+  --dsh-glass-border: color-mix(in srgb, #ffffff 12%, transparent);
+  --dsh-glass-blur: blur(30px) saturate(180%);
+  --dsh-glass-shadow: 0 24px 64px color-mix(in srgb, #000000 42%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent);
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  [role="dialog"][aria-modal="true"],
+  [role="menu"],
+  [role="listbox"],
+  [role="tooltip"],
+  .dshDesktopVersionPopover,
+  .dshDesktopActionMenu,
+  .dshShadcnHoverCardContent
+) {
+  background: var(--dsh-glass-fill) !important;
+  -webkit-backdrop-filter: var(--dsh-glass-blur);
+  backdrop-filter: var(--dsh-glass-blur);
+  border: 1px solid var(--dsh-glass-border);
+  box-shadow: var(--dsh-glass-shadow);
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  .dshDesktopSettingsToggleRow,
+  .dshDesktopSettingsMaterialField,
+  .dshDesktopSettingsChoice,
+  .dshDesktopSettingsLanStatus,
+  .dshDesktopSettingsDetails,
+  .dshDesktopSettingsList,
+  .dshDesktopSettingsSelect,
+  .dshDesktopSettingsInput,
+  .dshDesktopSettingsButton,
+  .dshDesktopSettingsButtonSecondary,
+  .dshDesktopSettingsButtonDanger,
+  .dshDesktopSettingsHeaderButton,
+  .dshDesktopSettingsBadge
+) {
+  background: var(--dsh-glass-fill-weak) !important;
+  border-color: var(--dsh-glass-border);
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [role="dialog"][aria-modal="true"] :is(
+  [class*="_selector"],
+  [class*="_stepper"],
+  [class*="_themeCube"],
+  [class*="_navCell"],
+  [class*="_arrow"]
+) {
+  background: var(--dsh-glass-fill-weak) !important;
+  border-color: var(--dsh-glass-border);
+}
 `
 
 /** Install shared panel styles; mode selectors keep enhanced and extended chrome independent. */

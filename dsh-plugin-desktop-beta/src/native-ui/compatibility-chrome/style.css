@@ -348,23 +348,32 @@ html, body, #root { background: transparent; font-size: 13px; }
 .dshDesktopRemoteControl { margin-right: 8px; display: inline-flex; align-items: center; gap: 6px; -webkit-app-region: no-drag; }
 .dshDesktopRemoteControlDot { width: 6px; height: 6px; border-radius: 50%; background: #ef4444; flex-shrink: 0; }
 
+/* Liquid glass for the title-bar popovers. */
+.dshDesktopFrameTitlebar[data-platform="linux"][data-material="transparent"] .dshDesktopVersionPopover,
+.dshDesktopFrameTitlebar[data-platform="linux"][data-material="transparent"] .dshDesktopActionMenu {
+  background: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 60%, transparent);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
+  border-color: color-mix(in srgb, #ffffff 12%, transparent);
+  box-shadow: 0 24px 64px color-mix(in srgb, #000000 42%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent);
+}
+
 /* Liquid-glass control items. On Linux only the controls are translucent; the
    window, command bar, sidebar, and content surfaces stay solid. */
 .dshDesktopFrameTitlebar[data-platform="linux"][data-material="transparent"] .dshDesktopFrameVersion,
 .dshDesktopFrameTitlebar[data-platform="linux"][data-material="transparent"] .dshDesktopFrameMode,
 .dshDesktopFrameTitlebar[data-platform="linux"][data-material="transparent"] .dshDesktopTitlebarIconButton {
-  border: 1px solid color-mix(in srgb, #ffffff 24%, transparent);
+  border: 1px solid color-mix(in srgb, #ffffff 12%, transparent);
   background:
-    linear-gradient(180deg, color-mix(in srgb, #ffffff 22%, transparent), color-mix(in srgb, #ffffff 4%, transparent)),
-    color-mix(in srgb, var(--dsw-alias-bg-layer-1) 62%, transparent);
+    linear-gradient(180deg, color-mix(in srgb, #ffffff 8%, transparent), color-mix(in srgb, #ffffff 2%, transparent)),
+    color-mix(in srgb, var(--dsw-alias-bg-layer-1) 55%, transparent);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 38%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, #000000 16%, transparent),
-    0 1px 2px color-mix(in srgb, #000000 22%, transparent),
-    0 4px 12px color-mix(in srgb, #000000 14%, transparent);
+    inset 0 1px 0 color-mix(in srgb, #ffffff 14%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #000000 10%, transparent),
+    0 1px 2px color-mix(in srgb, #000000 14%, transparent);
   color: var(--dsw-alias-label-primary);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
 }
 .dshDesktopFrameTitlebar[data-platform="linux"][data-material="transparent"] .dshDesktopFrameVersion:hover,
 .dshDesktopFrameTitlebar[data-platform="linux"][data-material="transparent"] .dshDesktopFrameVersion:focus-visible,
@@ -374,7 +383,8 @@ html, body, #root { background: transparent; font-size: 13px; }
 .dshDesktopFrameTitlebar[data-platform="linux"][data-material="transparent"] .dshDesktopFrameMode[data-popup-open],
 .dshDesktopFrameTitlebar[data-platform="linux"][data-material="transparent"] .dshDesktopTitlebarIconButton:hover:not(:disabled),
 .dshDesktopFrameTitlebar[data-platform="linux"][data-material="transparent"] .dshDesktopTitlebarIconButton[aria-expanded="true"] {
+  border-color: color-mix(in srgb, #ffffff 18%, transparent);
   background:
-    linear-gradient(180deg, color-mix(in srgb, #ffffff 34%, transparent), color-mix(in srgb, #ffffff 12%, transparent)),
-    color-mix(in srgb, var(--dsw-alias-bg-layer-1) 70%, transparent);
+    linear-gradient(180deg, color-mix(in srgb, #ffffff 14%, transparent), color-mix(in srgb, #ffffff 4%, transparent)),
+    color-mix(in srgb, var(--dsw-alias-bg-layer-1) 62%, transparent);
 }
