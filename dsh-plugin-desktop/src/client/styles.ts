@@ -97,13 +97,11 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   backdrop-filter: var(--dsh-glass-control-blur);
   border-color: var(--dsh-glass-control-border);
 }
-/* Third-party controls: recess them behind a faint dark varnish and blur,
-   leaving the plugin's own background, border, and selected/active/hover
-   states intact. The varnish sits over the control's own fill (which is often
-   a step lighter than the panel and reads as highlighted) and the rim stays
-   well below the plugin's own border, so unselected controls end up as
-   subdued as a native liquid-glass control while a lighter selected fill
-   still stands out. */
+/* Third-party controls (dropdown triggers, appearance cards, settings nav):
+   replace the control's own fill with a translucent glass so the shared
+   backdrop-filter actually frosts what is behind it, instead of covering it
+   with an opaque fill. Selected/active states (aria-pressed / aria-current)
+   and hover keep a stronger translucent fill so they stay distinguishable. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
   [class*="_selector"],
   [class*="_stepper"],
@@ -111,13 +109,26 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   [class*="_navCell"],
   [class*="_arrow"]
 ) {
+  background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 52%, transparent) !important;
   background-image:
-    linear-gradient(180deg, color-mix(in srgb, #000000 8%, transparent), color-mix(in srgb, #000000 16%, transparent)),
+    linear-gradient(180deg, color-mix(in srgb, #ffffff 5%, transparent), color-mix(in srgb, #ffffff 1%, transparent)),
     var(--dsh-glass-noise);
   background-size: 100% 100%, 140px 140px;
   -webkit-backdrop-filter: var(--dsh-glass-control-blur);
   backdrop-filter: var(--dsh-glass-control-blur);
   box-shadow: inset 0 0 0 1px var(--dsh-glass-control-rim);
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  [class*="_themeCube"][aria-pressed="true"],
+  [class*="_navCell"][aria-current="true"]
+) {
+  background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 84%, transparent) !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  [class*="_themeCube"]:hover:not([aria-pressed="true"]),
+  [class*="_navCell"]:hover:not([aria-current="true"])
+) {
+  background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 68%, transparent) !important;
 }
 /* Sidebar and message box: overlay the frosted material on top of whatever
    background the theme or a third-party appearance plugin painted (wallpaper,
