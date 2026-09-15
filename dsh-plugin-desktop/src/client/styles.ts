@@ -70,6 +70,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   [role="tooltip"],
   .dshDesktopVersionPopover,
   .dshDesktopActionMenu,
+  .dshDesktopSettingsMenu,
   .dshShadcnHoverCardContent
 ) {
   background: var(--dsh-glass-fill) !important;

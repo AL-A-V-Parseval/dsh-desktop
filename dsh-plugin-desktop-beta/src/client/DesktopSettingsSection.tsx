@@ -299,6 +299,74 @@ function marketBody(option: (typeof MARKET_OPTIONS)[number], t: Translate): Reac
   )
 }
 
+function MaterialSelect({
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  readonly value: string
+  readonly options: readonly { readonly value: string; readonly label: string }[]
+  readonly disabled: boolean
+  readonly onChange: (value: string) => void
+}): JSX.Element {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const dismiss = (event: MouseEvent): void => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+    const escape = (event: KeyboardEvent): void => { if (event.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', dismiss)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('mousedown', dismiss)
+      document.removeEventListener('keydown', escape)
+    }
+  }, [open])
+  const current = options.find(option => option.value === value) ?? options[0]
+  return (
+    <div className="dshDesktopSettingsSelectWrap" ref={rootRef}>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        className="dshDesktopSettingsSelect"
+        disabled={disabled}
+        onClick={() => { setOpen(open => !open) }}
+      >
+        <span className="dshDesktopSettingsSelectValue">{current?.label}</span>
+        <svg aria-hidden="true" className="dshDesktopSettingsSelectChevron" height="14" viewBox="0 0 16 16" width="14">
+          <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
+        </svg>
+      </button>
+      {open && (
+        <div className="dshDesktopSettingsMenu" role="listbox">
+          {options.map(option => (
+            <button
+              key={option.value}
+              aria-selected={option.value === value}
+              className="dshDesktopSettingsMenuItem"
+              data-selected={option.value === value || undefined}
+              role="option"
+              type="button"
+              onClick={() => { onChange(option.value); setOpen(false) }}
+            >
+              <span>{option.label}</span>
+              {option.value === value && (
+                <svg aria-hidden="true" height="14" viewBox="0 0 16 16" width="14">
+                  <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+                </svg>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** Render the Desktop settings page. */
 export function DesktopSettingsSection({
   t,
@@ -694,8 +762,7 @@ export function DesktopSettingsSection({
             <span className="dshDesktopSettingsChoiceTitle">{t('windowMaterial')}</span>
             <span className="dshDesktopSettingsChoiceBody">{t('windowMaterialBody')}</span>
           </span>
-          <select
-            className="dshDesktopSettingsSelect"
+          <MaterialSelect
             value={platform === 'darwin'
               ? desktop.value?.macosMaterial ?? 'transparent'
               : platform === 'linux'
@@ -704,18 +771,15 @@ export function DesktopSettingsSection({
                   || (!micaSupported && desktop.value?.windowsMaterial === 'mica')
                   ? 'off'
                   : desktop.value?.windowsMaterial ?? 'off'}
+            options={[
+              { value: 'off', label: t('windowMaterialOff') },
+              ...(platform === 'darwin' || platform === 'linux'
+                ? [{ value: 'transparent', label: t('windowMaterialTransparent') }]
+                : micaSupported ? [{ value: 'mica', label: t('windowMaterialMica') }] : []),
+            ]}
             disabled={!settingsWritable || busy !== undefined || restart !== 'none'}
-            onChange={event => { setMaterial(event.currentTarget.value) }}
-          >
-            <option value="off">{t('windowMaterialOff')}</option>
-            {platform === 'darwin' || platform === 'linux'
-              ? <option value="transparent">{t('windowMaterialTransparent')}</option>
-              : (
-                  <>
-                    {micaSupported && <option value="mica">{t('windowMaterialMica')}</option>}
-                  </>
-                )}
-          </select>
+            onChange={setMaterial}
+          />
         </label>
       </section>
 

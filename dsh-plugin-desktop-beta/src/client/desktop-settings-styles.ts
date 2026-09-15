@@ -236,19 +236,67 @@ const CSS = `
   background: var(--dsw-alias-bg-layer-1);
 }
 .dshDesktopSettingsMaterialCopy { min-width: 0; }
+.dshDesktopSettingsSelectWrap { position: relative; flex: 0 0 auto; }
 .dshDesktopSettingsSelect {
-  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   min-width: 150px;
   min-height: 32px;
-  padding: 4px 28px 4px 10px;
+  padding: 4px 10px;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 8px;
   background: var(--dsw-alias-bg-layer-1);
   color: var(--dsw-alias-label-primary);
+  cursor: pointer;
   font: inherit;
   font-size: 12px;
+  transition: background-color 160ms ease, border-color 160ms ease;
 }
-.dshDesktopSettingsSelect:disabled { opacity: .55; }
+.dshDesktopSettingsSelect:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
+.dshDesktopSettingsSelect:disabled { opacity: .55; cursor: default; }
+.dshDesktopSettingsSelectChevron { opacity: .7; transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1); }
+.dshDesktopSettingsSelect[aria-expanded="true"] .dshDesktopSettingsSelectChevron { transform: rotate(180deg); }
+.dshDesktopSettingsMenu {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 6px);
+  right: 0;
+  display: grid;
+  gap: 2px;
+  min-width: 150px;
+  padding: 5px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-layer-1);
+  box-shadow: 0 12px 32px color-mix(in srgb, #000 28%, transparent);
+  transform-origin: top right;
+  animation: dshDesktopSelectIn 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes dshDesktopSelectIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.dshDesktopSettingsMenuItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  text-align: start;
+  transition: background-color 140ms ease;
+}
+.dshDesktopSettingsMenuItem:hover,
+.dshDesktopSettingsMenuItem[data-selected] { background: var(--dsw-alias-interactive-bg-hover); }
 .dshDesktopSettingsNotice,
 .dshDesktopSettingsError,
 .dshDesktopSettingsSuccess {
