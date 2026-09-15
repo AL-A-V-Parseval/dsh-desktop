@@ -56,14 +56,26 @@ html:has([aria-modal="true"]) .dshDesktopWindowsCaptionRow::before { -webkit-app
 }
 /* WWDC25-style liquid glass: floating overlays and panels become translucent
    frosted surfaces over the solid app content. Scoped to the Linux material. */
+/* iOS-style background recede while a popover or dialog is open. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] #root {
+  transition: filter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]:has(
+  [role="menu"],
+  [role="listbox"],
+  .dshDesktopSettingsMenu,
+  .dshDesktopActionMenu
+) #root {
+  filter: brightness(0.9) saturate(0.92);
+}
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] {
   --dsh-glass-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 54%, transparent);
   --dsh-glass-fill-weak: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 36%, transparent);
   --dsh-glass-popover-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 40%, transparent);
   --dsh-glass-border: color-mix(in srgb, #ffffff 14%, transparent);
   --dsh-glass-popover-border: color-mix(in srgb, #ffffff 20%, transparent);
-  --dsh-glass-blur: blur(32px) saturate(180%);
-  --dsh-glass-popover-blur: blur(46px) saturate(190%);
+  --dsh-glass-blur: blur(18px) saturate(160%);
+  --dsh-glass-popover-blur: blur(22px) saturate(170%);
   --dsh-glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
   --dsh-glass-shadow: 0 24px 64px color-mix(in srgb, #000000 44%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 16%, transparent);
 }
