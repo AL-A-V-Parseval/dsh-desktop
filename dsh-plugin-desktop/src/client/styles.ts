@@ -16,7 +16,6 @@ body:is([data-dsh-desktop-mode="extended"], [data-dsh-desktop-mode="advanced"]) 
 .dshDesktopFrame { position: relative; display: grid; grid-template-rows: 100%; width: 100%; height: 100%; overflow: hidden; background: transparent; transition: grid-template-columns var(--ds-transition-duration-slow) var(--ds-ease-in-out); }
 .dshDesktopSidebarSurface { --dsw-specific-sidebar-fill: transparent; position: relative; grid-column: 1; grid-row: 1; min-width: 0; overflow: hidden; background: transparent; border-right: 1px solid var(--dsw-alias-border-l1); }
 body:is([data-dsh-desktop-mode="extended"], [data-dsh-desktop-mode="advanced"])[data-dsh-desktop-material="off"] .dshDesktopSidebarSurface { --dsw-specific-sidebar-fill: var(--dsw-alias-bg-layer-1); background: var(--dsw-alias-bg-layer-1); }
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-mode="advanced"]:not([data-dsh-desktop-material="off"]) .dshDesktopSidebarSurface { --dsw-specific-sidebar-fill: var(--dsw-alias-bg-layer-1); background: var(--dsw-alias-bg-layer-1); }
 .dshDesktopUpstreamSidebar { box-sizing: border-box; width: 100%; height: 100%; }
 body:is([data-dsh-desktop-mode="extended"], [data-dsh-desktop-mode="advanced"]) [data-slot="sidebar.footer.action"] { display: flex !important; flex-direction: column; gap: 6px; min-width: 0; width: 100%; max-height: min(40vh, 240px); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
 body:is([data-dsh-desktop-mode="extended"], [data-dsh-desktop-mode="advanced"]) [data-slot="sidebar.footer.action"] > * { flex: none; min-width: 0; }
@@ -73,8 +72,10 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   --dsh-glass-popover-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 40%, transparent);
   --dsh-glass-control-border: color-mix(in srgb, #ffffff 24%, transparent);
   --dsh-glass-popover-border: color-mix(in srgb, #ffffff 28%, transparent);
+  --dsh-glass-surface-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 52%, transparent);
   --dsh-glass-control-blur: blur(16px) saturate(160%);
   --dsh-glass-popover-blur: blur(22px) saturate(170%);
+  --dsh-glass-surface-blur: blur(20px) saturate(160%);
   --dsh-glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.09'/%3E%3C/svg%3E");
   --dsh-glass-shadow: 0 24px 64px color-mix(in srgb, #000000 44%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 16%, transparent);
 }
@@ -98,6 +99,19 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   background-size: 140px 140px;
   -webkit-backdrop-filter: var(--dsh-glass-control-blur);
   backdrop-filter: var(--dsh-glass-control-blur);
+  border-color: var(--dsh-glass-control-border);
+}
+/* Sidebar and message box share the same frosted material. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  .dshDesktopSidebarSurface,
+  [data-slot="conversation.composer"] [class*="_card"]
+) {
+  --dsw-specific-sidebar-fill: transparent;
+  background-color: var(--dsh-glass-surface-fill) !important;
+  background-image: var(--dsh-glass-noise);
+  background-size: 140px 140px;
+  -webkit-backdrop-filter: var(--dsh-glass-surface-blur);
+  backdrop-filter: var(--dsh-glass-surface-blur);
   border-color: var(--dsh-glass-control-border);
 }
 /* Menus, listboxes, and popovers. */
