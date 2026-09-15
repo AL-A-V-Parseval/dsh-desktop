@@ -57,17 +57,20 @@ html:has([aria-modal="true"]) .dshDesktopWindowsCaptionRow::before { -webkit-app
 /* WWDC25-style liquid glass: floating overlays and panels become translucent
    frosted surfaces over the solid app content. Scoped to the Linux material. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] {
-  --dsh-glass-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 58%, transparent);
+  --dsh-glass-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 54%, transparent);
   --dsh-glass-fill-weak: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 36%, transparent);
-  --dsh-glass-popover-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 42%, transparent);
-  --dsh-glass-border: color-mix(in srgb, #ffffff 12%, transparent);
-  --dsh-glass-popover-border: color-mix(in srgb, #ffffff 18%, transparent);
-  --dsh-glass-blur: blur(30px) saturate(180%);
-  --dsh-glass-popover-blur: blur(44px) saturate(190%);
-  --dsh-glass-shadow: 0 24px 64px color-mix(in srgb, #000000 42%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 12%, transparent);
+  --dsh-glass-popover-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 40%, transparent);
+  --dsh-glass-border: color-mix(in srgb, #ffffff 14%, transparent);
+  --dsh-glass-popover-border: color-mix(in srgb, #ffffff 20%, transparent);
+  --dsh-glass-blur: blur(32px) saturate(180%);
+  --dsh-glass-popover-blur: blur(46px) saturate(190%);
+  --dsh-glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  --dsh-glass-shadow: 0 24px 64px color-mix(in srgb, #000000 44%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 16%, transparent);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [role="dialog"][aria-modal="true"] {
-  background: var(--dsh-glass-fill) !important;
+  background-color: var(--dsh-glass-fill) !important;
+  background-image: var(--dsh-glass-noise);
+  background-size: 140px 140px;
   -webkit-backdrop-filter: var(--dsh-glass-blur);
   backdrop-filter: var(--dsh-glass-blur);
   border: 1px solid var(--dsh-glass-border);
@@ -82,7 +85,9 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   .dshDesktopSettingsMenu,
   .dshShadcnHoverCardContent
 ) {
-  background: var(--dsh-glass-popover-fill) !important;
+  background-color: var(--dsh-glass-popover-fill) !important;
+  background-image: var(--dsh-glass-noise);
+  background-size: 140px 140px;
   -webkit-backdrop-filter: var(--dsh-glass-popover-blur);
   backdrop-filter: var(--dsh-glass-popover-blur);
   border: 1px solid var(--dsh-glass-popover-border);

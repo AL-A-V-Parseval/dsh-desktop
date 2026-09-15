@@ -354,11 +354,13 @@ html, body, #root { background: transparent; font-size: 13px; }
 /* Liquid glass for the title-bar popovers. */
 .dshDesktopFrameTitlebar[data-platform="linux"][data-material="transparent"] .dshDesktopVersionPopover,
 .dshDesktopFrameTitlebar[data-platform="linux"][data-material="transparent"] .dshDesktopActionMenu {
-  background: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 42%, transparent);
-  -webkit-backdrop-filter: blur(40px) saturate(190%);
-  backdrop-filter: blur(40px) saturate(190%);
-  border-color: color-mix(in srgb, #ffffff 18%, transparent);
-  box-shadow: 0 24px 64px color-mix(in srgb, #000000 42%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 12%, transparent);
+  background-color: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 40%, transparent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+  -webkit-backdrop-filter: blur(46px) saturate(190%);
+  backdrop-filter: blur(46px) saturate(190%);
+  border-color: color-mix(in srgb, #ffffff 20%, transparent);
+  box-shadow: 0 24px 64px color-mix(in srgb, #000000 44%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 16%, transparent);
 }
 
 /* Apple-style press feedback and pop animation. */
