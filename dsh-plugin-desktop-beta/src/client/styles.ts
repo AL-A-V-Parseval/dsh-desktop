@@ -70,7 +70,8 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] {
   --dsh-glass-control-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 44%, transparent);
   --dsh-glass-popover-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 40%, transparent);
-  --dsh-glass-control-border: color-mix(in srgb, #ffffff 24%, transparent);
+  --dsh-glass-control-border: color-mix(in srgb, #ffffff 12%, transparent);
+  --dsh-glass-control-rim: color-mix(in srgb, #ffffff 8%, transparent);
   --dsh-glass-popover-border: color-mix(in srgb, #ffffff 28%, transparent);
   --dsh-glass-surface-overlay: linear-gradient(180deg, color-mix(in srgb, var(--dsw-alias-bg-layer-1) 30%, transparent), color-mix(in srgb, var(--dsw-alias-bg-layer-1) 44%, transparent));
   --dsh-glass-control-blur: blur(16px) saturate(160%);
@@ -96,9 +97,11 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   backdrop-filter: var(--dsh-glass-control-blur);
   border-color: var(--dsh-glass-control-border);
 }
-/* Third-party controls: overlay the glass as a translucent layer and a rim
-   shadow, leaving the plugin's own background, border, and selected/active/
-   hover states intact. */
+/* Third-party controls: overlay a faint specular sheen and blur, leaving the
+   plugin's own background, border, and selected/active/hover states intact.
+   The rim is kept well below the plugin's own border so unselected controls
+   stay as subdued as a native liquid-glass control instead of reading as
+   highlighted. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
   [class*="_selector"],
   [class*="_stepper"],
@@ -107,12 +110,12 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   [class*="_arrow"]
 ) {
   background-image:
-    linear-gradient(180deg, color-mix(in srgb, #ffffff 10%, transparent), color-mix(in srgb, #ffffff 2%, transparent)),
+    linear-gradient(180deg, color-mix(in srgb, #ffffff 6%, transparent), color-mix(in srgb, #ffffff 1%, transparent)),
     var(--dsh-glass-noise);
   background-size: 100% 100%, 140px 140px;
   -webkit-backdrop-filter: var(--dsh-glass-control-blur);
   backdrop-filter: var(--dsh-glass-control-blur);
-  box-shadow: inset 0 0 0 1px var(--dsh-glass-control-border);
+  box-shadow: inset 0 0 0 1px var(--dsh-glass-control-rim);
 }
 /* Sidebar and message box: overlay the frosted material on top of whatever
    background the theme or a third-party appearance plugin painted (wallpaper,
