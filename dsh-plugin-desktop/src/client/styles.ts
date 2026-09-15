@@ -101,12 +101,18 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   backdrop-filter: var(--dsh-glass-control-blur);
   border-color: var(--dsh-glass-control-border);
 }
-/* Sidebar and message box share the same frosted material. */
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
-  .dshDesktopSidebarSurface,
-  [data-slot="conversation.composer"] [class*="_card"]
-) {
+/* Sidebar: translucent frosted fill only. A backdrop-filter here would become
+   the containing block for the fixed Settings overlay hosted inside the
+   sidebar and collapse it to the sidebar width. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] .dshDesktopSidebarSurface {
   --dsw-specific-sidebar-fill: transparent;
+  background-color: var(--dsh-glass-surface-fill) !important;
+  background-image: var(--dsh-glass-noise);
+  background-size: 140px 140px;
+  border-color: var(--dsh-glass-control-border);
+}
+/* Message box. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [data-slot="conversation.composer"] [class*="_card"] {
   background-color: var(--dsh-glass-surface-fill) !important;
   background-image: var(--dsh-glass-noise);
   background-size: 140px 140px;
