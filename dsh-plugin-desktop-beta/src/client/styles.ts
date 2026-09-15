@@ -70,8 +70,8 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] {
   --dsh-glass-control-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 44%, transparent);
   --dsh-glass-popover-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 40%, transparent);
-  --dsh-glass-control-border: color-mix(in srgb, #ffffff 12%, transparent);
-  --dsh-glass-control-rim: color-mix(in srgb, #ffffff 8%, transparent);
+  --dsh-glass-control-border: color-mix(in srgb, #ffffff 6%, transparent);
+  --dsh-glass-control-rim: color-mix(in srgb, #ffffff 3%, transparent);
   --dsh-glass-popover-border: color-mix(in srgb, #ffffff 28%, transparent);
   --dsh-glass-surface-overlay: linear-gradient(180deg, color-mix(in srgb, var(--dsw-alias-bg-layer-1) 30%, transparent), color-mix(in srgb, var(--dsw-alias-bg-layer-1) 44%, transparent));
   --dsh-glass-control-blur: blur(16px) saturate(160%);
@@ -97,11 +97,13 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   backdrop-filter: var(--dsh-glass-control-blur);
   border-color: var(--dsh-glass-control-border);
 }
-/* Third-party controls: overlay a faint specular sheen and blur, leaving the
-   plugin's own background, border, and selected/active/hover states intact.
-   The rim is kept well below the plugin's own border so unselected controls
-   stay as subdued as a native liquid-glass control instead of reading as
-   highlighted. */
+/* Third-party controls: recess them behind a faint dark varnish and blur,
+   leaving the plugin's own background, border, and selected/active/hover
+   states intact. The varnish sits over the control's own fill (which is often
+   a step lighter than the panel and reads as highlighted) and the rim stays
+   well below the plugin's own border, so unselected controls end up as
+   subdued as a native liquid-glass control while a lighter selected fill
+   still stands out. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
   [class*="_selector"],
   [class*="_stepper"],
@@ -110,7 +112,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   [class*="_arrow"]
 ) {
   background-image:
-    linear-gradient(180deg, color-mix(in srgb, #ffffff 6%, transparent), color-mix(in srgb, #ffffff 1%, transparent)),
+    linear-gradient(180deg, color-mix(in srgb, #000000 8%, transparent), color-mix(in srgb, #000000 16%, transparent)),
     var(--dsh-glass-noise);
   background-size: 100% 100%, 140px 140px;
   -webkit-backdrop-filter: var(--dsh-glass-control-blur);
