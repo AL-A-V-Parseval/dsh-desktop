@@ -35,7 +35,7 @@ This fork is **Linux-focused**: it fixes the upstream desktop's inability to run
 
 ### 1. Extended and enhanced window modes on Linux
 
-Earlier this fork only provided compatibility mode. Electron supports the **Window Controls Overlay** on Linux (`titleBarStyle: "hidden"` + `titleBarOverlay`), so this fork also enables **extended** and **enhanced** modes: the frameless window keeps the native minimize/maximize/close buttons, extended mode uses an independent command bar, and enhanced mode uses a 32-pixel caption row. Linux window material can be `off` or `transparent`: `transparent` follows the macOS (WWDC25) Liquid Glass language: the window, command bar, sidebar, and content stay solid, while the control items, settings panel, dialogs, and pop-up menus use translucent frosted glass. Switch modes from Desktop settings or the window mode control (applied on restart).
+Earlier this fork only provided compatibility mode. Electron supports the **Window Controls Overlay** on Linux (`titleBarStyle: "hidden"` + `titleBarOverlay`), so this fork also enables **extended** and **enhanced** modes: the frameless window keeps the native minimize/maximize/close buttons, extended mode uses an independent command bar, and enhanced mode uses a 32-pixel caption row. Linux window material can be `off` or `transparent`: `transparent` follows the Liquid Glass design language: the command bar, sidebar, message box, settings dialog, and pop-up menus all use translucent frosted glass, and the dropdowns, appearance cards, and navigation on the dialog let the blurred content behind show through, finished with a lens-like edge (a bright top hairline and a shaded bottom edge); menus and dialogs pop in and retract on close, and controls press and hover with a soft spring. Switch the window material from Desktop settings or the window mode control, and toggle "Interface motion" in Desktop settings (all applied on restart).
 
 ### 2. Route sharp through a real-Node bridge (fixes the Host crash / endless "reconnecting")
 
@@ -64,16 +64,16 @@ Grab the Linux x64 build from [Releases](https://github.com/Jic2007/dsh-desktop/
 ### Portable archive (tar.gz)
 
 ```sh
-tar -xzf DSH-Desktop-2.0.10-linux.1-x64-portable.tar.gz
-cd DSH-Desktop-2.0.10-linux.1-x64
+tar -xzf DSH-Desktop-2.0.10-linux.2-x64-portable.tar.gz
+cd DSH-Desktop-2.0.10-linux.2-x64
 ./dsh-plugin-desktop
 ```
 
 ### Debian / Ubuntu package (.deb)
 
 ```sh
-sudo apt install ./dsh-desktop_2.0.10-linux.1_amd64.deb
-# or: sudo dpkg -i dsh-desktop_2.0.10-linux.1_amd64.deb && sudo apt -f install
+sudo apt install ./dsh-desktop_2.0.10-linux.2_amd64.deb
+# or: sudo dpkg -i dsh-desktop_2.0.10-linux.2_amd64.deb && sudo apt -f install
 ```
 
 After installing, launch it from the application menu or run `dsh-desktop`. The `.deb`:
@@ -101,7 +101,7 @@ gpg --import Jic2007-release-key.asc
 gpg --verify SHA256SUMS.asc SHA256SUMS
 sha256sum -c SHA256SUMS
 # optional: internal .deb signature (requires debsigs)
-debsigs --verify dsh-desktop_2.0.10-linux.1_amd64.deb
+debsigs --verify dsh-desktop_2.0.10-linux.2_amd64.deb
 ```
 
 ## Build from source
