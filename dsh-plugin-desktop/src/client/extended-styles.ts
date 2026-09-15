@@ -137,24 +137,25 @@ body[data-dsh-desktop-platform="linux"]:is([data-dsh-desktop-mode="compatibility
   left: 50%;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   min-width: 0;
   transform: translateX(-50%);
   pointer-events: none;
 }
-.dshDesktopFrameProduct { font-size: 13px; font-weight: 600; white-space: nowrap; }
+.dshDesktopFrameProduct { font-size: 13.5px; font-weight: 600; letter-spacing: .01em; white-space: nowrap; }
 .dshDesktopFrameVersion {
-  min-height: 22px;
-  padding: 2px 5px;
+  min-height: 24px;
+  padding: 3px 9px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 999px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
   cursor: default;
   font: inherit;
-  font-size: 11px;
+  font-size: 11.5px;
   pointer-events: auto;
   white-space: nowrap;
+  transition: background-color 160ms ease, color 160ms ease, transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
   -webkit-app-region: no-drag;
 }
 .dshDesktopFrameVersion:hover,
@@ -237,17 +238,18 @@ body[data-dsh-desktop-platform="linux"]:is([data-dsh-desktop-mode="compatibility
 .dshDesktopFrameMode {
   display: inline-flex;
   align-items: center;
-  min-height: 22px;
-  padding: 2px 8px;
+  min-height: 24px;
+  padding: 3px 10px;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 999px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
   font: inherit;
-  font-size: 11px;
+  font-size: 11.5px;
   pointer-events: auto;
   white-space: nowrap;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
   -webkit-app-region: no-drag;
 }
 .dshDesktopFrameMode:hover,
@@ -343,14 +345,15 @@ body[data-dsh-desktop-platform="linux"]:is([data-dsh-desktop-mode="compatibility
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: 8px;
   background: color-mix(in srgb, var(--dsw-alias-bg-base) 34%, transparent);
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
   -webkit-app-region: no-drag;
 }
 .dshDesktopTitlebarIconButton:hover:not(:disabled),

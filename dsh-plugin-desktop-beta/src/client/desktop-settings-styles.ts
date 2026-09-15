@@ -264,35 +264,50 @@ const CSS = `
 .dshDesktopSettingsToggle {
   flex: 0 0 auto;
   position: relative;
-  width: 40px;
-  height: 22px;
+  width: 44px;
+  height: 26px;
   padding: 2px;
   border: none;
   border-radius: 999px;
-  background: var(--dsw-alias-border-l2);
+  background: color-mix(in srgb, var(--dsw-alias-label-primary) 16%, transparent);
   cursor: pointer;
-  transition: background-color var(--ds-transition-duration-fast) var(--ds-ease-in-out);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #000000 8%, transparent);
+  transition:
+    background-color 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 200ms ease;
 }
 .dshDesktopSettingsToggle[aria-checked="true"] {
   background: var(--dsw-alias-brand-primary);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #000000 6%, transparent);
 }
 .dshDesktopSettingsToggle:disabled { cursor: default; opacity: .5; }
 .dshDesktopSettingsToggle:focus-visible {
   outline: 2px solid var(--dsw-alias-brand-primary);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 .dshDesktopSettingsToggleKnob {
   display: block;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: var(--dsw-alias-label-primary-foreground);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .24);
+  background: #ffffff;
+  box-shadow:
+    0 3px 8px color-mix(in srgb, #000000 30%, transparent),
+    0 1px 1px color-mix(in srgb, #000000 18%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 90%, transparent);
   transform: translateX(0);
-  transition: transform var(--ds-transition-duration-fast) var(--ds-ease-in-out);
+  transition:
+    transform 340ms cubic-bezier(0.22, 1.2, 0.36, 1),
+    width 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .dshDesktopSettingsToggle[aria-checked="true"] .dshDesktopSettingsToggleKnob {
   transform: translateX(18px);
+}
+/* Apple-style press: the knob stretches and settles back with a spring. */
+.dshDesktopSettingsToggle:active .dshDesktopSettingsToggleKnob { width: 26px; }
+.dshDesktopSettingsToggle[aria-checked="true"]:active .dshDesktopSettingsToggleKnob {
+  width: 26px;
+  transform: translateX(14px);
 }
 .dshDesktopSettingsDetails {
   display: grid;
