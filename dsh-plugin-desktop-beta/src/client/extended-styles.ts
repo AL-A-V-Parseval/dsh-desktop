@@ -76,6 +76,23 @@ body[data-dsh-desktop-mode="extended"] .dshDesktopSidebarSurface {
 body[data-dsh-desktop-mode="extended"] .dshDesktopFrame {
   background: var(--dsh-desktop-frame-fill);
 }
+/* Linux renders the command bar in the content document, so reserve its band
+   and let the bar blur the frame behind it. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-mode="extended"] {
+  --dsh-desktop-frame-height: ${DESKTOP_FRAME_HEIGHT}px;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-mode="extended"] .dshDesktopFrame {
+  box-sizing: border-box;
+  padding-top: ${DESKTOP_FRAME_HEIGHT}px;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] .dshDesktopFrameTitlebar {
+  --dsh-desktop-frame-fill: color-mix(in srgb, var(--dsw-alias-bg-base) 62%, transparent);
+  background-image: var(--dsh-glass-noise, none);
+  background-size: 140px 140px;
+  border-bottom: 1px solid color-mix(in srgb, #ffffff 10%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+}
 body[data-dsh-desktop-mode="extended"] .dshDesktopConversationSurface {
   box-sizing: border-box;
   overflow: hidden;

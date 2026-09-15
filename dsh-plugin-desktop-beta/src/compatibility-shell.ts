@@ -19,6 +19,12 @@ export interface CompatibilityShellActions {
 
 export class CompatibilityShell {
   readonly content: WebContentsView
+  /**
+   * Linux renders the command bar inside the content renderer so the bar can
+   * use backdrop-filter against the page behind it. Other platforms keep the
+   * separate chrome WebContentsView.
+   */
+  readonly hasSeparateChrome: boolean
   private readonly documentPath = fileURLToPath(new URL('./native-ui/compatibility-chrome.html', import.meta.url))
   private disposed = false
   private remoteControl: CompatibilityChromeState['remoteControl']
@@ -35,6 +41,7 @@ export class CompatibilityShell {
     preload: string,
     private readonly actions: CompatibilityShellActions,
   ) {
+    this.hasSeparateChrome = platform !== 'linux'
     this.chromeView = new WebContentsView({ webPreferences: {
       preload: fileURLToPath(new URL('./compatibility-preload.cjs', import.meta.url)),
       partition: 'dsh-desktop-compatibility-chrome',
@@ -59,7 +66,7 @@ export class CompatibilityShell {
       this.content.setBackgroundColor('#00000000')
     }
     window.contentView.addChildView(this.content)
-    window.contentView.addChildView(this.chromeView)
+    if (this.hasSeparateChrome) window.contentView.addChildView(this.chromeView)
     window.on('resize', this.resize)
     window.on('restore', this.resize)
     window.on('show', this.resize)
@@ -89,11 +96,13 @@ export class CompatibilityShell {
   get chromeWebContents(): WebContents { return this.chrome }
 
   async load(): Promise<void> {
+    if (!this.hasSeparateChrome) return
     await this.updateRemoteControl()
     await this.chrome.loadFile(this.documentPath)
   }
 
   refresh(): void {
+    if (!this.hasSeparateChrome) return
     if (!this.disposed && !this.chrome.isDestroyed()) {
       this.chrome.send(COMPATIBILITY_CHROME_STATE, this.state())
     }
@@ -123,12 +132,14 @@ export class CompatibilityShell {
     // Minimize/restore can expose a transient empty client area. Retain the
     // last usable surface until restore/show supplies the real dimensions.
     if (this.platform === 'win32' && (width <= 0 || height <= DESKTOP_FRAME_HEIGHT)) return
-    const contentBounds = { x: 0, y: DESKTOP_FRAME_HEIGHT, width, height: Math.max(0, height - DESKTOP_FRAME_HEIGHT) }
-    const chromeBounds = { x: 0, y: 0, width, height: this.expanded ? height : Math.min(height, DESKTOP_FRAME_HEIGHT) }
+    const offset = this.hasSeparateChrome ? DESKTOP_FRAME_HEIGHT : 0
+    const contentBounds = { x: 0, y: offset, width, height: Math.max(0, height - offset) }
     if (!sameBounds(this.contentBounds, contentBounds)) {
       this.content.setBounds(contentBounds)
       this.contentBounds = contentBounds
     }
+    if (!this.hasSeparateChrome) return
+    const chromeBounds = { x: 0, y: 0, width, height: this.expanded ? height : Math.min(height, DESKTOP_FRAME_HEIGHT) }
     if (!sameBounds(this.chromeBounds, chromeBounds)) {
       this.chromeView.setBounds(chromeBounds)
       this.chromeBounds = chromeBounds
@@ -187,9 +198,9 @@ export class CompatibilityShell {
     }
     if (!this.window.isDestroyed()) {
       this.window.contentView.removeChildView(this.content)
-      this.window.contentView.removeChildView(this.chromeView)
+      if (this.hasSeparateChrome) this.window.contentView.removeChildView(this.chromeView)
     }
-    if (!this.chrome.isDestroyed()) this.chrome.close({ waitForBeforeUnload: false })
+    if (this.hasSeparateChrome && !this.chrome.isDestroyed()) this.chrome.close({ waitForBeforeUnload: false })
     if (!this.webContents.isDestroyed()) this.webContents.close({ waitForBeforeUnload: false })
   }
 }

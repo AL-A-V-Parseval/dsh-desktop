@@ -208,7 +208,10 @@ export class ElectronShellGeneration {
       reload: () => {
         this.recoveryContentLoaded = false
         this.recoveryChromeLoaded = this.compatibilityShell === undefined
-        this.compatibilityShell?.chromeWebContents.reloadIgnoringCache()
+          || !this.compatibilityShell.hasSeparateChrome
+        if (this.compatibilityShell?.hasSeparateChrome === true) {
+          this.compatibilityShell.chromeWebContents.reloadIgnoringCache()
+        }
         this.reloadRenderer()
       },
       exhausted: () => { void this.offerRendererRecovery() },
@@ -295,7 +298,9 @@ export class ElectronShellGeneration {
       throw cause
     }
     const renderer = this.compatibilityShell?.webContents ?? window.webContents
-    const chrome = this.compatibilityShell?.chromeWebContents ?? window.webContents
+    const separateChrome = this.compatibilityShell?.hasSeparateChrome === true
+      ? this.compatibilityShell.chromeWebContents
+      : undefined
     this.renderer = renderer
 
     let stateWriteTimer: ReturnType<typeof setTimeout> | undefined
@@ -497,11 +502,11 @@ export class ElectronShellGeneration {
     renderer.on('did-fail-load', loadFailed)
     renderer.on('did-start-loading', resetSurface)
     renderer.on('did-finish-load', loaded)
-    if (isolated) {
-      chrome.on('before-input-event', handleZoomShortcut)
-      chrome.on('render-process-gone', rendererGone)
-      chrome.on('did-fail-load', loadFailed)
-      chrome.on('did-finish-load', chromeLoaded)
+    if (separateChrome !== undefined) {
+      separateChrome.on('before-input-event', handleZoomShortcut)
+      separateChrome.on('render-process-gone', rendererGone)
+      separateChrome.on('did-fail-load', loadFailed)
+      separateChrome.on('did-finish-load', chromeLoaded)
     }
     renderer.setWindowOpenHandler(({ url }) => {
       try {
@@ -540,11 +545,11 @@ export class ElectronShellGeneration {
       renderer.off('did-fail-load', loadFailed)
       renderer.off('did-start-loading', resetSurface)
       renderer.off('did-finish-load', loaded)
-      if (isolated) {
-        chrome.off('before-input-event', handleZoomShortcut)
-        chrome.off('render-process-gone', rendererGone)
-        chrome.off('did-fail-load', loadFailed)
-        chrome.off('did-finish-load', chromeLoaded)
+      if (separateChrome !== undefined) {
+        separateChrome.off('before-input-event', handleZoomShortcut)
+        separateChrome.off('render-process-gone', rendererGone)
+        separateChrome.off('did-fail-load', loadFailed)
+        separateChrome.off('did-finish-load', chromeLoaded)
       }
       removeRendererAccessHeader?.()
       removeRendererAccessHeader = undefined
