@@ -158,7 +158,8 @@ function customChromeWindowOptions(
     // Electron exposes the Window Controls Overlay API on Linux, so the same
     // frameless hidden-titlebar contract used by Windows keeps the native
     // minimize/maximize/close buttons while the renderer owns the command bar.
-    const transparent = spec.material === 'transparent'
+    // The Linux material is a control-only glass style, so the window, command
+    // bar, sidebar, and content all stay opaque.
     return {
       ...options,
       autoHideMenuBar: true,
@@ -169,7 +170,6 @@ function customChromeWindowOptions(
         height: geometry.titlebarHeight,
       },
       hasShadow: true,
-      ...(transparent ? { transparent: true, backgroundColor: '#00000000' } : {}),
     }
   }
   throw new Error('dsh-plugin-desktop: custom desktop shell modes are supported on macOS, Windows, and Linux')

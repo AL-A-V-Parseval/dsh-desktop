@@ -233,15 +233,15 @@ describe('compatibility BrowserWindow options', () => {
     }))
   })
 
-  it('makes Linux custom-chrome windows transparent when the material is transparent', () => {
+  it('keeps Linux custom-chrome windows opaque for the control-only glass material', () => {
     const extended = extendedWindowOptions(
       { ...spec, mode: 'extended', material: 'transparent' },
       {} as NativeImage,
       'linux',
       preload,
     )
-    expect(extended.transparent).toBe(true)
-    expect(extended.backgroundColor).toBe('#00000000')
+    expect(extended).not.toHaveProperty('transparent')
+    expect(extended.backgroundColor).toBe('#202124')
     expect(extended.titleBarStyle).toBe('hidden')
 
     const advanced = advancedWindowOptions(
@@ -250,7 +250,7 @@ describe('compatibility BrowserWindow options', () => {
       'linux',
       preload,
     )
-    expect(advanced.transparent).toBe(true)
-    expect(advanced.backgroundColor).toBe('#00000000')
+    expect(advanced).not.toHaveProperty('transparent')
+    expect(advanced.backgroundColor).toBe('#202124')
   })
 })

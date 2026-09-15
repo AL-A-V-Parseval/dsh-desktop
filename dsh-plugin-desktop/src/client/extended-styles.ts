@@ -104,6 +104,10 @@ body[data-dsh-desktop-mode="compatibility"]:not([data-dsh-desktop-material="off"
 body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
   --dsh-desktop-frame-fill: color-mix(in srgb, var(--dsw-alias-bg-base) 18%, transparent);
 }
+/* Linux keeps an opaque frame; the glass look is limited to the control items. */
+body[data-dsh-desktop-platform="linux"]:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extended"]):not([data-dsh-desktop-material="off"]) {
+  --dsh-desktop-frame-fill: var(--dsw-alias-bg-layer-1);
+}
 .dshDesktopFrameTitlebar {
   position: fixed;
   z-index: 2147483647;

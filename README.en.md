@@ -35,7 +35,7 @@ This fork is **Linux-focused**: it fixes the upstream desktop's inability to run
 
 ### 1. Extended and enhanced window modes on Linux
 
-Earlier this fork only provided compatibility mode. Electron supports the **Window Controls Overlay** on Linux (`titleBarStyle: "hidden"` + `titleBarOverlay`), so this fork also enables **extended** and **enhanced** modes: the frameless window keeps the native minimize/maximize/close buttons, extended mode uses an independent command bar, and enhanced mode uses a 32-pixel caption row. Linux window material can be `off` or `transparent` (there is no native blur API; the compositor decides whether it is blurred). Switch modes from Desktop settings or the window mode control (applied on restart).
+Earlier this fork only provided compatibility mode. Electron supports the **Window Controls Overlay** on Linux (`titleBarStyle: "hidden"` + `titleBarOverlay`), so this fork also enables **extended** and **enhanced** modes: the frameless window keeps the native minimize/maximize/close buttons, extended mode uses an independent command bar, and enhanced mode uses a 32-pixel caption row. Linux window material can be `off` or `transparent`: `transparent` is a macOS-style, control-only glass look, while the window, command bar, sidebar, and content stay solid. Switch modes from Desktop settings or the window mode control (applied on restart).
 
 ### 2. Route sharp through a real-Node bridge (fixes the Host crash / endless "reconnecting")
 
