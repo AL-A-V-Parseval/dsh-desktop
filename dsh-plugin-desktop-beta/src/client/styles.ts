@@ -202,7 +202,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   from { opacity: 0; transform: scale(0.975) translateY(10px); filter: blur(10px); }
   to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
 }
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]:not([data-dsh-desktop-motion="off"]) :is(
   [role="menu"],
   [role="listbox"],
   [role="tooltip"],
@@ -214,10 +214,10 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   animation: dsh-glass-pop-in 280ms cubic-bezier(0.22, 1.2, 0.36, 1) backwards;
   transform-origin: top center;
 }
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [aria-modal="true"] {
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]:not([data-dsh-desktop-motion="off"]) [aria-modal="true"] {
   animation: dsh-glass-modal-in 320ms cubic-bezier(0.22, 1.1, 0.36, 1) backwards;
 }
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]:not([data-dsh-desktop-motion="off"]) :is(
   [class*="_selector"],
   [class*="_stepper"],
   [class*="_themeCube"],
@@ -231,14 +231,13 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   .dshDesktopSettingsHeaderButton,
   .dshDesktopSettingsBadge
 ) {
-  transition:
-    transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
+  transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
     background-color 180ms ease,
     box-shadow 180ms ease,
     border-color 180ms ease,
     color 180ms ease;
 }
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]:not([data-dsh-desktop-motion="off"]) :is(
   [class*="_selector"],
   [class*="_stepper"],
   [class*="_themeCube"],
@@ -254,7 +253,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 ):active {
   transform: scale(0.97);
 }
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]:not([data-dsh-desktop-motion="off"]) :is(
   [class*="_themeCube"],
   [class*="_navCell"]
 ):hover:not(:active) {
@@ -266,9 +265,12 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   from { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
   to { opacity: 0; transform: scale(0.96) translateY(-4px); filter: blur(5px); }
 }
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] .dshGlassRetract {
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]:not([data-dsh-desktop-motion="off"]) .dshGlassRetract {
   animation: dsh-glass-pop-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
   transform-origin: top center;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"][data-dsh-desktop-motion="off"] .dshGlassRetract {
+  display: none;
 }
 @media (prefers-reduced-motion: reduce) {
   body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
@@ -360,6 +362,7 @@ export function installGlassExitAnimations(): () => void {
     if (node.classList.contains('dshGlassRetract') || node.closest('.dshGlassRetract')) return
     if (document.body.dataset.dshDesktopPlatform !== 'linux') return
     if (document.body.dataset.dshDesktopMaterial !== 'transparent') return
+    if (document.body.dataset.dshDesktopMotion === 'off') return
     const target = node.matches(GLASS_POPOVER_SELECTOR) ? node : node.querySelector(GLASS_POPOVER_SELECTOR)
     if (!(target instanceof HTMLElement) || handled.has(target)) return
     handled.add(target)

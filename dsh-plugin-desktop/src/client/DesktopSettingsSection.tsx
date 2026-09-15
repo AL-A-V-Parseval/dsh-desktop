@@ -27,6 +27,11 @@ export interface DesktopShellSettings {
   readonly logLevel: 'debug' | 'info' | 'warn' | 'error'
 }
 
+/** Browser view of the Host `dsh-desktop-appearance` settings namespace. */
+export interface DesktopAppearanceSettings {
+  readonly motion: boolean
+}
+
 /** Browser view of the Host `dsh-desktop-notifications` settings namespace. */
 export interface DesktopNotificationSettings {
   readonly enabled: boolean
@@ -44,6 +49,7 @@ export interface DesktopSettingsSectionInjected {
   readonly micaSupported: boolean
   readonly setMode: (mode: DesktopShellSettings['mode']) => Promise<void>
   readonly desktopSettings: SettingsScope<DesktopShellSettings>
+  readonly appearanceSettings: SettingsScope<DesktopAppearanceSettings>
   readonly notificationSettings: SettingsScope<DesktopNotificationSettings>
 }
 
@@ -54,7 +60,7 @@ export type DesktopSettingsSectionProps =
   & InjectFace<DesktopSettingsSectionInjected>
 
 type Translate = DesktopSettingsSectionProps['t']
-type BusyOperation = 'load' | 'create-profile' | 'select-profile' | 'delete-profile' | 'select-aa' | 'select-market' | 'mode' | 'material' | 'web' | 'notification'
+type BusyOperation = 'load' | 'create-profile' | 'select-profile' | 'delete-profile' | 'select-aa' | 'select-market' | 'mode' | 'material' | 'motion' | 'web' | 'notification'
 type RestartState = 'none' | 'restarting' | 'required'
 type LanPollWait = (signal: AbortSignal) => Promise<void>
 
@@ -376,9 +382,11 @@ export function DesktopSettingsSection({
   micaSupported,
   setMode: persistMode,
   desktopSettings,
+  appearanceSettings,
   notificationSettings,
 }: DesktopSettingsSectionProps) {
   const desktop = useScope(desktopSettings)
+  const appearance = useScope(appearanceSettings)
   const notifications = useScope(notificationSettings)
   const [view, setView] = useState<DesktopSettingsView>()
   const [profileName, setProfileName] = useState('')
@@ -438,7 +446,9 @@ export function DesktopSettingsSection({
 
   const requestRestart = (): void => { setRestart('restarting') }
   const settingsWritable = desktop.status === 'ready' && desktop.writable
+  const appearanceWritable = appearance.status === 'ready' && appearance.writable
   const notificationsWritable = notifications.status === 'ready' && notifications.writable
+  const motionEnabled = appearance.value?.motion !== false
   const storedMode = desktop.value?.mode ?? initialMode
   const configuredNetworkExposure = desktop.value?.networkExposure ?? 'loopback'
   const browserAccess = desktopBrowserAccessEnabled(
@@ -536,6 +546,10 @@ export function DesktopSettingsSection({
       }
       requestRestart()
     })
+  }
+
+  const setMotion = (checked: boolean): void => {
+    void run('motion', async () => { await appearanceSettings.set('motion', checked) })
   }
 
   const setNotification = (field: keyof DesktopNotificationSettings, checked: boolean): void => {
@@ -781,6 +795,17 @@ export function DesktopSettingsSection({
             onChange={setMaterial}
           />
         </label>
+        {platform === 'linux' && (
+          <>
+            <ToggleRow
+              label={t('motion')}
+              checked={motionEnabled}
+              disabled={!appearanceWritable || busy !== undefined}
+              onChange={setMotion}
+            />
+            <p className="dshDesktopSettingsNotice">{t('motionBody')}</p>
+          </>
+        )}
       </section>
 
       <section className="dshDesktopSettingsGroup" aria-labelledby="dsh-desktop-web-title">

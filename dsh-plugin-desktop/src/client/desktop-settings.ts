@@ -3,7 +3,12 @@
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
-import { DesktopSettingsSection, type DesktopNotificationSettings, type DesktopShellSettings } from './DesktopSettingsSection.tsx'
+import {
+  DesktopSettingsSection,
+  type DesktopAppearanceSettings,
+  type DesktopNotificationSettings,
+  type DesktopShellSettings,
+} from './DesktopSettingsSection.tsx'
 import { DesktopTerminalSettingsAction } from './DesktopTerminalSettingsAction.tsx'
 import { createDesktopSettingsApi } from './desktop-settings-api.ts'
 import { en, zh, type DesktopSettingsLocaleKey } from './desktop-settings-locales.ts'
@@ -15,6 +20,7 @@ export const DESKTOP_SETTINGS_LOCALE_NAMESPACE = 'desktop.settings'
 
 /** Host settings namespaces bound through the standard client settings service. */
 export const DESKTOP_SHELL_SETTINGS_NAMESPACE = 'dsh-desktop'
+export const DESKTOP_APPEARANCE_SETTINGS_NAMESPACE = 'dsh-desktop-appearance'
 export const DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE = 'dsh-desktop-notifications'
 
 /** Shared client controls consumed by settings and Desktop-owned window chrome. */
@@ -61,6 +67,9 @@ export function applyDesktopSettings(
   const desktopSettings = ctx.settingsScope.bind<DesktopShellSettings>({
     namespace: DESKTOP_SHELL_SETTINGS_NAMESPACE,
   })
+  const appearanceSettings = ctx.settingsScope.bind<DesktopAppearanceSettings>({
+    namespace: DESKTOP_APPEARANCE_SETTINGS_NAMESPACE,
+  })
   const notificationSettings = ctx.settingsScope.bind<DesktopNotificationSettings>({
     namespace: DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE,
   })
@@ -78,6 +87,21 @@ export function applyDesktopSettings(
     () => installDesktopSettingsStyles(),
     'dsh-plugin-desktop: settings styles',
   )
+  // Mirror the live appearance preference onto the body so the glass motion
+  // styles and the popover retract observer can react without a restart.
+  ctx.effect(() => {
+    const apply = (): void => {
+      const enabled = appearanceSettings.getSnapshot().value?.motion !== false
+      if (enabled) delete document.body.dataset.dshDesktopMotion
+      else document.body.dataset.dshDesktopMotion = 'off'
+    }
+    apply()
+    const unsubscribe = appearanceSettings.subscribe(apply)
+    return () => {
+      unsubscribe()
+      delete document.body.dataset.dshDesktopMotion
+    }
+  }, 'dsh-plugin-desktop: glass motion preference')
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'desktop',
@@ -91,6 +115,7 @@ export function applyDesktopSettings(
       micaSupported: environment.micaSupported,
       setMode,
       desktopSettings,
+      appearanceSettings,
       notificationSettings,
     }),
   }, DesktopSettingsSection))
