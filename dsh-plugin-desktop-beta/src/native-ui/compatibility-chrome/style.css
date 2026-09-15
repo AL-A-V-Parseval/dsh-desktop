@@ -354,11 +354,11 @@ html, body, #root { background: transparent; font-size: 13px; }
 /* Liquid glass for the title-bar popovers. */
 .dshDesktopFrameTitlebar[data-platform="linux"][data-material="transparent"] .dshDesktopVersionPopover,
 .dshDesktopFrameTitlebar[data-platform="linux"][data-material="transparent"] .dshDesktopActionMenu {
-  background: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 60%, transparent);
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
-  backdrop-filter: blur(30px) saturate(180%);
-  border-color: color-mix(in srgb, #ffffff 12%, transparent);
-  box-shadow: 0 24px 64px color-mix(in srgb, #000000 42%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 42%, transparent);
+  -webkit-backdrop-filter: blur(40px) saturate(190%);
+  backdrop-filter: blur(40px) saturate(190%);
+  border-color: color-mix(in srgb, #ffffff 18%, transparent);
+  box-shadow: 0 24px 64px color-mix(in srgb, #000000 42%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 12%, transparent);
 }
 
 /* Apple-style press feedback and pop animation. */
