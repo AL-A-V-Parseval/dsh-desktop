@@ -54,9 +54,9 @@ html:has([aria-modal="true"]) .dshDesktopWindowsCaptionRow::before { -webkit-app
   .dshDesktopFrame,
   .dshDesktopResizeHandle { transition: none !important; }
 }
-/* WWDC25-style liquid glass: floating overlays and panels become translucent
-   frosted surfaces over the solid app content. Scoped to the Linux material. */
-/* iOS-style background recede while a popover or dialog is open. */
+/* WWDC25-style liquid glass restricted to controls, menus, and popovers. The
+   settings panel and the app surfaces stay solid. Scoped to the Linux material. */
+/* iOS-style background recede while a popover is open. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] #root {
   transition: filter 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -66,28 +66,41 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   .dshDesktopSettingsMenu,
   .dshDesktopActionMenu
 ) #root {
-  filter: brightness(0.9) saturate(0.92);
+  filter: brightness(0.94) saturate(0.94);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] {
-  --dsh-glass-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 54%, transparent);
-  --dsh-glass-fill-weak: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 36%, transparent);
+  --dsh-glass-control-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 44%, transparent);
   --dsh-glass-popover-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 40%, transparent);
-  --dsh-glass-border: color-mix(in srgb, #ffffff 14%, transparent);
-  --dsh-glass-popover-border: color-mix(in srgb, #ffffff 20%, transparent);
-  --dsh-glass-blur: blur(18px) saturate(160%);
+  --dsh-glass-control-border: color-mix(in srgb, #ffffff 24%, transparent);
+  --dsh-glass-popover-border: color-mix(in srgb, #ffffff 28%, transparent);
+  --dsh-glass-control-blur: blur(16px) saturate(160%);
   --dsh-glass-popover-blur: blur(22px) saturate(170%);
-  --dsh-glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  --dsh-glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.09'/%3E%3C/svg%3E");
   --dsh-glass-shadow: 0 24px 64px color-mix(in srgb, #000000 44%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 16%, transparent);
 }
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [role="dialog"][aria-modal="true"] {
-  background-color: var(--dsh-glass-fill) !important;
+/* Controls only: selects, inputs, buttons, nav cells, steppers, theme cubes. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  .dshDesktopSettingsSelect,
+  .dshDesktopSettingsInput,
+  .dshDesktopSettingsButton,
+  .dshDesktopSettingsButtonSecondary,
+  .dshDesktopSettingsButtonDanger,
+  .dshDesktopSettingsHeaderButton,
+  .dshDesktopSettingsBadge,
+  [class*="_selector"],
+  [class*="_stepper"],
+  [class*="_themeCube"],
+  [class*="_navCell"],
+  [class*="_arrow"]
+) {
+  background-color: var(--dsh-glass-control-fill) !important;
   background-image: var(--dsh-glass-noise);
   background-size: 140px 140px;
-  -webkit-backdrop-filter: var(--dsh-glass-blur);
-  backdrop-filter: var(--dsh-glass-blur);
-  border: 1px solid var(--dsh-glass-border);
-  box-shadow: var(--dsh-glass-shadow);
+  -webkit-backdrop-filter: var(--dsh-glass-control-blur);
+  backdrop-filter: var(--dsh-glass-control-blur);
+  border-color: var(--dsh-glass-control-border);
 }
+/* Menus, listboxes, and popovers. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
   [role="menu"],
   [role="listbox"],
@@ -105,34 +118,6 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   border: 1px solid var(--dsh-glass-popover-border);
   box-shadow: var(--dsh-glass-shadow);
   color: var(--dsw-alias-label-primary);
-}
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
-  .dshDesktopSettingsToggleRow,
-  .dshDesktopSettingsMaterialField,
-  .dshDesktopSettingsChoice,
-  .dshDesktopSettingsLanStatus,
-  .dshDesktopSettingsDetails,
-  .dshDesktopSettingsList,
-  .dshDesktopSettingsSelect,
-  .dshDesktopSettingsInput,
-  .dshDesktopSettingsButton,
-  .dshDesktopSettingsButtonSecondary,
-  .dshDesktopSettingsButtonDanger,
-  .dshDesktopSettingsHeaderButton,
-  .dshDesktopSettingsBadge
-) {
-  background: var(--dsh-glass-fill-weak) !important;
-  border-color: var(--dsh-glass-border);
-}
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [role="dialog"][aria-modal="true"] :is(
-  [class*="_selector"],
-  [class*="_stepper"],
-  [class*="_themeCube"],
-  [class*="_navCell"],
-  [class*="_arrow"]
-) {
-  background: var(--dsh-glass-fill-weak) !important;
-  border-color: var(--dsh-glass-border);
 }
 `
 
