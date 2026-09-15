@@ -72,7 +72,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   --dsh-glass-popover-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 40%, transparent);
   --dsh-glass-control-border: color-mix(in srgb, #ffffff 24%, transparent);
   --dsh-glass-popover-border: color-mix(in srgb, #ffffff 28%, transparent);
-  --dsh-glass-surface-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 52%, transparent);
+  --dsh-glass-surface-overlay: linear-gradient(180deg, color-mix(in srgb, var(--dsw-alias-bg-layer-1) 30%, transparent), color-mix(in srgb, var(--dsw-alias-bg-layer-1) 44%, transparent));
   --dsh-glass-control-blur: blur(16px) saturate(160%);
   --dsh-glass-popover-blur: blur(22px) saturate(170%);
   --dsh-glass-surface-blur: blur(20px) saturate(160%);
@@ -114,23 +114,29 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   backdrop-filter: var(--dsh-glass-control-blur);
   box-shadow: inset 0 0 0 1px var(--dsh-glass-control-border);
 }
-/* Sidebar: translucent frosted fill only. A backdrop-filter here would become
-   the containing block for the fixed Settings overlay hosted inside the
-   sidebar and collapse it to the sidebar width. */
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] .dshDesktopSidebarSurface {
-  --dsw-specific-sidebar-fill: transparent;
-  background-color: var(--dsh-glass-surface-fill) !important;
-  background-image: var(--dsh-glass-noise);
-  background-size: 140px 140px;
-  border-color: var(--dsh-glass-control-border);
+/* Sidebar and message box: overlay the frosted material on top of whatever
+   background the theme or a third-party appearance plugin painted (wallpaper,
+   sidebar transparency) instead of overriding it, so plugins keep control of
+   their fill and opacity.
+   The sidebar must not use a backdrop-filter: it would become the containing
+   block for the fixed Settings overlay hosted inside the sidebar and collapse
+   it to the sidebar width. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] .dshDesktopSidebarSurface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--dsh-glass-surface-overlay), var(--dsh-glass-noise);
+  background-size: 100% 100%, 140px 140px;
+  box-shadow: inset 0 0 0 1px var(--dsh-glass-control-border), inset -1px 0 0 color-mix(in srgb, #ffffff 8%, transparent);
 }
-/* Message box. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [data-slot="conversation.composer"] [class*="_card"] {
-  background-color: var(--dsh-glass-surface-fill) !important;
-  background-image: var(--dsh-glass-noise);
-  background-size: 140px 140px;
+  background-image: var(--dsh-glass-surface-overlay), var(--dsh-glass-noise);
+  background-size: 100% 100%, 140px 140px;
   -webkit-backdrop-filter: var(--dsh-glass-surface-blur);
   backdrop-filter: var(--dsh-glass-surface-blur);
+  box-shadow: inset 0 0 0 1px var(--dsh-glass-control-border);
   border-color: var(--dsh-glass-control-border);
 }
 /* Menus, listboxes, and popovers. */
