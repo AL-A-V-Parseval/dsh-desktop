@@ -134,6 +134,17 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 ) {
   background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 68%, transparent) !important;
 }
+/* In-conversation usage/time capsules keep upstream's own fill and states;
+   overlay the shared glass so they read as glass controls as well. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="nCk46q_trigger"] {
+  background-image:
+    linear-gradient(180deg, color-mix(in srgb, #ffffff 6%, transparent), color-mix(in srgb, #ffffff 1%, transparent)),
+    var(--dsh-glass-noise);
+  background-size: 100% 100%, 140px 140px;
+  -webkit-backdrop-filter: var(--dsh-glass-control-blur);
+  backdrop-filter: var(--dsh-glass-control-blur);
+  box-shadow: inset 0 1px 0 var(--dsh-glass-edge-light), inset 0 -1px 1px var(--dsh-glass-edge-shade), inset 0 0 0 1px var(--dsh-glass-edge-rim);
+}
 /* Settings and other modals: frost the dialog surface itself. A translucent
    control sitting on an opaque panel reads as a flat fill, so the panel has
    to carry the material too for the controls on top of it to look like
@@ -190,6 +201,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   [role="menu"],
   [role="listbox"],
   [role="tooltip"],
+  [class*="vYvZja_panel"],
   .dshDesktopVersionPopover,
   .dshDesktopActionMenu,
   .dshDesktopSettingsMenu,
