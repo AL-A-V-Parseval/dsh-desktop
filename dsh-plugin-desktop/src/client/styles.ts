@@ -134,6 +134,34 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 ) {
   background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 68%, transparent) !important;
 }
+/* The message action buttons (copy, good answer, bad answer, branch) share one
+   glass capsule instead of a frame each. Only rows that carry the feedback pair
+   get it, so single-action rows stay untouched. The capsule is drawn behind the
+   four 28px seats and their 8px gaps, so it tracks the content font size. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_8leB5q_actions"]:has([class*="gDWXgG_action"]) {
+  position: relative;
+  isolation: isolate;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_8leB5q_actions"]:has([class*="gDWXgG_action"])::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  z-index: -1;
+  transform: translateY(-50%);
+  width: calc(136px + 4 * var(--dsh-content-font-delta, 0px));
+  height: calc(28px + var(--dsh-content-font-delta, 0px));
+  border-radius: 999px;
+  pointer-events: none;
+  background-color: color-mix(in srgb, #ffffff 6%, transparent);
+  background-image:
+    linear-gradient(180deg, color-mix(in srgb, #ffffff 6%, transparent), color-mix(in srgb, #ffffff 1%, transparent)),
+    var(--dsh-glass-noise);
+  background-size: 100% 100%, 140px 140px;
+  -webkit-backdrop-filter: var(--dsh-glass-control-blur);
+  backdrop-filter: var(--dsh-glass-control-blur);
+  box-shadow: inset 0 1px 0 var(--dsh-glass-edge-light), inset 0 -1px 1px var(--dsh-glass-edge-shade), inset 0 0 0 1px var(--dsh-glass-edge-rim);
+}
 /* In-conversation usage/time capsules keep upstream's own fill and states;
    overlay the shared glass so they read as glass controls as well. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="nCk46q_trigger"] {
