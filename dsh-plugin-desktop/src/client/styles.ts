@@ -134,44 +134,48 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 ) {
   background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 68%, transparent) !important;
 }
-/* The message action buttons (copy, good answer, bad answer, branch) share one
-   glass capsule instead of a frame each. Only rows that carry the feedback pair
-   get it, so single-action rows stay untouched. The capsule is drawn behind the
-   four 28px seats and their 8px gaps, so it tracks the content font size. */
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_8leB5q_actions"]:has([class*="gDWXgG_action"]) {
-  position: relative;
-  isolation: isolate;
+/* Message actions (copy, good answer, bad answer, branch) and the usage/time
+   readouts share one glass capsule, split into segments by hairlines. Only rows
+   that carry the feedback pair get it, so single-action rows stay untouched.
+   The centre stays clear: each segment carries a flat fill plus a specular top
+   and bottom edge, with no broad sheen. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) {
+  gap: 0;
 }
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_8leB5q_actions"]:has([class*="gDWXgG_action"])::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  z-index: -1;
-  transform: translateY(-50%);
-  width: calc(136px + 4 * var(--dsh-content-font-delta, 0px));
-  height: calc(28px + var(--dsh-content-font-delta, 0px));
-  border-radius: 999px;
-  pointer-events: none;
-  background-color: color-mix(in srgb, #ffffff 6%, transparent);
-  background-image:
-    linear-gradient(180deg, color-mix(in srgb, #ffffff 6%, transparent), color-mix(in srgb, #ffffff 1%, transparent)),
-    var(--dsh-glass-noise);
-  background-size: 100% 100%, 140px 140px;
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) :is(
+  [class~="_8leB5q_action"],
+  [class~="gDWXgG_action"],
+  [class~="nCk46q_root"]
+) {
+  background-color: color-mix(in srgb, #ffffff 4%, transparent) !important;
+  background-image: var(--dsh-glass-noise);
+  background-size: 140px 140px;
+  border-radius: 0;
   -webkit-backdrop-filter: var(--dsh-glass-control-blur);
   backdrop-filter: var(--dsh-glass-control-blur);
-  box-shadow: inset 0 1px 0 var(--dsh-glass-edge-light), inset 0 -1px 1px var(--dsh-glass-edge-shade), inset 0 0 0 1px var(--dsh-glass-edge-rim);
+  box-shadow: inset 0 1px 0 var(--dsh-glass-edge-light), inset 0 -1px 1px var(--dsh-glass-edge-shade);
 }
-/* In-conversation usage/time capsules keep upstream's own fill and states;
-   overlay the shared glass so they read as glass controls as well. */
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="nCk46q_trigger"] {
-  background-image:
-    linear-gradient(180deg, color-mix(in srgb, #ffffff 6%, transparent), color-mix(in srgb, #ffffff 1%, transparent)),
-    var(--dsh-glass-noise);
-  background-size: 100% 100%, 140px 140px;
-  -webkit-backdrop-filter: var(--dsh-glass-control-blur);
-  backdrop-filter: var(--dsh-glass-control-blur);
-  box-shadow: inset 0 1px 0 var(--dsh-glass-edge-light), inset 0 -1px 1px var(--dsh-glass-edge-shade), inset 0 0 0 1px var(--dsh-glass-edge-rim);
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) :is(
+  [class~="gDWXgG_action"],
+  [class~="nCk46q_root"]
+),
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) > [class~="_8leB5q_action"]:not(:first-child) {
+  box-shadow: inset 1px 0 0 color-mix(in srgb, #ffffff 12%, transparent), inset 0 1px 0 var(--dsh-glass-edge-light), inset 0 -1px 1px var(--dsh-glass-edge-shade);
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) > [class~="_8leB5q_action"]:first-child {
+  border-radius: 999px 0 0 999px;
+  box-shadow: inset 1px 0 0 var(--dsh-glass-edge-rim), inset 0 1px 0 var(--dsh-glass-edge-light), inset 0 -1px 1px var(--dsh-glass-edge-shade);
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) [class~="nCk46q_root"]:has(+ [class~="_8leB5q_timeEnd"]) {
+  border-radius: 0 999px 999px 0;
+  box-shadow: inset -1px 0 0 var(--dsh-glass-edge-rim), inset 1px 0 0 color-mix(in srgb, #ffffff 12%, transparent), inset 0 1px 0 var(--dsh-glass-edge-light), inset 0 -1px 1px var(--dsh-glass-edge-shade);
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) [class~="nCk46q_trigger"] {
+  background-color: transparent !important;
+  background-image: none;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) > [class~="_8leB5q_timeEnd"] {
+  margin-left: 10px;
 }
 /* Settings and other modals: frost the dialog surface itself. A translucent
    control sitting on an opaque panel reads as a flat fill, so the panel has
