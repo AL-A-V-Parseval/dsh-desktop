@@ -155,6 +155,18 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   backdrop-filter: var(--dsh-glass-control-blur);
   box-shadow: inset 0 1px 0 var(--dsh-glass-edge-light), inset 0 -1px 1px var(--dsh-glass-edge-shade);
 }
+/* Wider seats so the icons are not cramped. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) :is(
+  [class~="_8leB5q_action"],
+  [class~="gDWXgG_action"]
+) {
+  width: calc(36px + var(--dsh-content-font-delta, 0px));
+}
+/* Upstream pulls an adjacent readout left by 6px; inside the capsule that
+   overlap hides the end of the usage text, so let the segments abut cleanly. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) [class~="nCk46q_root"] {
+  margin-left: 0 !important;
+}
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) :is(
   [class~="gDWXgG_action"],
   [class~="nCk46q_root"]
@@ -173,6 +185,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) [class~="nCk46q_trigger"] {
   background-color: transparent !important;
   background-image: none;
+  padding: 6px 12px;
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) > [class~="_8leB5q_timeEnd"] {
   margin-left: 10px;
