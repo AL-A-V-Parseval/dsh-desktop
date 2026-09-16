@@ -166,10 +166,24 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   background-color: transparent !important;
   background-image: var(--dsh-glass-surface-overlay), var(--dsh-glass-noise);
   background-size: 100% 100%, 140px 140px;
-  -webkit-backdrop-filter: var(--dsh-glass-surface-blur);
-  backdrop-filter: var(--dsh-glass-surface-blur);
+  /* The frost sits on a ::before layer instead of the card itself. A
+     backdrop-filter on the card becomes the backdrop root for the inline menus
+     rendered inside it (the access-mode menu is not portalled), leaving their
+     own backdrop-filter nothing to frost and making them see-through next to
+     the portalled model/context menus. */
+  isolation: isolate;
   box-shadow: var(--dsh-glass-lift), var(--dsh-glass-edge);
   border-color: transparent;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [data-slot="conversation.composer"] [class*="_card"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  -webkit-backdrop-filter: var(--dsh-glass-surface-blur);
+  backdrop-filter: var(--dsh-glass-surface-blur);
 }
 /* Menus, listboxes, and popovers. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
