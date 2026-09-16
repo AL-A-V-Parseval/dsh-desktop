@@ -201,7 +201,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   [role="menu"],
   [role="listbox"],
   [role="tooltip"],
-  [class*="vYvZja_panel"],
+  [role="dialog"]:not([aria-modal="true"]),
   .dshDesktopVersionPopover,
   .dshDesktopActionMenu,
   .dshDesktopSettingsMenu,
