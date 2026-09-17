@@ -430,6 +430,35 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_sectionHeader"] > [class*="_sectionLabel"] {
   margin-right: auto;
 }
+/* Rail: the three launchers (new session, add workspace, search) stack into one
+   vertical glass capsule. They live in different plugin roots, so close the
+   margins between them and give each the right segment geometry. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_collapsed"] button[class*="_newSession"] {
+  border-radius: 10px 10px 0 0 !important;
+  margin-bottom: 0 !important;
+  box-shadow: var(--dsh-lg-edge) !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_rail"] [class*="_sectionHeader"] {
+  margin-bottom: 0 !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_rail"] [class*="_headerActions"] {
+  display: contents !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_rail"] button[class*="_iconButton"] {
+  border-radius: 0 !important;
+  background-color: var(--dsh-lg-tint-control) !important;
+  background-image: var(--dsh-lg-noise) !important;
+  background-size: 140px 140px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 14%, transparent), inset 0 -1px 1px var(--dsh-lg-edge-shade) !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_rail"] button[class*="_searchButton"] {
+  border-radius: 0 0 10px 10px !important;
+  margin-bottom: 0 !important;
+  background-color: var(--dsh-lg-tint-control) !important;
+  background-image: var(--dsh-lg-noise) !important;
+  background-size: 140px 140px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 14%, transparent), var(--dsh-lg-edge) !important;
+}
 /* Text fields share the control glass. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
   input:not([type="checkbox"]):not([type="radio"]),
