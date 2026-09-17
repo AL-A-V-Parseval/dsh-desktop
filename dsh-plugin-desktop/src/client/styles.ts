@@ -59,23 +59,33 @@ html:has([aria-modal="true"]) .dshDesktopWindowsCaptionRow::before { -webkit-app
    specular edges, the depth, and the region hierarchy. Scoped to the
    Linux transparent material so other platforms keep their native material.
    ===================================================================== */
-/* iOS-style background recede while a popover is open. */
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] #root {
-  transition: filter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+/* iOS-style background recede while a popover is open. A dimming overlay is
+   used instead of a filter: a filter on #root becomes a backdrop root and
+   silently disables every popover's backdrop-filter, so the glass would show
+   sharp content behind it. The overlay sits below the portalled popovers. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] #root::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  background: #000000;
+  opacity: 0;
+  transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]:has(
   [role="menu"],
   [role="listbox"],
   .dshDesktopSettingsMenu,
   .dshDesktopActionMenu
-) #root {
-  filter: brightness(0.94) saturate(0.94);
+) #root::before {
+  opacity: 0.18;
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] {
-  --dsh-lg-blur-chrome: blur(26px) saturate(185%);
-  --dsh-lg-blur-control: blur(22px) saturate(180%);
-  --dsh-lg-blur-popover: blur(46px) saturate(205%);
-  --dsh-lg-blur-surface: blur(32px) saturate(190%);
+  --dsh-lg-blur-chrome: blur(30px) saturate(190%);
+  --dsh-lg-blur-control: blur(26px) saturate(185%);
+  --dsh-lg-blur-popover: blur(64px) saturate(215%);
+  --dsh-lg-blur-surface: blur(40px) saturate(195%);
   /* The shell keeps its original dark base; the glass is reserved for the
      controls, the composer, and the floating layers that sit on top of it. */
   --dsh-lg-tint-base: var(--dsw-static-neutral-bluish-950);
@@ -83,8 +93,8 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   --dsh-lg-tint-2: var(--dsw-static-neutral-bluish-850);
   --dsh-lg-tint-3: var(--dsw-static-neutral-bluish-800);
   --dsh-lg-tint-control: color-mix(in srgb, #ffffff 7%, transparent);
-  --dsh-lg-tint-popover: color-mix(in srgb, var(--dsw-static-neutral-bluish-850) 62%, transparent);
-  --dsh-lg-tint-card: color-mix(in srgb, var(--dsw-static-neutral-bluish-850) 58%, transparent);
+  --dsh-lg-tint-popover: color-mix(in srgb, var(--dsw-static-neutral-bluish-850) 46%, transparent);
+  --dsh-lg-tint-card: color-mix(in srgb, var(--dsw-static-neutral-bluish-850) 50%, transparent);
   --dsh-lg-tint-sidebar: linear-gradient(180deg, var(--dsw-static-neutral-bluish-900), var(--dsw-static-neutral-bluish-950));
   --dsh-lg-edge-light: color-mix(in srgb, #ffffff 46%, transparent);
   --dsh-lg-edge-shade: color-mix(in srgb, #000000 42%, transparent);
@@ -124,8 +134,8 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   --dsh-lg-tint-2: var(--dsw-static-neutral-bluish-75);
   --dsh-lg-tint-3: var(--dsw-static-neutral-bluish-100);
   --dsh-lg-tint-control: color-mix(in srgb, #ffffff 42%, transparent);
-  --dsh-lg-tint-popover: color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 74%, transparent);
-  --dsh-lg-tint-card: color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 68%, transparent);
+  --dsh-lg-tint-popover: color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 60%, transparent);
+  --dsh-lg-tint-card: color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 60%, transparent);
   --dsh-lg-tint-sidebar: linear-gradient(180deg, var(--dsw-static-neutral-bluish-00), var(--dsw-static-neutral-bluish-100));
   --dsh-lg-edge-light: color-mix(in srgb, #ffffff 88%, transparent);
   --dsh-lg-edge-shade: color-mix(in srgb, #000000 12%, transparent);
@@ -317,15 +327,17 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   box-shadow: var(--dsh-lg-edge);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_headerUtilities"] {
-  border-radius: 10px 0 0 10px !important;
+  border-radius: 10px !important;
 }
+/* The sidebar toggle stays its own control, next to the group rather than
+   fused into it. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_headerCorner"] {
-  border-radius: 0 10px 10px 0 !important;
-  margin-left: 0 !important;
+  border-radius: 10px !important;
+  margin-left: 6px !important;
   background-color: var(--dsh-lg-tint-control) !important;
   background-image: var(--dsh-lg-noise) !important;
   background-size: 140px 140px;
-  box-shadow: inset 1px 0 0 color-mix(in srgb, #ffffff 14%, transparent), var(--dsh-lg-edge) !important;
+  box-shadow: var(--dsh-lg-edge) !important;
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_searchSlot"] {
   border-radius: 10px 0 0 10px !important;
