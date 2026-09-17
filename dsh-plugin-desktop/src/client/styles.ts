@@ -72,10 +72,10 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   filter: brightness(0.94) saturate(0.94);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] {
-  --dsh-lg-blur-chrome: blur(20px) saturate(180%);
-  --dsh-lg-blur-control: blur(16px) saturate(175%);
-  --dsh-lg-blur-popover: blur(30px) saturate(195%);
-  --dsh-lg-blur-surface: blur(26px) saturate(185%);
+  --dsh-lg-blur-chrome: blur(26px) saturate(185%);
+  --dsh-lg-blur-control: blur(22px) saturate(180%);
+  --dsh-lg-blur-popover: blur(46px) saturate(205%);
+  --dsh-lg-blur-surface: blur(32px) saturate(190%);
   /* The shell keeps its original dark base; the glass is reserved for the
      controls, the composer, and the floating layers that sit on top of it. */
   --dsh-lg-tint-base: var(--dsw-static-neutral-bluish-950);
@@ -399,6 +399,24 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="p_FcLG_modes"] {
   margin-left: 12px;
 }
+/* When the composer row runs out of room the model selector folds to its icon
+   and chevron, like the permission selector already does. Upstream waits until
+   360px, which overflows first; fold it as soon as the trailing cluster is
+   tight so the send button always stays in reach. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="p_FcLG_trailing"],
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="IecIca_root"],
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="IecIca_trigger"] {
+  min-width: 0;
+}
+@container (width<=520px) {
+  body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="IecIca_triggerLabel"],
+  body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="IecIca_triggerEffort"] {
+    display: none;
+  }
+  body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="IecIca_triggerIcon"] {
+    display: block;
+  }
+}
 /* The two header groups are siblings; close the gap so they read as one bar. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_titleRow"] {
   gap: 0 !important;
@@ -499,8 +517,8 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   background-color: transparent !important;
   background-image: linear-gradient(180deg, color-mix(in srgb, var(--dsw-static-neutral-bluish-900) 42%, transparent), color-mix(in srgb, var(--dsw-static-neutral-bluish-950) 52%, transparent)), var(--dsh-lg-noise);
   background-size: 100% 100%, 140px 140px;
-  -webkit-backdrop-filter: blur(34px) saturate(190%);
-  backdrop-filter: blur(34px) saturate(190%);
+  -webkit-backdrop-filter: blur(48px) saturate(200%);
+  backdrop-filter: blur(48px) saturate(200%);
 }
 /* Glass motion: popovers and menus spring in, the modal glass settles, and
    controls press/raise with short springy easings rather than snapping. */
