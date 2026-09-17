@@ -247,52 +247,179 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 ) {
   background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 72%, transparent) !important;
 }
-/* Tabs and segmented controls read as one glass capsule. */
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [role="tab"] {
-  border-radius: 999px;
-  transition: background-color 180ms ease, box-shadow 180ms ease;
-}
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [role="tab"][aria-selected="true"],
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [role="tab"][data-state="active"] {
-  background-color: var(--dsh-lg-tint-control) !important;
-  box-shadow: var(--dsh-lg-edge);
-}
-/* One geometry and one hover for every small option/icon control, so the
-   sidebar launchers, the header buttons, and the composer seats read as the
-   same family instead of mixing circles, pills, and bare icons. */
+/* The chat/trajectory switch stays plain: its option boxes are not capsules. */
+/* Every small option/icon control keeps its glass capsule at rest, so the
+   shell reads as one material instead of lighting up only on hover. Controls
+   inside a merged capsule are excluded here and styled as capsule segments. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
   button[class*="_iconButton"],
   button[class*="_searchButton"],
   button[class*="_moreButton"],
   button[class*="_toggle"],
-  .dshDesktopSidebarSurface button,
-  .dshDesktopSidebarSurface [role="button"],
-  .dshDesktopSidebarSurface [role="treeitem"],
-  .dshDesktopTitlebarIconButton
-) {
+  button[class*="_newSession"],
+  .dshDesktopTitlebarIconButton,
+  [class*="dshMarketLauncher"],
+  [class*="_0mJWUG_button"],
+  [class*="triggerRow"] button
+):not(:is(
+  [class*="_headerUtilities"],
+  [class*="_headerCorner"],
+  [class*="_stripChrome"],
+  [class*="_searchSlot"],
+  [class*="_headerActions"]
+) *) {
   border-radius: 10px;
+  background-color: var(--dsh-lg-tint-control) !important;
+  background-image: var(--dsh-lg-noise) !important;
+  background-size: 140px 140px;
+  -webkit-backdrop-filter: var(--dsh-lg-blur-control);
+  backdrop-filter: var(--dsh-lg-blur-control);
+  box-shadow: var(--dsh-lg-edge);
   transition: background-color 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
   button[class*="_iconButton"],
   button[class*="_searchButton"],
   button[class*="_moreButton"],
-  button[class*="_toggle"]
-):hover {
-  background-color: var(--dsh-lg-tint-control) !important;
-  box-shadow: var(--dsh-lg-edge);
+  button[class*="_toggle"],
+  button[class*="_newSession"],
+  .dshDesktopTitlebarIconButton,
+  [class*="dshMarketLauncher"],
+  [class*="_0mJWUG_button"],
+  [class*="triggerRow"] button
+):not(:is(
+  [class*="_headerUtilities"],
+  [class*="_headerCorner"],
+  [class*="_stripChrome"],
+  [class*="_searchSlot"],
+  [class*="_headerActions"]
+) *):hover {
+  background-color: color-mix(in srgb, #ffffff 13%, transparent) !important;
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] button[class*="_newSession"] {
+  border-color: color-mix(in srgb, #ffffff 14%, transparent) !important;
+}
+/* Adjacent option buttons merge into one capsule, split by hairline dividers.
+   The groups are the chat header utilities, the rightbar strip, and the
+   sidebar workspace header (search + view options + add). */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  [class*="_headerUtilities"],
+  [class*="_stripChrome"]:has(button),
+  [class*="_searchSlot"]:has(button),
+  [class*="_headerActions"]:has(button)
+) {
+  gap: 0 !important;
   background-color: var(--dsh-lg-tint-control) !important;
-  background-image: var(--dsh-lg-noise);
+  background-image: var(--dsh-lg-noise) !important;
   background-size: 140px 140px;
   -webkit-backdrop-filter: var(--dsh-lg-blur-control);
   backdrop-filter: var(--dsh-lg-blur-control);
-  border-color: color-mix(in srgb, #ffffff 14%, transparent) !important;
+  box-shadow: var(--dsh-lg-edge);
+  overflow: hidden;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_headerUtilities"] {
+  border-radius: 10px 0 0 10px !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_headerCorner"] {
+  border-radius: 0 10px 10px 0 !important;
+  margin-left: 0 !important;
+  background-color: var(--dsh-lg-tint-control) !important;
+  background-image: var(--dsh-lg-noise) !important;
+  background-size: 140px 140px;
+  box-shadow: inset 1px 0 0 color-mix(in srgb, #ffffff 14%, transparent), var(--dsh-lg-edge) !important;
+  overflow: hidden;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_searchSlot"] {
+  border-radius: 10px 0 0 10px !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_headerActions"]:has(button) {
+  border-radius: 0 10px 10px 0 !important;
+  box-shadow: inset 1px 0 0 color-mix(in srgb, #ffffff 14%, transparent), var(--dsh-lg-edge) !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  [class*="_headerUtilities"],
+  [class*="_headerCorner"],
+  [class*="_stripChrome"],
+  [class*="_searchSlot"],
+  [class*="_headerActions"]:has(button)
+) :is(button, [role="button"]) {
+  border-radius: 0 !important;
+  border-color: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  [class*="_headerUtilities"],
+  [class*="_headerCorner"],
+  [class*="_stripChrome"],
+  [class*="_searchSlot"],
+  [class*="_headerActions"]:has(button)
+) > * + *,
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  [class*="_headerUtilities"],
+  [class*="_headerCorner"],
+  [class*="_stripChrome"],
+  [class*="_searchSlot"],
+  [class*="_headerActions"]:has(button)
+) :is(button, [role="button"]) + :is(button, [role="button"]),
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_headerUtilities"] > div > span + span {
+  box-shadow: inset 1px 0 0 color-mix(in srgb, #ffffff 14%, transparent) !important;
+}
+/* The open-in-app split button is itself a segment inside the header capsule. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_split"] {
+  gap: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_split"] > * + * {
+  box-shadow: inset 1px 0 0 color-mix(in srgb, #ffffff 14%, transparent) !important;
+}
+/* Composer tools: the add (+, attach) seats merge into one small capsule. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="p_FcLG_add"] {
+  border-radius: 0 !important;
+  background-color: var(--dsh-lg-tint-control) !important;
+  background-image: var(--dsh-lg-noise) !important;
+  background-size: 140px 140px;
+  -webkit-backdrop-filter: var(--dsh-lg-blur-control);
+  backdrop-filter: var(--dsh-lg-blur-control);
   box-shadow: var(--dsh-lg-edge);
 }
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] button[class*="_newSession"]:hover {
-  background-color: color-mix(in srgb, #ffffff 13%, transparent) !important;
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="p_FcLG_add"]:first-of-type {
+  border-radius: 10px 0 0 10px !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="p_FcLG_add"]:last-of-type {
+  border-radius: 0 10px 10px 0 !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="p_FcLG_add"] + [class*="p_FcLG_add"] {
+  box-shadow: inset 1px 0 0 color-mix(in srgb, #ffffff 14%, transparent), var(--dsh-lg-edge);
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_tools"] {
+  gap: 0 !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="p_FcLG_modes"] {
+  margin-left: 12px;
+}
+/* The two header groups are siblings; close the gap so they read as one bar. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_titleRow"] {
+  gap: 0 !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_titleCluster"] {
+  margin-right: auto;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_headerUtilities"] > *,
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_headerUtilities"] > * > *,
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_headerCorner"] > * {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_sectionHeader"] {
+  gap: 0 !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_sectionHeader"] > [class*="_sectionLabel"] {
+  margin-right: auto;
 }
 /* Text fields share the control glass. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
