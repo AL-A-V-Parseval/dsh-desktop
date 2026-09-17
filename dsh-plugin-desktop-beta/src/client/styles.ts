@@ -315,7 +315,6 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   -webkit-backdrop-filter: var(--dsh-lg-blur-control);
   backdrop-filter: var(--dsh-lg-blur-control);
   box-shadow: var(--dsh-lg-edge);
-  overflow: hidden;
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_headerUtilities"] {
   border-radius: 10px 0 0 10px !important;
@@ -327,7 +326,6 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   background-image: var(--dsh-lg-noise) !important;
   background-size: 140px 140px;
   box-shadow: inset 1px 0 0 color-mix(in srgb, #ffffff 14%, transparent), var(--dsh-lg-edge) !important;
-  overflow: hidden;
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_searchSlot"] {
   border-radius: 10px 0 0 10px !important;
@@ -366,14 +364,14 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   box-shadow: inset 1px 0 0 color-mix(in srgb, #ffffff 14%, transparent) !important;
 }
 /* The open-in-app split button is itself a segment inside the header capsule. */
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_split"] {
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="XZ80vW_split"] {
   gap: 0 !important;
   border-radius: 0 !important;
   background-color: transparent !important;
   background-image: none !important;
   box-shadow: none !important;
 }
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_split"] > * + * {
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="XZ80vW_split"] > * + * {
   box-shadow: inset 1px 0 0 color-mix(in srgb, #ffffff 14%, transparent) !important;
 }
 /* Composer tools: the add (+, attach) seats merge into one small capsule. */
@@ -395,7 +393,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="p_FcLG_add"] + [class*="p_FcLG_add"] {
   box-shadow: inset 1px 0 0 color-mix(in srgb, #ffffff 14%, transparent), var(--dsh-lg-edge);
 }
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_tools"] {
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="p_FcLG_tools"] {
   gap: 0 !important;
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="p_FcLG_modes"] {
@@ -407,13 +405,6 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_titleCluster"] {
   margin-right: auto;
-}
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_headerUtilities"] > *,
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_headerUtilities"] > * > *,
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_headerCorner"] > * {
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_sectionHeader"] {
   gap: 0 !important;
