@@ -64,16 +64,16 @@ Grab the Linux x64 build from [Releases](https://github.com/AL-A-V-Parseval/dsh-
 ### Portable archive (tar.gz)
 
 ```sh
-tar -xzf DSH-Desktop-2.0.11-x64-portable.tar.gz
-cd DSH-Desktop-2.0.11-x64
+tar -xzf DSH-Desktop-2.0.11-linux.1-x64-portable.tar.gz
+cd DSH-Desktop-2.0.11-linux.1-x64
 ./dsh-plugin-desktop
 ```
 
 ### Debian / Ubuntu package (.deb)
 
 ```sh
-sudo apt install ./dsh-desktop_2.0.11_amd64.deb
-# or: sudo dpkg -i dsh-desktop_2.0.11_amd64.deb && sudo apt -f install
+sudo apt install ./dsh-desktop_2.0.11-linux.1_amd64.deb
+# or: sudo dpkg -i dsh-desktop_2.0.11-linux.1_amd64.deb && sudo apt -f install
 ```
 
 After installing, launch it from the application menu or run `dsh-desktop`. The `.deb`:
@@ -101,7 +101,7 @@ gpg --import Jic2007-release-key.asc
 gpg --verify SHA256SUMS.asc SHA256SUMS
 sha256sum -c SHA256SUMS
 # optional: internal .deb signature (requires debsigs)
-debsigs --verify dsh-desktop_2.0.11_amd64.deb
+debsigs --verify dsh-desktop_2.0.11-linux.1_amd64.deb
 ```
 
 ## Build from source
