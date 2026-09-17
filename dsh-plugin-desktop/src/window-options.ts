@@ -158,10 +158,13 @@ function customChromeWindowOptions(
     // Electron exposes the Window Controls Overlay API on Linux, so the same
     // frameless hidden-titlebar contract used by Windows keeps the native
     // minimize/maximize/close buttons while the renderer owns the command bar.
-    // The Linux material is a control-only glass style, so the window, command
-    // bar, sidebar, and content all stay opaque.
+    // Linux exposes no native blur/mica API, so the transparent material makes
+    // the window itself transparent and lets the compositor frost the desktop
+    // behind it; with the material off the window stays opaque.
+    const glass = spec.material === 'transparent'
     return {
       ...options,
+      ...(glass ? { transparent: true, backgroundColor: '#00000000' } : {}),
       autoHideMenuBar: true,
       titleBarStyle: 'hidden',
       titleBarOverlay: {
@@ -169,7 +172,7 @@ function customChromeWindowOptions(
         symbolColor: '#7f858f',
         height: geometry.titlebarHeight,
       },
-      hasShadow: true,
+      hasShadow: !glass,
     }
   }
   throw new Error('dsh-plugin-desktop: custom desktop shell modes are supported on macOS, Windows, and Linux')
