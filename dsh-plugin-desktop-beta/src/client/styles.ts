@@ -443,6 +443,15 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_rail"] [class*="_sectionHeader"] {
   margin-bottom: 0 !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+}
+/* The rail wraps the add and search seats in rounded, clipping boxes; that is
+   what was rounding the add seat and turning the search seat into a circle,
+   overriding the capsule segment geometry. Open the clips. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_rail"] > [class*="_search"] {
+  border-radius: 0 !important;
+  overflow: visible !important;
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_rail"] [class*="_headerActions"] {
   display: contents !important;
