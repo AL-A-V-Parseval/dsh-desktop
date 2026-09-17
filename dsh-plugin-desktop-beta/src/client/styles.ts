@@ -51,8 +51,14 @@ html:has([aria-modal="true"]) .dshDesktopWindowsCaptionRow::before { -webkit-app
   .dshDesktopFrame,
   .dshDesktopResizeHandle { transition: none !important; }
 }
-/* WWDC25-style liquid glass restricted to controls, menus, and popovers. The
-   settings panel and the app surfaces stay solid. Scoped to the Linux material. */
+
+/* =====================================================================
+   Liquid Glass — WWDC25 material for the Linux transparent window.
+   The BrowserWindow is transparent, so the compositor frosts the desktop
+   wallpaper behind every surface; this layer supplies the tint, the
+   specular edges, the depth, and the region hierarchy. Scoped to the
+   Linux transparent material so other platforms keep their native material.
+   ===================================================================== */
 /* iOS-style background recede while a popover is open. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] #root {
   transition: filter 220ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -66,24 +72,127 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   filter: brightness(0.94) saturate(0.94);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] {
-  --dsh-glass-control-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 26%, transparent);
-  --dsh-glass-popover-fill: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 30%, transparent);
-  --dsh-glass-control-border: color-mix(in srgb, #ffffff 6%, transparent);
-  --dsh-glass-control-rim: color-mix(in srgb, #ffffff 3%, transparent);
-  --dsh-glass-popover-border: color-mix(in srgb, #ffffff 28%, transparent);
-  /* Specular edge: a bright top hairline, a shaded bottom edge,
-     and a faint rim, with the centre kept clear instead of lit. */
-  --dsh-glass-edge-light: color-mix(in srgb, #ffffff 30%, transparent);
-  --dsh-glass-edge-shade: color-mix(in srgb, #000000 30%, transparent);
-  --dsh-glass-edge-rim: color-mix(in srgb, #ffffff 10%, transparent);
-  --dsh-glass-edge: inset 0 1px 0 var(--dsh-glass-edge-light), inset 0 -1px 1px var(--dsh-glass-edge-shade), inset 0 0 0 1px var(--dsh-glass-edge-rim);
-  --dsh-glass-lift: 0 2px 6px color-mix(in srgb, #000000 30%, transparent);
-  --dsh-glass-surface-overlay: linear-gradient(180deg, color-mix(in srgb, var(--dsw-alias-bg-layer-1) 24%, transparent), color-mix(in srgb, var(--dsw-alias-bg-layer-1) 34%, transparent));
-  --dsh-glass-control-blur: blur(16px) saturate(160%);
-  --dsh-glass-popover-blur: blur(22px) saturate(170%);
-  --dsh-glass-surface-blur: blur(20px) saturate(160%);
-  --dsh-glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.09'/%3E%3C/svg%3E");
-  --dsh-glass-shadow: 0 24px 64px color-mix(in srgb, #000000 44%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 26%, transparent), inset 0 -1px 0 color-mix(in srgb, #000000 26%, transparent);
+  --dsh-lg-blur-chrome: blur(20px) saturate(180%);
+  --dsh-lg-blur-control: blur(16px) saturate(175%);
+  --dsh-lg-blur-popover: blur(30px) saturate(195%);
+  --dsh-lg-blur-surface: blur(26px) saturate(185%);
+  --dsh-lg-tint-base: color-mix(in srgb, var(--dsw-static-neutral-bluish-950) 54%, transparent);
+  --dsh-lg-tint-1: color-mix(in srgb, var(--dsw-static-neutral-bluish-875) 44%, transparent);
+  --dsh-lg-tint-2: color-mix(in srgb, var(--dsw-static-neutral-bluish-850) 50%, transparent);
+  --dsh-lg-tint-3: color-mix(in srgb, var(--dsw-static-neutral-bluish-800) 54%, transparent);
+  --dsh-lg-tint-control: color-mix(in srgb, #ffffff 7%, transparent);
+  --dsh-lg-tint-popover: color-mix(in srgb, var(--dsw-static-neutral-bluish-850) 58%, transparent);
+  --dsh-lg-tint-sidebar: linear-gradient(180deg, color-mix(in srgb, var(--dsw-static-neutral-bluish-900) 34%, transparent), color-mix(in srgb, var(--dsw-static-neutral-bluish-950) 46%, transparent));
+  --dsh-lg-edge-light: color-mix(in srgb, #ffffff 46%, transparent);
+  --dsh-lg-edge-shade: color-mix(in srgb, #000000 42%, transparent);
+  --dsh-lg-edge-rim: color-mix(in srgb, #ffffff 15%, transparent);
+  --dsh-lg-edge: inset 0 1px 0 var(--dsh-lg-edge-light), inset 0 -1px 1px var(--dsh-lg-edge-shade), inset 0 0 0 1px var(--dsh-lg-edge-rim);
+  --dsh-lg-lift: 0 12px 34px color-mix(in srgb, #000000 40%, transparent);
+  --dsh-lg-shadow: 0 26px 70px color-mix(in srgb, #000000 52%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 30%, transparent), inset 0 -1px 0 color-mix(in srgb, #000000 30%, transparent);
+  /* Apple's glass is a clean material, not a frosted one: the grain stays
+     near-invisible, matching the compositor blur settings. */
+  --dsh-lg-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.02'/%3E%3C/svg%3E");
+  /* Surface tokens turn into translucent glass so every component that paints
+     from the alias scale participates instead of staying opaque. The glass
+     tint derives from the shared static scale, so a custom theme's palette is
+     respected while a theme wallpaper keeps showing through. */
+  --dsw-alias-bg-base: var(--dsh-lg-tint-base);
+  --dsw-alias-bg-layer-1: var(--dsh-lg-tint-1);
+  --dsw-alias-bg-layer-2: var(--dsh-lg-tint-2);
+  --dsw-alias-bg-layer-3: var(--dsh-lg-tint-3);
+  --dsw-alias-bg-module-platform: color-mix(in srgb, var(--dsw-static-neutral-bluish-800) 40%, transparent);
+  --dsw-alias-bg-multi-select: color-mix(in srgb, var(--dsw-static-neutral-850) 52%, transparent);
+  --dsw-alias-bg-overlay: color-mix(in srgb, var(--dsw-static-neutral-bluish-700) 60%, transparent);
+  --dsw-alias-button-elevated-fill: color-mix(in srgb, var(--dsw-static-neutral-bluish-750) 50%, transparent);
+  --dsw-alias-button-floating-fill: color-mix(in srgb, var(--dsw-static-neutral-bluish-850) 48%, transparent);
+  --dsw-alias-button-floating-hover: color-mix(in srgb, var(--dsw-static-neutral-bluish-800) 54%, transparent);
+  --dsw-alias-button-ghost-active-fill: color-mix(in srgb, var(--dsw-static-neutral-bluish-750) 50%, transparent);
+  --dsw-alias-button-ghost-active-hover: color-mix(in srgb, var(--dsw-static-neutral-bluish-700) 56%, transparent);
+  --dsw-alias-button-primary-dimmed: color-mix(in srgb, var(--dsw-static-neutral-bluish-750) 46%, transparent);
+  --dsw-alias-button-tool-bar-fill: color-mix(in srgb, var(--dsw-static-neutral-bluish-600) 42%, transparent);
+  --dsw-alias-button-tool-bar-hover: color-mix(in srgb, var(--dsw-static-neutral-bluish-600) 56%, transparent);
+  --dsw-alias-toast-bg: color-mix(in srgb, var(--dsw-static-neutral-bluish-750) 62%, transparent);
+  --dsw-alias-tooltip-bg: color-mix(in srgb, var(--dsw-static-neutral-bluish-750) 64%, transparent);
+  --dsw-alias-interactive-bg-hover-solid: color-mix(in srgb, var(--dsw-static-neutral-bluish-800) 50%, transparent);
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]:not([data-ds-dark-theme]) {
+  --dsh-lg-tint-base: color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 58%, transparent);
+  --dsh-lg-tint-1: color-mix(in srgb, var(--dsw-static-neutral-bluish-50) 48%, transparent);
+  --dsh-lg-tint-2: color-mix(in srgb, var(--dsw-static-neutral-bluish-75) 52%, transparent);
+  --dsh-lg-tint-3: color-mix(in srgb, var(--dsw-static-neutral-bluish-100) 56%, transparent);
+  --dsh-lg-tint-control: color-mix(in srgb, #ffffff 42%, transparent);
+  --dsh-lg-tint-popover: color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 70%, transparent);
+  --dsh-lg-tint-sidebar: linear-gradient(180deg, color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 42%, transparent), color-mix(in srgb, var(--dsw-static-neutral-bluish-100) 50%, transparent));
+  --dsh-lg-edge-light: color-mix(in srgb, #ffffff 88%, transparent);
+  --dsh-lg-edge-shade: color-mix(in srgb, #000000 12%, transparent);
+  --dsh-lg-edge-rim: color-mix(in srgb, #000000 8%, transparent);
+  --dsh-lg-lift: 0 12px 34px color-mix(in srgb, #000000 16%, transparent);
+  --dsh-lg-shadow: 0 26px 70px color-mix(in srgb, #000000 22%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 80%, transparent), inset 0 -1px 0 color-mix(in srgb, #000000 8%, transparent);
+  --dsw-alias-bg-module-platform: color-mix(in srgb, var(--dsw-static-neutral-bluish-60) 62%, transparent);
+  --dsw-alias-bg-multi-select: color-mix(in srgb, var(--dsw-static-neutral-bluish-60) 60%, transparent);
+  --dsw-alias-bg-overlay: color-mix(in srgb, var(--dsw-static-neutral-bluish-150) 62%, transparent);
+  --dsw-alias-button-elevated-fill: color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 66%, transparent);
+  --dsw-alias-button-floating-fill: color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 60%, transparent);
+  --dsw-alias-button-floating-hover: color-mix(in srgb, var(--dsw-static-neutral-bluish-75) 64%, transparent);
+  --dsw-alias-button-ghost-active-fill: color-mix(in srgb, var(--dsw-static-neutral-bluish-100) 60%, transparent);
+  --dsw-alias-button-ghost-active-hover: color-mix(in srgb, var(--dsw-static-neutral-bluish-150) 62%, transparent);
+  --dsw-alias-button-primary-dimmed: color-mix(in srgb, var(--dsw-static-neutral-bluish-100) 58%, transparent);
+  --dsw-alias-button-tool-bar-fill: color-mix(in srgb, var(--dsw-static-neutral-bluish-400) 42%, transparent);
+  --dsw-alias-button-tool-bar-hover: color-mix(in srgb, var(--dsw-static-neutral-bluish-400) 56%, transparent);
+  --dsw-alias-toast-bg: color-mix(in srgb, var(--dsw-static-neutral-bluish-800) 62%, transparent);
+  --dsw-alias-tooltip-bg: color-mix(in srgb, var(--dsw-static-neutral-bluish-850) 66%, transparent);
+  --dsw-alias-interactive-bg-hover-solid: color-mix(in srgb, var(--dsw-static-neutral-bluish-75) 58%, transparent);
+}
+/* The frame is the glass pane the compositor frosts. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] .dshDesktopFrame {
+  background: var(--dsh-lg-tint-base) !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] .dshDesktopFrameTitlebar {
+  --dsh-desktop-frame-fill: var(--dsh-lg-tint-1);
+  background-image: var(--dsh-lg-noise);
+  background-size: 140px 140px;
+  border-bottom: 1px solid color-mix(in srgb, #ffffff 12%, transparent);
+  -webkit-backdrop-filter: var(--dsh-lg-blur-chrome);
+  backdrop-filter: var(--dsh-lg-blur-chrome);
+}
+/* Region hierarchy: the conversation reads on the frame glass, the sidebar
+   adds a slightly deeper tint, and the composer floats above both. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] .dshDesktopConversationSurface {
+  background: transparent !important;
+  border-color: color-mix(in srgb, #ffffff 12%, transparent) !important;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] .dshDesktopSidebarSurface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--dsh-lg-tint-sidebar), var(--dsh-lg-noise);
+  background-size: 100% 100%, 140px 140px;
+  box-shadow: var(--dsh-lg-edge), inset -1px 0 0 color-mix(in srgb, #ffffff 10%, transparent);
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [data-slot="conversation.composer"] [class*="_card"] {
+  background-color: transparent !important;
+  background-image: var(--dsh-lg-tint-1), var(--dsh-lg-noise);
+  background-size: 100% 100%, 140px 140px;
+  /* The frost sits on a ::before layer instead of the card itself. A
+     backdrop-filter on the card becomes the backdrop root for the inline menus
+     rendered inside it (the access-mode menu is not portalled), leaving their
+     own backdrop-filter nothing to frost and making them see-through next to
+     the portalled model/context menus. */
+  isolation: isolate;
+  box-shadow: var(--dsh-lg-lift), var(--dsh-lg-edge);
+  border-color: transparent;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [data-slot="conversation.composer"] [class*="_card"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  -webkit-backdrop-filter: var(--dsh-lg-blur-surface);
+  backdrop-filter: var(--dsh-lg-blur-surface);
 }
 /* Desktop-owned controls: full glass; we own their state styling. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
@@ -95,19 +204,19 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   .dshDesktopSettingsHeaderButton,
   .dshDesktopSettingsBadge
 ) {
-  background-color: var(--dsh-glass-control-fill) !important;
-  background-image: var(--dsh-glass-noise);
+  background-color: var(--dsh-lg-tint-control) !important;
+  background-image: var(--dsh-lg-noise);
   background-size: 140px 140px;
-  -webkit-backdrop-filter: var(--dsh-glass-control-blur);
-  backdrop-filter: var(--dsh-glass-control-blur);
+  -webkit-backdrop-filter: var(--dsh-lg-blur-control);
+  backdrop-filter: var(--dsh-lg-blur-control);
   border-color: transparent;
-  box-shadow: var(--dsh-glass-edge);
+  box-shadow: var(--dsh-lg-edge);
 }
 /* Third-party controls (dropdown triggers, appearance cards, settings nav):
-   replace the control's own fill with a translucent glass so the shared
-   backdrop-filter actually frosts what is behind it, instead of covering it
-   with an opaque fill. Selected/active states (aria-pressed / aria-current)
-   and hover keep a stronger translucent fill so they stay distinguishable. */
+   replace the control's own fill with translucent glass so the shared
+   backdrop-filter frosts what is behind it, instead of covering it with an
+   opaque fill. Selected/active states (aria-pressed / aria-current) and hover
+   keep a stronger translucent fill so they stay distinguishable. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
   [class*="_selector"],
   [class*="_stepper"],
@@ -115,30 +224,46 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   [class*="_navCell"],
   [class*="_arrow"]
 ) {
-  background-color: transparent !important;
-  background-image: var(--dsh-glass-noise);
+  background-color: var(--dsh-lg-tint-control) !important;
+  background-image: var(--dsh-lg-noise);
   background-size: 140px 140px;
-  -webkit-backdrop-filter: var(--dsh-glass-control-blur);
-  backdrop-filter: var(--dsh-glass-control-blur);
-  box-shadow: var(--dsh-glass-lift), var(--dsh-glass-edge);
+  -webkit-backdrop-filter: var(--dsh-lg-blur-control);
+  backdrop-filter: var(--dsh-lg-blur-control);
+  box-shadow: var(--dsh-lg-lift), var(--dsh-lg-edge);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
   [class*="_themeCube"][aria-pressed="true"],
   [class*="_navCell"][aria-current="true"]
 ) {
-  background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 84%, transparent) !important;
+  background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 88%, transparent) !important;
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
   [class*="_themeCube"]:hover:not([aria-pressed="true"]),
   [class*="_navCell"]:hover:not([aria-current="true"])
 ) {
-  background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 68%, transparent) !important;
+  background-color: color-mix(in srgb, var(--dsw-alias-bg-module-platform) 72%, transparent) !important;
+}
+/* Tabs and segmented controls read as one glass capsule. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [role="tab"] {
+  border-radius: 999px;
+  transition: background-color 180ms ease, box-shadow 180ms ease;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [role="tab"][aria-selected="true"],
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [role="tab"][data-state="active"] {
+  background-color: var(--dsh-lg-tint-control) !important;
+  box-shadow: var(--dsh-lg-edge);
+}
+/* Text fields share the control glass. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea
+) {
+  background-color: color-mix(in srgb, #ffffff 6%, transparent) !important;
+  border-color: color-mix(in srgb, #ffffff 12%, transparent) !important;
 }
 /* Message actions (copy, good answer, bad answer, branch) and the usage/time
    readouts share one glass capsule, split into segments by hairlines. Only rows
-   that carry the feedback pair get it, so single-action rows stay untouched.
-   The centre stays clear: each segment carries a flat fill plus a specular top
-   and bottom edge, with no broad sheen. */
+   that carry the feedback pair get it, so single-action rows stay untouched. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) {
   gap: 0;
 }
@@ -148,12 +273,12 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   [class~="nCk46q_root"]
 ) {
   background-color: color-mix(in srgb, #ffffff 4%, transparent) !important;
-  background-image: var(--dsh-glass-noise);
+  background-image: var(--dsh-lg-noise);
   background-size: 140px 140px;
   border-radius: 0;
-  -webkit-backdrop-filter: var(--dsh-glass-control-blur);
-  backdrop-filter: var(--dsh-glass-control-blur);
-  box-shadow: inset 0 1px 0 var(--dsh-glass-edge-light), inset 0 -1px 1px var(--dsh-glass-edge-shade);
+  -webkit-backdrop-filter: var(--dsh-lg-blur-control);
+  backdrop-filter: var(--dsh-lg-blur-control);
+  box-shadow: inset 0 1px 0 var(--dsh-lg-edge-light), inset 0 -1px 1px var(--dsh-lg-edge-shade);
 }
 /* Wider seats so the icons are not cramped. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) :is(
@@ -172,15 +297,15 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   [class~="nCk46q_root"]
 ),
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) > [class~="_8leB5q_action"]:not(:first-child) {
-  box-shadow: inset 1px 0 0 color-mix(in srgb, #ffffff 12%, transparent), inset 0 1px 0 var(--dsh-glass-edge-light), inset 0 -1px 1px var(--dsh-glass-edge-shade);
+  box-shadow: inset 1px 0 0 color-mix(in srgb, #ffffff 12%, transparent), inset 0 1px 0 var(--dsh-lg-edge-light), inset 0 -1px 1px var(--dsh-lg-edge-shade);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) > [class~="_8leB5q_action"]:first-child {
   border-radius: 999px 0 0 999px;
-  box-shadow: inset 1px 0 0 var(--dsh-glass-edge-rim), inset 0 1px 0 var(--dsh-glass-edge-light), inset 0 -1px 1px var(--dsh-glass-edge-shade);
+  box-shadow: inset 1px 0 0 var(--dsh-lg-edge-rim), inset 0 1px 0 var(--dsh-lg-edge-light), inset 0 -1px 1px var(--dsh-lg-edge-shade);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) [class~="nCk46q_root"]:has(+ [class~="_8leB5q_timeEnd"]) {
   border-radius: 0 999px 999px 0;
-  box-shadow: inset -1px 0 0 var(--dsh-glass-edge-rim), inset 1px 0 0 color-mix(in srgb, #ffffff 12%, transparent), inset 0 1px 0 var(--dsh-glass-edge-light), inset 0 -1px 1px var(--dsh-glass-edge-shade);
+  box-shadow: inset -1px 0 0 var(--dsh-lg-edge-rim), inset 1px 0 0 color-mix(in srgb, #ffffff 12%, transparent), inset 0 1px 0 var(--dsh-lg-edge-light), inset 0 -1px 1px var(--dsh-lg-edge-shade);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) [class~="nCk46q_trigger"] {
   background-color: transparent !important;
@@ -190,58 +315,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class~="_8leB5q_actions"]:has([class~="gDWXgG_action"]) > [class~="_8leB5q_timeEnd"] {
   margin-left: 10px;
 }
-/* Settings and other modals: frost the dialog surface itself. A translucent
-   control sitting on an opaque panel reads as a flat fill, so the panel has
-   to carry the material too for the controls on top of it to look like
-   liquid glass. */
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [aria-modal="true"] {
-  background-color: transparent !important;
-  background-image: linear-gradient(180deg, color-mix(in srgb, var(--dsw-alias-bg-layer-2) 26%, transparent), color-mix(in srgb, var(--dsw-alias-bg-layer-2) 34%, transparent)), var(--dsh-glass-noise);
-  background-size: 100% 100%, 140px 140px;
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
-  backdrop-filter: blur(30px) saturate(180%);
-}
-/* Sidebar and message box: overlay the frosted material on top of whatever
-   background the theme or a third-party appearance plugin painted (wallpaper,
-   sidebar transparency) instead of overriding it, so plugins keep control of
-   their fill and opacity.
-   The sidebar must not use a backdrop-filter: it would become the containing
-   block for the fixed Settings overlay hosted inside the sidebar and collapse
-   it to the sidebar width. */
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] .dshDesktopSidebarSurface::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image: var(--dsh-glass-surface-overlay), var(--dsh-glass-noise);
-  background-size: 100% 100%, 140px 140px;
-  box-shadow: var(--dsh-glass-edge), inset -1px 0 0 color-mix(in srgb, #ffffff 8%, transparent);
-}
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [data-slot="conversation.composer"] [class*="_card"] {
-  background-color: transparent !important;
-  background-image: var(--dsh-glass-surface-overlay), var(--dsh-glass-noise);
-  background-size: 100% 100%, 140px 140px;
-  /* The frost sits on a ::before layer instead of the card itself. A
-     backdrop-filter on the card becomes the backdrop root for the inline menus
-     rendered inside it (the access-mode menu is not portalled), leaving their
-     own backdrop-filter nothing to frost and making them see-through next to
-     the portalled model/context menus. */
-  isolation: isolate;
-  box-shadow: var(--dsh-glass-lift), var(--dsh-glass-edge);
-  border-color: transparent;
-}
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [data-slot="conversation.composer"] [class*="_card"]::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  border-radius: inherit;
-  -webkit-backdrop-filter: var(--dsh-glass-surface-blur);
-  backdrop-filter: var(--dsh-glass-surface-blur);
-}
-/* Menus, listboxes, and popovers. */
+/* Menus, listboxes, tooltips, and non-modal dialogs float on the popover glass. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
   [role="menu"],
   [role="listbox"],
@@ -252,14 +326,22 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   .dshDesktopSettingsMenu,
   .dshShadcnHoverCardContent
 ) {
-  background-color: var(--dsh-glass-popover-fill) !important;
-  background-image: var(--dsh-glass-noise);
+  background-color: var(--dsh-lg-tint-popover) !important;
+  background-image: var(--dsh-lg-noise);
   background-size: 140px 140px;
-  -webkit-backdrop-filter: var(--dsh-glass-popover-blur);
-  backdrop-filter: var(--dsh-glass-popover-blur);
-  border: 1px solid var(--dsh-glass-popover-border);
-  box-shadow: var(--dsh-glass-shadow);
+  -webkit-backdrop-filter: var(--dsh-lg-blur-popover);
+  backdrop-filter: var(--dsh-lg-blur-popover);
+  border: 1px solid color-mix(in srgb, #ffffff 26%, transparent);
+  box-shadow: var(--dsh-lg-shadow);
   color: var(--dsw-alias-label-primary);
+}
+/* Settings and other modals: a deep frosted pane above the receded shell. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [aria-modal="true"] {
+  background-color: transparent !important;
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--dsw-static-neutral-bluish-900) 42%, transparent), color-mix(in srgb, var(--dsw-static-neutral-bluish-950) 52%, transparent)), var(--dsh-lg-noise);
+  background-size: 100% 100%, 140px 140px;
+  -webkit-backdrop-filter: blur(34px) saturate(190%);
+  backdrop-filter: blur(34px) saturate(190%);
 }
 /* Glass motion: popovers and menus spring in, the modal glass settles, and
    controls press/raise with short springy easings rather than snapping. */

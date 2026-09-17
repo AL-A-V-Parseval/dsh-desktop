@@ -67,14 +67,6 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-mode="extended"] .dshDe
   box-sizing: border-box;
   padding-top: ${DESKTOP_FRAME_HEIGHT}px;
 }
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] .dshDesktopFrameTitlebar {
-  --dsh-desktop-frame-fill: color-mix(in srgb, var(--dsw-alias-bg-base) 62%, transparent);
-  background-image: var(--dsh-glass-noise, none);
-  background-size: 140px 140px;
-  border-bottom: 1px solid color-mix(in srgb, #ffffff 10%, transparent);
-  -webkit-backdrop-filter: blur(18px) saturate(160%);
-  backdrop-filter: blur(18px) saturate(160%);
-}
 body[data-dsh-desktop-mode="extended"] .dshDesktopConversationSurface {
   box-sizing: border-box;
   overflow: hidden;
@@ -103,10 +95,8 @@ body[data-dsh-desktop-mode="compatibility"]:not([data-dsh-desktop-material="off"
 body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
   --dsh-desktop-frame-fill: color-mix(in srgb, var(--dsw-alias-bg-base) 18%, transparent);
 }
-/* Linux keeps an opaque frame; the glass look is limited to the control items. */
-body[data-dsh-desktop-platform="linux"]:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extended"]):not([data-dsh-desktop-material="off"]) {
-  --dsh-desktop-frame-fill: var(--dsw-alias-bg-layer-1);
-}
+/* The Linux transparent material is fully styled by the Liquid Glass layer in
+   styles.ts; here the opaque fallback keeps its own frame fill. */
 .dshDesktopFrameTitlebar {
   position: fixed;
   z-index: 2147483647;
