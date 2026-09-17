@@ -432,7 +432,12 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 }
 /* Rail: the three launchers (new session, add workspace, search) stack into one
    vertical glass capsule. They live in different plugin roots, so close the
-   margins between them and give each the right segment geometry. */
+   margins between them and give each the right segment geometry. The brand
+   toggle keeps its own rounded, separate capsule. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_collapsed"] button[class*="_toggle"],
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_rail"] button[class*="_toggle"] {
+  border-radius: 10px !important;
+}
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_collapsed"] button[class*="_newSession"] {
   border-radius: 10px 10px 0 0 !important;
   margin-bottom: 0 !important;
@@ -456,7 +461,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_rail"] [class*="_headerActions"] {
   display: contents !important;
 }
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_rail"] button[class*="_iconButton"] {
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_rail"] button[class*="_iconButton"]:not([class*="_toggle"]) {
   border-radius: 0 !important;
   background-color: var(--dsh-lg-tint-control) !important;
   background-image: var(--dsh-lg-noise) !important;
