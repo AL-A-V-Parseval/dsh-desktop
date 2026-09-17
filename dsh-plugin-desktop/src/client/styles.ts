@@ -76,13 +76,16 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   --dsh-lg-blur-control: blur(16px) saturate(175%);
   --dsh-lg-blur-popover: blur(30px) saturate(195%);
   --dsh-lg-blur-surface: blur(26px) saturate(185%);
-  --dsh-lg-tint-base: color-mix(in srgb, var(--dsw-static-neutral-bluish-950) 54%, transparent);
-  --dsh-lg-tint-1: color-mix(in srgb, var(--dsw-static-neutral-bluish-875) 44%, transparent);
-  --dsh-lg-tint-2: color-mix(in srgb, var(--dsw-static-neutral-bluish-850) 50%, transparent);
-  --dsh-lg-tint-3: color-mix(in srgb, var(--dsw-static-neutral-bluish-800) 54%, transparent);
+  /* The shell keeps its original dark base; the glass is reserved for the
+     controls, the composer, and the floating layers that sit on top of it. */
+  --dsh-lg-tint-base: var(--dsw-static-neutral-bluish-950);
+  --dsh-lg-tint-1: var(--dsw-static-neutral-bluish-875);
+  --dsh-lg-tint-2: var(--dsw-static-neutral-bluish-850);
+  --dsh-lg-tint-3: var(--dsw-static-neutral-bluish-800);
   --dsh-lg-tint-control: color-mix(in srgb, #ffffff 7%, transparent);
-  --dsh-lg-tint-popover: color-mix(in srgb, var(--dsw-static-neutral-bluish-850) 58%, transparent);
-  --dsh-lg-tint-sidebar: linear-gradient(180deg, color-mix(in srgb, var(--dsw-static-neutral-bluish-900) 34%, transparent), color-mix(in srgb, var(--dsw-static-neutral-bluish-950) 46%, transparent));
+  --dsh-lg-tint-popover: color-mix(in srgb, var(--dsw-static-neutral-bluish-850) 62%, transparent);
+  --dsh-lg-tint-card: color-mix(in srgb, var(--dsw-static-neutral-bluish-850) 58%, transparent);
+  --dsh-lg-tint-sidebar: linear-gradient(180deg, var(--dsw-static-neutral-bluish-900), var(--dsw-static-neutral-bluish-950));
   --dsh-lg-edge-light: color-mix(in srgb, #ffffff 46%, transparent);
   --dsh-lg-edge-shade: color-mix(in srgb, #000000 42%, transparent);
   --dsh-lg-edge-rim: color-mix(in srgb, #ffffff 15%, transparent);
@@ -100,29 +103,30 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   --dsw-alias-bg-layer-1: var(--dsh-lg-tint-1);
   --dsw-alias-bg-layer-2: var(--dsh-lg-tint-2);
   --dsw-alias-bg-layer-3: var(--dsh-lg-tint-3);
-  --dsw-alias-bg-module-platform: color-mix(in srgb, var(--dsw-static-neutral-bluish-800) 40%, transparent);
-  --dsw-alias-bg-multi-select: color-mix(in srgb, var(--dsw-static-neutral-850) 52%, transparent);
-  --dsw-alias-bg-overlay: color-mix(in srgb, var(--dsw-static-neutral-bluish-700) 60%, transparent);
-  --dsw-alias-button-elevated-fill: color-mix(in srgb, var(--dsw-static-neutral-bluish-750) 50%, transparent);
-  --dsw-alias-button-floating-fill: color-mix(in srgb, var(--dsw-static-neutral-bluish-850) 48%, transparent);
-  --dsw-alias-button-floating-hover: color-mix(in srgb, var(--dsw-static-neutral-bluish-800) 54%, transparent);
-  --dsw-alias-button-ghost-active-fill: color-mix(in srgb, var(--dsw-static-neutral-bluish-750) 50%, transparent);
-  --dsw-alias-button-ghost-active-hover: color-mix(in srgb, var(--dsw-static-neutral-bluish-700) 56%, transparent);
-  --dsw-alias-button-primary-dimmed: color-mix(in srgb, var(--dsw-static-neutral-bluish-750) 46%, transparent);
-  --dsw-alias-button-tool-bar-fill: color-mix(in srgb, var(--dsw-static-neutral-bluish-600) 42%, transparent);
-  --dsw-alias-button-tool-bar-hover: color-mix(in srgb, var(--dsw-static-neutral-bluish-600) 56%, transparent);
-  --dsw-alias-toast-bg: color-mix(in srgb, var(--dsw-static-neutral-bluish-750) 62%, transparent);
-  --dsw-alias-tooltip-bg: color-mix(in srgb, var(--dsw-static-neutral-bluish-750) 64%, transparent);
-  --dsw-alias-interactive-bg-hover-solid: color-mix(in srgb, var(--dsw-static-neutral-bluish-800) 50%, transparent);
+  --dsw-alias-bg-module-platform: color-mix(in srgb, var(--dsw-static-neutral-bluish-800) 74%, transparent);
+  --dsw-alias-bg-multi-select: color-mix(in srgb, var(--dsw-static-neutral-850) 78%, transparent);
+  --dsw-alias-bg-overlay: color-mix(in srgb, var(--dsw-static-neutral-bluish-700) 80%, transparent);
+  --dsw-alias-button-elevated-fill: color-mix(in srgb, var(--dsw-static-neutral-bluish-750) 72%, transparent);
+  --dsw-alias-button-floating-fill: color-mix(in srgb, var(--dsw-static-neutral-bluish-850) 72%, transparent);
+  --dsw-alias-button-floating-hover: color-mix(in srgb, var(--dsw-static-neutral-bluish-800) 78%, transparent);
+  --dsw-alias-button-ghost-active-fill: color-mix(in srgb, var(--dsw-static-neutral-bluish-750) 72%, transparent);
+  --dsw-alias-button-ghost-active-hover: color-mix(in srgb, var(--dsw-static-neutral-bluish-700) 78%, transparent);
+  --dsw-alias-button-primary-dimmed: color-mix(in srgb, var(--dsw-static-neutral-bluish-750) 68%, transparent);
+  --dsw-alias-button-tool-bar-fill: color-mix(in srgb, var(--dsw-static-neutral-bluish-600) 62%, transparent);
+  --dsw-alias-button-tool-bar-hover: color-mix(in srgb, var(--dsw-static-neutral-bluish-600) 76%, transparent);
+  --dsw-alias-toast-bg: color-mix(in srgb, var(--dsw-static-neutral-bluish-750) 82%, transparent);
+  --dsw-alias-tooltip-bg: color-mix(in srgb, var(--dsw-static-neutral-bluish-750) 84%, transparent);
+  --dsw-alias-interactive-bg-hover-solid: color-mix(in srgb, var(--dsw-static-neutral-bluish-800) 74%, transparent);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]:not([data-ds-dark-theme]) {
-  --dsh-lg-tint-base: color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 58%, transparent);
-  --dsh-lg-tint-1: color-mix(in srgb, var(--dsw-static-neutral-bluish-50) 48%, transparent);
-  --dsh-lg-tint-2: color-mix(in srgb, var(--dsw-static-neutral-bluish-75) 52%, transparent);
-  --dsh-lg-tint-3: color-mix(in srgb, var(--dsw-static-neutral-bluish-100) 56%, transparent);
+  --dsh-lg-tint-base: var(--dsw-static-neutral-bluish-00);
+  --dsh-lg-tint-1: var(--dsw-static-neutral-bluish-50);
+  --dsh-lg-tint-2: var(--dsw-static-neutral-bluish-75);
+  --dsh-lg-tint-3: var(--dsw-static-neutral-bluish-100);
   --dsh-lg-tint-control: color-mix(in srgb, #ffffff 42%, transparent);
-  --dsh-lg-tint-popover: color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 70%, transparent);
-  --dsh-lg-tint-sidebar: linear-gradient(180deg, color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 42%, transparent), color-mix(in srgb, var(--dsw-static-neutral-bluish-100) 50%, transparent));
+  --dsh-lg-tint-popover: color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 74%, transparent);
+  --dsh-lg-tint-card: color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 68%, transparent);
+  --dsh-lg-tint-sidebar: linear-gradient(180deg, var(--dsw-static-neutral-bluish-00), var(--dsw-static-neutral-bluish-100));
   --dsh-lg-edge-light: color-mix(in srgb, #ffffff 88%, transparent);
   --dsh-lg-edge-shade: color-mix(in srgb, #000000 12%, transparent);
   --dsh-lg-edge-rim: color-mix(in srgb, #000000 8%, transparent);
@@ -173,7 +177,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [data-slot="conversation.composer"] [class*="_card"] {
   background-color: transparent !important;
-  background-image: var(--dsh-lg-tint-1), var(--dsh-lg-noise);
+  background-image: var(--dsh-lg-tint-card), var(--dsh-lg-noise);
   background-size: 100% 100%, 140px 140px;
   /* The frost sits on a ::before layer instead of the card itself. A
      backdrop-filter on the card becomes the backdrop root for the inline menus
@@ -252,6 +256,43 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [role="tab"][data-state="active"] {
   background-color: var(--dsh-lg-tint-control) !important;
   box-shadow: var(--dsh-lg-edge);
+}
+/* One geometry and one hover for every small option/icon control, so the
+   sidebar launchers, the header buttons, and the composer seats read as the
+   same family instead of mixing circles, pills, and bare icons. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  button[class*="_iconButton"],
+  button[class*="_searchButton"],
+  button[class*="_moreButton"],
+  button[class*="_toggle"],
+  .dshDesktopSidebarSurface button,
+  .dshDesktopSidebarSurface [role="button"],
+  .dshDesktopSidebarSurface [role="treeitem"],
+  .dshDesktopTitlebarIconButton
+) {
+  border-radius: 10px;
+  transition: background-color 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  button[class*="_iconButton"],
+  button[class*="_searchButton"],
+  button[class*="_moreButton"],
+  button[class*="_toggle"]
+):hover {
+  background-color: var(--dsh-lg-tint-control) !important;
+  box-shadow: var(--dsh-lg-edge);
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] button[class*="_newSession"] {
+  background-color: var(--dsh-lg-tint-control) !important;
+  background-image: var(--dsh-lg-noise);
+  background-size: 140px 140px;
+  -webkit-backdrop-filter: var(--dsh-lg-blur-control);
+  backdrop-filter: var(--dsh-lg-blur-control);
+  border-color: color-mix(in srgb, #ffffff 14%, transparent) !important;
+  box-shadow: var(--dsh-lg-edge);
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] button[class*="_newSession"]:hover {
+  background-color: color-mix(in srgb, #ffffff 13%, transparent) !important;
 }
 /* Text fields share the control glass. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
