@@ -50,7 +50,7 @@ Renderer 通过现有 loopback carrier 接收普通 Web Client module，无法�
 
 ```ts
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import type { DesktopWindowService } from 'dsh-plugin-desktop-beta/client'
+import type { DesktopWindowService } from 'dsh-plugin-desktop/client'
 
 export const inject = ['desktopWindow']
 
@@ -96,6 +96,21 @@ interface DesktopWindowService {
 
 Desktop 会用 `data-dsh-desktop-frame="titlebar"` 标记操作栏，并用 `data-dsh-desktop-content-viewport` 标记上游 root。Root 会成为操作栏下方独立的 fixed viewport，因此 fixed descendant 不能逃逸到 Desktop chrome；直接 portal 到 `document.body` 的全视口对话框会获得相同的内容偏移。Body 级插件 portal 可以读取 `dsh-desktop-titlebar-inset` URL contract，带 frame 的模式会发布精确的 36px 预留。插件不能重复补偿已经消费的边界。
 
+### 外壳 DOM 锚点
+
+extended 与 advanced 模式用 Desktop 自有 root 替换上游 Web frame，因此这两种模式下 `@deepseek-ai/dsh-client-ui-layout` **不在**客户端 boot 图中，它的 CSS module 类名一个都不会出现在 DOM 里。若插件靠查询上游列的类名来定位外壳区域，就会既查不到、也挂不上，而且没有任何可观测的报错。为此 Desktop 在每个外壳区域上都带一个稳定锚点；受支持的契约是这些锚点，而不是类名：
+
+| 区域 | 锚点 | 上游 Web frame 是否也发出 |
+| --- | --- | --- |
+| 侧边栏列 | `[data-pane="sidebar"]` | 否 |
+| 侧边栏列，兼容别名 | `.dshDesktop_sidebarCol` | `<hash>_sidebarCol` |
+| 右栏列 | `[data-rightbar-col]` | 是 |
+| 外壳 overlay 层 | `[data-shell-overlay]` | 是 |
+
+侧边栏锚点位于直接包裹 `sidebar` slot 的那个元素上，与上游列所处的位置一致，因此从锚点出发的 `element.querySelector` 在两套外壳里会到达同一批后代。`dshDesktop_sidebarCol` 不挂任何样式，它存在的唯一目的是让按上游 Web 列编写的选择器——通常是 `[data-pane="sidebar"], [class*="sidebarCol"]`——在 Desktop 下原样生效。对主题而言这有一个连带后果：针对 `[class*="sidebarCol"]` 的样式表现在会同时作用于 Desktop 和 Web。
+
+锚点名称是稳定的，其周围的结构不是。请先查询锚点，再在其内部检索。不要依赖 Desktop 的表现类（`dshDesktopSidebarSurface`、`dshDesktopUpstreamSidebar` 及其同级）、元素标签名或嵌套深度——它们都会随模式、平台和版本变化。compatibility 模式原样运行上游客户端并保留上游 frame，包括上游自己的锚点。
+
 ## 公开 Host Cordis service
 
 请从受支持的 contract 路径执行 type-only import：
@@ -104,15 +119,15 @@ Desktop 会用 `data-dsh-desktop-frame="titlebar"` 标记操作栏，并用 `dat
 import type {
   DesktopCurrentProfile,
   DesktopProfiles,
-} from 'dsh-plugin-desktop-beta/profile-service'
+} from 'dsh-plugin-desktop/profile-service'
 import type {
   DesktopPnpm,
   DesktopPnpmHandle,
   DesktopPnpmOutcome,
-} from 'dsh-plugin-desktop-beta/pnpm'
+} from 'dsh-plugin-desktop/pnpm'
 ```
 
-`dsh-plugin-desktop-beta/profiles` 是 Desktop 自有托盘 consumer，不是 profile service contract。不要从该路径导入 service 类型。
+`dsh-plugin-desktop/profiles` 是 Desktop 自有托盘 consumer，不是 profile service contract。不要从该路径导入 service 类型。
 
 ### `desktopProfiles`
 
@@ -183,9 +198,9 @@ Service 在每个 generation 同时最多启动一个 package operation；已有
 
 | 名称 | 边界 | 面向插件作者的状态 |
 | --- | --- | --- |
-| `desktopProfiles` | 作用于 generation 的 Host service。 | 公开；通过 `dsh-plugin-desktop-beta/profile-service` 获得受支持 contract。 |
-| `desktopPnpm` | 作用于 generation 的 Host service。 | 公开；通过 `dsh-plugin-desktop-beta/pnpm` 获得受支持 contract。 |
-| `desktopWindow` | 作用于 generation 的 Client service。 | 公开；通过 `dsh-plugin-desktop-beta/client` 获得受支持 contract，只包含不可变几何信息。 |
+| `desktopProfiles` | 作用于 generation 的 Host service。 | 公开；通过 `dsh-plugin-desktop/profile-service` 获得受支持 contract。 |
+| `desktopPnpm` | 作用于 generation 的 Host service。 | 公开；通过 `dsh-plugin-desktop/pnpm` 获得受支持 contract。 |
+| `desktopWindow` | 作用于 generation 的 Client service。 | 公开；通过 `dsh-plugin-desktop/client` 获得受支持 contract，只包含不可变几何信息。 |
 | `desktopRuntime` | Launcher 提供的 native adapter，供 Desktop 自有 shell、tray、terminal、profile 与 update row 使用。 | Desktop 内部。第三方插件不得 inject，也不得依赖其 window/tray 方法。 |
 | `desktopPnpmBootstrap` | 提供给 `desktop-pnpm` provider 的已打包绝对路径、被选 profile fact、Electron ABI 值与私有 Node helper。 | Launcher 私有。不得读取、provide、intercept 或声明为 dependency。 |
 | `DesktopProfileServiceBootstrap` | Launcher 注册 `desktopProfiles` 时使用的 constructor input；它不是 Cordis service。 | Launcher 私有实现细节。 |
@@ -200,8 +215,8 @@ Service 在每个 generation 同时最多启动一个 package operation；已有
 
 ```ts
 import type { Context } from '@deepseek-ai/cordis'
-import type {} from 'dsh-plugin-desktop-beta/profile-service'
-import type { DesktopPnpmHandle } from 'dsh-plugin-desktop-beta/pnpm'
+import type {} from 'dsh-plugin-desktop/profile-service'
+import type { DesktopPnpmHandle } from 'dsh-plugin-desktop/pnpm'
 
 export const name = 'example-desktop-plugin-manager'
 export const inject = ['desktopProfiles', 'desktopPnpm']
@@ -249,8 +264,8 @@ export function apply(ctx: Context): void {
 
 ```ts
 import type { Context } from '@deepseek-ai/cordis'
-import type {} from 'dsh-plugin-desktop-beta/profile-service'
-import type {} from 'dsh-plugin-desktop-beta/pnpm'
+import type {} from 'dsh-plugin-desktop/profile-service'
+import type {} from 'dsh-plugin-desktop/pnpm'
 
 export const name = 'cross-environment-plugin-manager'
 export const inject = ['webServer', 'loader']
@@ -292,7 +307,7 @@ export function apply(ctx: Context, config: { profile?: string }): void {
 
 `desktopProfiles` 已存在后，绝不能回退到猜测的 `web` profile。部分缺失或启动失败的 Desktop provider set 属于 Desktop generation failure，不是通过 ambient CLI 修改另一个 profile 的许可。也不要用 `ctx.baseUrl`、settings、Loader inventory 或 launcher 的内部 `cmdlineArgs` 替代 `desktopProfiles.current`。
 
-Type-only import 会从 JavaScript 中消除。跨环境 package 可以把 `dsh-plugin-desktop-beta` 作为编译所需 dev dependency；若发布的 declaration 会暴露这些类型，也可以将其声明为 optional peer。仅为了探测 service，不需要 runtime import。
+Type-only import 会从 JavaScript 中消除。跨环境 package 可以把 `dsh-plugin-desktop` 作为编译所需 dev dependency；若发布的 declaration 会暴露这些类型，也可以将其声明为 optional peer。仅为了探测 service，不需要 runtime import。
 
 ## 最小可运行测试插件
 
@@ -301,8 +316,8 @@ Type-only import 会从 JavaScript 中消除。跨环境 package 可以把 `dsh-
 完整 Profile Loader smoke 会把该 package 复制到临时 profile 的 `node_modules`，以普通 bare-package Loader entry 加载，并在 probe 没有返回激活 profile 或 `run()` 时失败。运行命令：
 
 ```sh
-yarn workspace dsh-plugin-desktop-beta build
-yarn workspace dsh-plugin-desktop-beta verify:profile
+yarn workspace dsh-plugin-desktop build
+yarn workspace dsh-plugin-desktop verify:profile
 ```
 
 该 fixture 位于 `tests/`，不在 npm `files` 列表或 Electron build files 中，因此不会进入生产 archive。
@@ -326,4 +341,4 @@ yarn workspace dsh-plugin-desktop-beta verify:profile
 
 ## 稳定性边界
 
-受支持的插件作者 surface，是本文描述且由 `dsh-plugin-desktop-beta/profile-service`、`dsh-plugin-desktop-beta/pnpm` 与 `dsh-plugin-desktop-beta/client` 导出的 `desktopProfiles`、`desktopPnpm` 和 `desktopWindow` service contract。Launcher bootstrap 值、native adapter、生成 shim、状态文件格式、Loader row 顺序与 Electron 实现细节都可能变化，但不会因此成为第三方 API。Fallback 必须保持显式、限定在生命周期内，并且 headless-safe。
+受支持的插件作者 surface，是本文描述且由 `dsh-plugin-desktop/profile-service`、`dsh-plugin-desktop/pnpm` 与 `dsh-plugin-desktop/client` 导出的 `desktopProfiles`、`desktopPnpm` 和 `desktopWindow` service contract。Launcher bootstrap 值、native adapter、生成 shim、状态文件格式、Loader row 顺序与 Electron 实现细节都可能变化，但不会因此成为第三方 API。Fallback 必须保持显式、限定在生命周期内，并且 headless-safe。
