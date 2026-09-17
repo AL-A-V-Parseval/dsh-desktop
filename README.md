@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://github.com/Jic2007/dsh-desktop"><img src="assets/desktop-hero-zh.png" alt="DSH Desktop for Linux：基于 DeepSeek Harness 的 Linux 桌面客户端" width="100%"></a>
+  <a href="https://github.com/AL-A-V-Parseval/dsh-desktop"><img src="assets/desktop-hero-zh.png" alt="DSH Desktop for Linux：基于 DeepSeek Harness 的 Linux 桌面客户端" width="100%"></a>
 </p>
 
 <h1 align="center">DSH Desktop for Linux</h1>
@@ -13,13 +13,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Jic2007/dsh-desktop/releases"><img src="https://img.shields.io/github/v/release/Jic2007/dsh-desktop?style=flat&amp;label=release&amp;color=4D6BFE" alt="Latest release"></a>
-  <a href="https://github.com/Jic2007/dsh-desktop/stargazers"><img src="https://img.shields.io/github/stars/Jic2007/dsh-desktop?style=flat&amp;label=%E2%98%85&amp;color=08C" alt="GitHub stars"></a>
+  <a href="https://github.com/AL-A-V-Parseval/dsh-desktop/releases"><img src="https://img.shields.io/github/v/release/AL-A-V-Parseval/dsh-desktop?style=flat&amp;label=release&amp;color=4D6BFE" alt="Latest release"></a>
+  <a href="https://github.com/AL-A-V-Parseval/dsh-desktop/stargazers"><img src="https://img.shields.io/github/stars/AL-A-V-Parseval/dsh-desktop?style=flat&amp;label=%E2%98%85&amp;color=08C" alt="GitHub stars"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2EA44F?style=flat" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/Linux-x64-4493F8?style=flat-square" alt="Target platform: Linux x64">
 </p>
 
-<p align="center"><sub>本仓库是社区 fork，基于 <a href="https://github.com/anywhere-labs/dsh-desktop">anywhere-labs/dsh-desktop</a>（DSH Desktop <strong>2.0.10</strong>，runtime <code>0.1.5-rc.2</code>）。与 DeepSeek（深度求索）及上游项目不存在隶属、合作、授权或背书关系。</sub></p>
+<p align="center"><sub>本仓库是社区 fork，基于 <a href="https://github.com/anywhere-labs/dsh-desktop">anywhere-labs/dsh-desktop</a>（DSH Desktop <strong>2.0.11</strong>，runtime <code>0.1.5-rc.2</code>）。与 DeepSeek（深度求索）及上游项目不存在隶属、合作、授权或背书关系。</sub></p>
 
 ## 这是什么
 
@@ -27,7 +27,7 @@ DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harne
 
 本 fork **聚焦 Linux**：修复上游桌面端在 Linux 上无法稳定运行的问题，让 `bash` / `glob` / `grep` 等子进程工具、插件市场与附件等能力在 Linux 上可用。
 
-- 上游基线：上游 [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) 最新 `master`（构建基线 `580ac428ef`，产品版本 2.0.10）
+- 上游基线：上游 [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) 最新 `master`（构建基线 `cb736b6edf`，产品版本 2.0.11）
 - 目标平台：**Linux x64**
 - 产物：便携包（tar.gz）与 Debian/Ubuntu 安装包（.deb），随 `SHA256SUMS` 提供 GPG 分离签名，`.deb` 另含 `debsigs` 内部签名
 
@@ -59,21 +59,21 @@ Linux 版 Electron 会向进程空间泄漏 glib 符号，与 sharp/libvips 的 
 
 ## 下载与运行
 
-从 [Releases](https://github.com/Jic2007/dsh-desktop/releases) 获取 Linux x64 安装包，提供两种形式。
+从 [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases) 获取 Linux x64 安装包，提供两种形式。
 
 ### 便携包（tar.gz）
 
 ```sh
-tar -xzf DSH-Desktop-2.0.10-linux.2-x64-portable.tar.gz
-cd DSH-Desktop-2.0.10-linux.2-x64
+tar -xzf DSH-Desktop-2.0.11-x64-portable.tar.gz
+cd DSH-Desktop-2.0.11-x64
 ./dsh-plugin-desktop
 ```
 
 ### Debian / Ubuntu 安装包（.deb）
 
 ```sh
-sudo apt install ./dsh-desktop_2.0.10-linux.2_amd64.deb
-# 或：sudo dpkg -i dsh-desktop_2.0.10-linux.2_amd64.deb && sudo apt -f install
+sudo apt install ./dsh-desktop_2.0.11_amd64.deb
+# 或：sudo dpkg -i dsh-desktop_2.0.11_amd64.deb && sudo apt -f install
 ```
 
 安装后可从应用菜单启动，或在终端运行 `dsh-desktop`。`.deb` 会：
@@ -101,7 +101,7 @@ gpg --import Jic2007-release-key.asc
 gpg --verify SHA256SUMS.asc SHA256SUMS
 sha256sum -c SHA256SUMS
 # 可选：校验 .deb 内部签名（需要 debsigs）
-debsigs --verify dsh-desktop_2.0.10-linux.2_amd64.deb
+debsigs --verify dsh-desktop_2.0.11_amd64.deb
 ```
 
 ## 从源码构建

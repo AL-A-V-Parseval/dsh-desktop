@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://github.com/Jic2007/dsh-desktop"><img src="assets/desktop-hero-en.png" alt="DSH Desktop for Linux: a Linux desktop client built on DeepSeek Harness" width="100%"></a>
+  <a href="https://github.com/AL-A-V-Parseval/dsh-desktop"><img src="assets/desktop-hero-en.png" alt="DSH Desktop for Linux: a Linux desktop client built on DeepSeek Harness" width="100%"></a>
 </p>
 
 <h1 align="center">DSH Desktop for Linux</h1>
@@ -13,13 +13,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Jic2007/dsh-desktop/releases"><img src="https://img.shields.io/github/v/release/Jic2007/dsh-desktop?style=flat&amp;label=release&amp;color=4D6BFE" alt="Latest release"></a>
-  <a href="https://github.com/Jic2007/dsh-desktop/stargazers"><img src="https://img.shields.io/github/stars/Jic2007/dsh-desktop?style=flat&amp;label=%E2%98%85&amp;color=08C" alt="GitHub stars"></a>
+  <a href="https://github.com/AL-A-V-Parseval/dsh-desktop/releases"><img src="https://img.shields.io/github/v/release/AL-A-V-Parseval/dsh-desktop?style=flat&amp;label=release&amp;color=4D6BFE" alt="Latest release"></a>
+  <a href="https://github.com/AL-A-V-Parseval/dsh-desktop/stargazers"><img src="https://img.shields.io/github/stars/AL-A-V-Parseval/dsh-desktop?style=flat&amp;label=%E2%98%85&amp;color=08C" alt="GitHub stars"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2EA44F?style=flat" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/Linux-x64-4493F8?style=flat-square" alt="Target platform: Linux x64">
 </p>
 
-<p align="center"><sub>This repository is a community fork of <a href="https://github.com/anywhere-labs/dsh-desktop">anywhere-labs/dsh-desktop</a> (DSH Desktop <strong>2.0.10</strong>, runtime <code>0.1.5-rc.2</code>). It is independent of DeepSeek and the upstream project, with no affiliation, partnership, authorization, or endorsement.</sub></p>
+<p align="center"><sub>This repository is a community fork of <a href="https://github.com/anywhere-labs/dsh-desktop">anywhere-labs/dsh-desktop</a> (DSH Desktop <strong>2.0.11</strong>, runtime <code>0.1.5-rc.2</code>). It is independent of DeepSeek and the upstream project, with no affiliation, partnership, authorization, or endorsement.</sub></p>
 
 ## What this is
 
@@ -27,7 +27,7 @@ DSH Desktop integrates the local Web UI, Host service, and plugin system of [Dee
 
 This fork is **Linux-focused**: it fixes the upstream desktop's inability to run stably on Linux, restoring subprocess tools (`bash` / `glob` / `grep`), the plugin market, and attachments.
 
-- Upstream baseline: the latest `master` of [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) (build base `580ac428ef`, product version 2.0.10)
+- Upstream baseline: the latest `master` of [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) (build base `cb736b6edf`, product version 2.0.11)
 - Target platform: **Linux x64**
 - Artifacts: a portable archive (tar.gz) and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships with a detached GPG signature, and the `.deb` also carries an internal `debsigs` signature
 
@@ -59,21 +59,21 @@ See `.yarn/patches/`, `patches/`, and the commit history for details.
 
 ## Download and run
 
-Grab the Linux x64 build from [Releases](https://github.com/Jic2007/dsh-desktop/releases). Two forms are provided.
+Grab the Linux x64 build from [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases). Two forms are provided.
 
 ### Portable archive (tar.gz)
 
 ```sh
-tar -xzf DSH-Desktop-2.0.10-linux.2-x64-portable.tar.gz
-cd DSH-Desktop-2.0.10-linux.2-x64
+tar -xzf DSH-Desktop-2.0.11-x64-portable.tar.gz
+cd DSH-Desktop-2.0.11-x64
 ./dsh-plugin-desktop
 ```
 
 ### Debian / Ubuntu package (.deb)
 
 ```sh
-sudo apt install ./dsh-desktop_2.0.10-linux.2_amd64.deb
-# or: sudo dpkg -i dsh-desktop_2.0.10-linux.2_amd64.deb && sudo apt -f install
+sudo apt install ./dsh-desktop_2.0.11_amd64.deb
+# or: sudo dpkg -i dsh-desktop_2.0.11_amd64.deb && sudo apt -f install
 ```
 
 After installing, launch it from the application menu or run `dsh-desktop`. The `.deb`:
@@ -101,7 +101,7 @@ gpg --import Jic2007-release-key.asc
 gpg --verify SHA256SUMS.asc SHA256SUMS
 sha256sum -c SHA256SUMS
 # optional: internal .deb signature (requires debsigs)
-debsigs --verify dsh-desktop_2.0.10-linux.2_amd64.deb
+debsigs --verify dsh-desktop_2.0.11_amd64.deb
 ```
 
 ## Build from source
