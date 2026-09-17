@@ -166,8 +166,6 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   background-image: var(--dsh-lg-noise);
   background-size: 140px 140px;
   border-bottom: 1px solid color-mix(in srgb, #ffffff 12%, transparent);
-  -webkit-backdrop-filter: var(--dsh-lg-blur-chrome);
-  backdrop-filter: var(--dsh-lg-blur-chrome);
 }
 /* Region hierarchy: the conversation reads on the frame glass, the sidebar
    adds a slightly deeper tint, and the composer floats above both. */
@@ -221,8 +219,6 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   background-color: var(--dsh-lg-tint-control) !important;
   background-image: var(--dsh-lg-noise);
   background-size: 140px 140px;
-  -webkit-backdrop-filter: var(--dsh-lg-blur-control);
-  backdrop-filter: var(--dsh-lg-blur-control);
   border-color: transparent;
   box-shadow: var(--dsh-lg-edge);
 }
@@ -241,8 +237,6 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   background-color: var(--dsh-lg-tint-control) !important;
   background-image: var(--dsh-lg-noise);
   background-size: 140px 140px;
-  -webkit-backdrop-filter: var(--dsh-lg-blur-control);
-  backdrop-filter: var(--dsh-lg-blur-control);
   box-shadow: var(--dsh-lg-lift), var(--dsh-lg-edge);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
@@ -282,8 +276,6 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   background-color: var(--dsh-lg-tint-control) !important;
   background-image: var(--dsh-lg-noise) !important;
   background-size: 140px 140px;
-  -webkit-backdrop-filter: var(--dsh-lg-blur-control);
-  backdrop-filter: var(--dsh-lg-blur-control);
   box-shadow: var(--dsh-lg-edge);
   transition: background-color 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -322,8 +314,6 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   background-color: var(--dsh-lg-tint-control) !important;
   background-image: var(--dsh-lg-noise) !important;
   background-size: 140px 140px;
-  -webkit-backdrop-filter: var(--dsh-lg-blur-control);
-  backdrop-filter: var(--dsh-lg-blur-control);
   box-shadow: var(--dsh-lg-edge);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="_headerUtilities"] {
@@ -392,8 +382,6 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   background-color: var(--dsh-lg-tint-control) !important;
   background-image: var(--dsh-lg-noise) !important;
   background-size: 140px 140px;
-  -webkit-backdrop-filter: var(--dsh-lg-blur-control);
-  backdrop-filter: var(--dsh-lg-blur-control);
   box-shadow: var(--dsh-lg-edge);
 }
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [class*="p_FcLG_add"]:first-of-type {
@@ -465,8 +453,6 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   background-image: var(--dsh-lg-noise);
   background-size: 140px 140px;
   border-radius: 0;
-  -webkit-backdrop-filter: var(--dsh-lg-blur-control);
-  backdrop-filter: var(--dsh-lg-blur-control);
   box-shadow: inset 0 1px 0 var(--dsh-lg-edge-light), inset 0 -1px 1px var(--dsh-lg-edge-shade);
 }
 /* Wider seats so the icons are not cramped. */
