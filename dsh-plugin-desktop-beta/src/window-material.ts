@@ -50,7 +50,10 @@ export function parseWindowsWindowMaterial(value: unknown): WindowsWindowMateria
 
 export function parseLinuxWindowMaterial(value: unknown): LinuxWindowMaterial {
   if (value === undefined) return DEFAULT_LINUX_WINDOW_MATERIAL
-  if (value === 'off' || value === 'transparent') return value
+  // The upstream compatibility client paints an opaque background, so a
+  // transparent window frame stays invisible; fail closed to the solid
+  // frame until the client learns to render behind transparency.
+  if (value === 'off' || value === 'transparent') return 'off'
   throw new Error('dsh-desktop.linuxMaterial must be "off" or "transparent"')
 }
 

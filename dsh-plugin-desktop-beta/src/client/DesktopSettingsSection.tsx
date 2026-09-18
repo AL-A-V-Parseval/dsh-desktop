@@ -712,7 +712,7 @@ export function DesktopSettingsSection({
               {platform === 'darwin'
                 ? <option value="transparent">{t('windowMaterialTransparent')}</option>
                 : platform === 'linux'
-                  ? <option value="transparent">{t('windowMaterialTransparent')}</option>
+                  ? null
                   : (
                       <>
                         {micaSupported && <option value="mica">{t('windowMaterialMica')}</option>}
