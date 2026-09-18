@@ -92,6 +92,14 @@ describe('compatibility BrowserWindow options', () => {
     expect(options).not.toHaveProperty('trafficLightPosition')
   })
 
+  it('applies the Electron-native transparency on a transparent Linux material', () => {
+    const transparentSpec = { ...spec, material: 'transparent' as const }
+    const options = compatibilityWindowOptions(transparentSpec, {} as NativeImage, 'linux', preload)
+
+    expect(options.transparent).toBe(true)
+    expect(options.backgroundColor).toBe('#00000000')
+  })
+
   it('reveals transparent material behind the macOS compatibility frame', () => {
     const options = compatibilityWindowOptions(
       { ...spec, material: 'transparent' },

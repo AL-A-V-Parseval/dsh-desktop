@@ -62,7 +62,13 @@ export function compatibilityWindowOptions(
     })
   }
   const options = baseWindowOptions(spec, icon, platform, preload)
-  if (platform === 'linux') return options
+  if (platform === 'linux') {
+    // Electron supports native window transparency on Linux compositors; the
+    // solid default keeps ordinary opaque frames on non-compositing sessions.
+    return spec.material === 'transparent'
+      ? { ...options, transparent: true, backgroundColor: '#00000000' }
+      : options
+  }
   throw new Error('dsh-plugin-desktop: compatibility mode is unsupported on this platform')
 }
 
