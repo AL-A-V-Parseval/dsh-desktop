@@ -1,5 +1,13 @@
 /** DSH Desktop executable: minimal Electron bootstrap around the Host Cordis root. */
 
+// The upstream subprocess runner spawns this Electron binary to host tool
+// subprocesses but only sets ELECTRON_RUN_AS_NODE on its Windows path; without
+// the flag a Linux child launches as a full application and dies at once in
+// the launch scope, so every bash/glob/grep call fails. Setting it here is
+// read at process start (already past), and every tool child this host spawns
+// inherits Node mode through the environment — exactly the intended mode.
+process.env.ELECTRON_RUN_AS_NODE = '1'
+
 import { startIsolatedDesktopHost } from './host-process.ts'
 import { app, crashReporter, safeStorage, shell } from 'electron'
 import { randomUUID } from 'node:crypto'
