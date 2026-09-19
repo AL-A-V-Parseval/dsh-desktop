@@ -506,8 +506,9 @@ describe('independent Desktop frame', () => {
     try {
       const dispose = installExtendedStyles()
       expect(css).toContain(`--dsh-desktop-frame-height: 0px`)
+      expect(css).toMatch(/body\[data-dsh-desktop-mode="extended"\] \{\s*--dsh-desktop-frame-height: 36px;/)
       expect(DESKTOP_FRAME_HEIGHT).toBe(36)
-      expect(css).toMatch(/#root \{[^}]*position: fixed;[^}]*right: 0;[^}]*bottom: 0;[^}]*left: 0;[^}]*padding-top: 0;[^}]*transform: translateZ\(0\);/)
+      expect(css).toMatch(/#root \{[^}]*position: fixed;[^}]*right: 0;[^}]*bottom: 0;[^}]*left: 0;[^}]*padding-top: var\(--dsh-desktop-frame-height\);[^}]*transform: translateZ\(0\);/)
       expect(css).toMatch(/\[data-shell-overlay\] \{[^}]*overflow: hidden;[^}]*transform: translateZ\(0\);/)
       expect(css).toMatch(/\[role="presentation"\]:has\(> \[aria-modal="true"\]\),[\s\S]*> \[aria-modal="true"\] \{[\s\S]*top: var\(--dsh-desktop-frame-height\) !important;/)
       expect(css).not.toContain('#root > :has(> [data-shell-overlay])')

@@ -22,6 +22,11 @@ body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extende
   overflow: hidden;
   background: transparent !important;
 }
+/* Extended mode renders the command bar inside the content renderer, so the
+   upstream content yields the frame band instead of sitting under the bar. */
+body[data-dsh-desktop-mode="extended"] {
+  --dsh-desktop-frame-height: ${DESKTOP_FRAME_HEIGHT}px;
+}
 body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extended"]) #root {
   box-sizing: border-box;
   position: fixed;
@@ -31,7 +36,7 @@ body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extende
   left: 0;
   width: auto;
   height: auto;
-  padding-top: 0;
+  padding-top: var(--dsh-desktop-frame-height);
   overflow: hidden;
   transform: translateZ(0);
 }
