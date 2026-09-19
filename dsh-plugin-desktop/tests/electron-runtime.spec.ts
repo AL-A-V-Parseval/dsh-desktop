@@ -327,7 +327,6 @@ const spec: DesktopShellSpec = {
   mode: 'compatibility',
   macosMaterial: 'transparent',
   windowsMaterial: 'off',
-  linuxMaterial: 'off',
   material: 'off',
   width: 1280,
   height: 840,

@@ -158,8 +158,6 @@ function customChromeWindowOptions(
     // Electron exposes the Window Controls Overlay API on Linux, so the same
     // frameless hidden-titlebar contract used by Windows keeps the native
     // minimize/maximize/close buttons while the renderer owns the command bar.
-    // The Linux material is a control-only glass style, so the window, command
-    // bar, sidebar, and content all stay opaque.
     return {
       ...options,
       autoHideMenuBar: true,

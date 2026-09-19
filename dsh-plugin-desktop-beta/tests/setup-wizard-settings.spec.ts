@@ -18,6 +18,7 @@ import {
   migrateDesktopWindowMaterialSettings,
   migrateLegacyAgentPresetSettings,
   readDesktopSetupWizardSettings,
+  sameDesktopSetupWizardSettings,
   updateDesktopSetupWizardSettings,
   type DesktopSetupWizardSettings,
 } from '../src/setup-wizard-settings.ts'
@@ -41,7 +42,6 @@ function values(overrides: Partial<DesktopSetupWizardSettings> = {}): DesktopSet
     mode: 'compatibility',
     macosMaterial: 'transparent',
     windowsMaterial: 'mica',
-    linuxMaterial: 'off',
     openBrowser: true,
     networkExposure: 'lan',
     notifications: {
@@ -56,6 +56,19 @@ function values(overrides: Partial<DesktopSetupWizardSettings> = {}): DesktopSet
 }
 
 describe('Desktop Setup Wizard settings document', () => {
+  it('compares the normalized leaves used by the startup re-prepare gate', () => {
+    const current = values()
+
+    expect(sameDesktopSetupWizardSettings(current, structuredClone(current))).toBe(true)
+    expect(sameDesktopSetupWizardSettings(current, values({ mode: 'extended' }))).toBe(false)
+    expect(sameDesktopSetupWizardSettings(current, values({
+      notifications: {
+        ...current.notifications,
+        notifyOnTurnCompletion: true,
+      },
+    }))).toBe(false)
+  })
+
   it('returns platform defaults for an absent exact settings document', () => {
     const root = temporaryDirectory()
     expect(readDesktopSetupWizardSettings(join(root, 'settings.yaml')))
@@ -93,7 +106,7 @@ describe('Desktop Setup Wizard settings document', () => {
       '',
     ].join('\n'), { mode: 0o600 })
 
-    const next = values({ linuxMaterial: 'transparent' })
+    const next = values()
     await expect(updateDesktopSetupWizardSettings(path, next)).resolves.toEqual(next)
 
     const text = readFileSync(path, 'utf8')
@@ -105,7 +118,6 @@ describe('Desktop Setup Wizard settings document', () => {
       mode: 'compatibility',
       macosMaterial: 'transparent',
       windowsMaterial: 'mica',
-      linuxMaterial: 'transparent',
       port: 61201,
       logLevel: 'warn',
       futureField: 'preserved',

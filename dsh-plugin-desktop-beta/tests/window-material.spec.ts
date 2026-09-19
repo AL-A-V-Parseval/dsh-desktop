@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   effectiveDesktopWindowMaterial,
-  parseLinuxWindowMaterial,
   parseMacosWindowMaterial,
   parseWindowsWindowMaterial,
   windowsBuildNumber,
@@ -50,29 +49,11 @@ describe('desktop window material capabilities', () => {
     )).toBe('off')
   })
 
-  it('resolves the Linux material independently from the macOS and Windows preferences', () => {
-    expect(effectiveDesktopWindowMaterial(
-      'extended', 'linux', 'transparent', 'mica', 22_631,
-    )).toBe('off')
-    expect(effectiveDesktopWindowMaterial(
-      'extended', 'linux', 'transparent', 'mica', 22_631, 'off',
-    )).toBe('off')
-    expect(effectiveDesktopWindowMaterial(
-      'extended', 'linux', 'transparent', 'mica', 22_631, 'transparent',
-    )).toBe('transparent')
-    expect(effectiveDesktopWindowMaterial(
-      'advanced', 'linux', 'off', 'off', undefined, 'transparent',
-    )).toBe('transparent')
-  })
-
   it('validates persisted material values independently for each platform', () => {
     expect(parseMacosWindowMaterial(undefined)).toBe('transparent')
     expect(parseWindowsWindowMaterial(undefined)).toBe('off')
-    expect(parseLinuxWindowMaterial(undefined)).toBe('off')
     expect(parseWindowsWindowMaterial('acrylic')).toBe('off')
-    expect(parseLinuxWindowMaterial('transparent')).toBe('transparent')
     expect(() => parseMacosWindowMaterial('mica')).toThrow('macosMaterial')
     expect(() => parseWindowsWindowMaterial('transparent')).toThrow('windowsMaterial')
-    expect(() => parseLinuxWindowMaterial('mica')).toThrow('linuxMaterial')
   })
 })

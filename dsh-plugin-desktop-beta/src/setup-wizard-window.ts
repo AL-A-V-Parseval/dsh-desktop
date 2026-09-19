@@ -20,7 +20,6 @@ import {
   type DesktopSetupWizardResult,
   type DesktopSetupWizardWindowsMaterial,
   type DesktopSetupWizardMacosMaterial,
-  type DesktopSetupWizardLinuxMaterial,
 } from './setup-wizard-contract.ts'
 import { desktopSetupWizardCopy } from './setup-wizard-copy.ts'
 
@@ -31,7 +30,6 @@ const COMPLETE_KEYS = Object.freeze([
   'mode',
   'macosMaterial',
   'windowsMaterial',
-  'linuxMaterial',
   'openBrowser',
   'networkExposure',
   'market',
@@ -67,10 +65,6 @@ function exactWindowsMaterial(value: string | null): DesktopSetupWizardWindowsMa
   return value === 'off' || value === 'mica' ? value : undefined
 }
 
-function exactLinuxMaterial(value: string | null): DesktopSetupWizardLinuxMaterial | undefined {
-  return value === 'off' || value === 'transparent' ? value : undefined
-}
-
 function exactNetworkExposure(value: string | null): DesktopSetupWizardNetworkExposure | undefined {
   return value === 'loopback' || value === 'lan' ? value : undefined
 }
@@ -100,7 +94,6 @@ export function parseDesktopSetupWizardAction(
   const mode = exactMode(url.searchParams.get('mode'))
   const macosMaterial = exactMacosMaterial(url.searchParams.get('macosMaterial'))
   const windowsMaterial = exactWindowsMaterial(url.searchParams.get('windowsMaterial'))
-  const linuxMaterial = exactLinuxMaterial(url.searchParams.get('linuxMaterial'))
   const openBrowser = exactBoolean(url.searchParams.get('openBrowser'))
   const networkExposure = exactNetworkExposure(url.searchParams.get('networkExposure'))
   const aaEnabled = url.searchParams.has('aaEnabled') ? exactBoolean(url.searchParams.get('aaEnabled')) : false
@@ -111,7 +104,6 @@ export function parseDesktopSetupWizardAction(
   const notifyOnJobCompletion = exactBoolean(url.searchParams.get('notifyOnJobCompletion'))
   const notifyOnJobFailure = exactBoolean(url.searchParams.get('notifyOnJobFailure'))
   if (mode === undefined || macosMaterial === undefined || windowsMaterial === undefined
-    || linuxMaterial === undefined
     || aaEnabled === undefined || openBrowser === undefined || networkExposure === undefined || market === undefined
     || enabled === undefined || notifyOnTurnCompletion === undefined
     || notifyOnTurnFailure === undefined || notifyOnJobCompletion === undefined
@@ -121,7 +113,6 @@ export function parseDesktopSetupWizardAction(
     mode,
     macosMaterial,
     windowsMaterial,
-    linuxMaterial,
     openBrowser,
     networkExposure,
     market,

@@ -28,7 +28,8 @@ async function mount(selectAa: (enabled: boolean) => Promise<{ accepted: true; r
       }), selectAa,
     },
     platform: 'darwin', initialMode: 'compatibility', micaSupported: false, setMode: async () => {},
-    desktopSettings: scope({ mode: 'compatibility', openBrowser: false, networkExposure: 'loopback', macosMaterial: 'off', windowsMaterial: 'off', motion: true }),
+    desktopSettings: scope({ mode: 'compatibility', openBrowser: false, networkExposure: 'loopback', macosMaterial: 'off', windowsMaterial: 'off' }),
+    appearanceSettings: scope({ motion: true }),
     notificationSettings: scope({ enabled: false }),
   } as unknown as DesktopSettingsSectionProps
   await act(async () => { root!.render(createElement(DesktopSettingsSection, props)) })

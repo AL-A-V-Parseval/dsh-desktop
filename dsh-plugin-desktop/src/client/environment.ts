@@ -64,7 +64,7 @@ export function parseDesktopClientEnvironment(search: string): DesktopClientEnvi
   }
   if ((platform === 'darwin' && materialMarker !== 'off' && materialMarker !== 'transparent')
     || (platform === 'win32' && materialMarker === 'transparent')
-    || (platform === 'linux' && material !== 'off' && material !== 'transparent')
+    || (platform === 'linux' && material !== 'off')
     || (material === 'mica' && !micaSupported)) {
     throw new Error('dsh-plugin-desktop: renderer material is incompatible with its mode or platform')
   }

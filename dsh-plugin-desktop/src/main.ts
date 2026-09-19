@@ -1360,7 +1360,6 @@ async function start(): Promise<void> {
           mode: setupResult.selection.mode,
           macosMaterial: setupResult.selection.macosMaterial,
           windowsMaterial: setupResult.selection.windowsMaterial,
-          linuxMaterial: setupResult.selection.linuxMaterial,
           openBrowser: setupResult.selection.openBrowser,
           networkExposure: setupResult.selection.networkExposure,
           notifications: setupResult.selection.notifications,

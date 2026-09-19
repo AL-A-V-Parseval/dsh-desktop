@@ -14,7 +14,7 @@ import { isAbsolute, join, resolve } from 'node:path'
 import type { DesktopMarketProvider } from './desktop-market.ts'
 import type { DesktopSetupWizardSettings } from './setup-wizard-settings.ts'
 
-const BIN_NAME = 'dsh-plugin-desktop-beta'
+const BIN_NAME = 'dsh-plugin-desktop'
 const SAFE_MODE_DIRECTORY = 'safe-mode'
 const SAFE_MODE_MARKER = 'environment.json'
 const SAFE_MODE_VERSION = 1
@@ -38,7 +38,6 @@ export const DESKTOP_SAFE_MODE_DEFAULTS: Readonly<{
     mode: 'compatibility',
     macosMaterial: 'off',
     windowsMaterial: 'off',
-    linuxMaterial: 'off',
     openBrowser: false,
     networkExposure: 'loopback',
     notifications: Object.freeze({

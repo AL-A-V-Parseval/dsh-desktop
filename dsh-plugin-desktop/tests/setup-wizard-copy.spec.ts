@@ -16,7 +16,6 @@ const input: DesktopSetupWizardInput = {
   mode: 'compatibility',
   macosMaterial: 'transparent',
   windowsMaterial: 'mica',
-  linuxMaterial: 'off',
   openBrowser: false,
   networkExposure: 'loopback',
   market: 'disabled',

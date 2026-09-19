@@ -6,7 +6,6 @@ import type { DesktopInstallationId } from './desktop-installation-id.ts'
 import type { ProfileCreateWindowOptions } from './profile-create-window.ts'
 import type {
   DesktopWindowMaterial,
-  LinuxWindowMaterial,
   MacosWindowMaterial,
   PersistedWindowsWindowMaterial,
 } from './window-material.ts'
@@ -31,8 +30,6 @@ export interface DesktopWindowConfig {
   macosMaterial: MacosWindowMaterial
   /** Windows material preference retained independently across platforms. */
   windowsMaterial: PersistedWindowsWindowMaterial
-  /** Linux material preference retained independently across platforms. */
-  linuxMaterial: LinuxWindowMaterial
   /** Initial window width in CSS pixels. */
   width: number
   /** Initial window height in CSS pixels. */

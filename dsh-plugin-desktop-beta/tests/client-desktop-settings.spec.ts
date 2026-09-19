@@ -624,7 +624,7 @@ describe('Desktop native action presentation', () => {
 })
 
 describe('Desktop settings Slot registration', () => {
-  it('registers the official Desktop section, native actions, and both settings scopes', async () => {
+  it('registers the official Desktop section, native actions, and all settings scopes', async () => {
     const scope = {
       getSnapshot: () => ({
         status: 'loading' as const,

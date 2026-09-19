@@ -47,13 +47,10 @@ import {
   DESKTOP_PACKAGE_NAMES,
 } from './product-identity.ts'
 import {
-  DEFAULT_LINUX_WINDOW_MATERIAL,
   DEFAULT_MACOS_WINDOW_MATERIAL,
   DEFAULT_WINDOWS_WINDOW_MATERIAL,
-  parseLinuxWindowMaterial,
   parseMacosWindowMaterial,
   parseWindowsWindowMaterial,
-  type LinuxWindowMaterial,
   type MacosWindowMaterial,
   type WindowsWindowMaterial,
 } from './window-material.ts'
@@ -147,7 +144,6 @@ export interface DesktopStartupSettings {
   port: number
   macosMaterial: MacosWindowMaterial
   windowsMaterial: WindowsWindowMaterial
-  linuxMaterial: LinuxWindowMaterial
   /** Persisted compatibility key for ordinary-browser access permission. */
   openBrowser: boolean
   networkExposure: DesktopNetworkExposure
@@ -158,7 +154,6 @@ const DEFAULT_DESKTOP_STARTUP_SETTINGS: DesktopStartupSettings = Object.freeze({
   port: DEFAULT_DESKTOP_PORT,
   macosMaterial: DEFAULT_MACOS_WINDOW_MATERIAL,
   windowsMaterial: DEFAULT_WINDOWS_WINDOW_MATERIAL,
-  linuxMaterial: DEFAULT_LINUX_WINDOW_MATERIAL,
   openBrowser: false,
   networkExposure: 'loopback',
 })
@@ -192,7 +187,6 @@ export function desktopStartupSettingsFromSettings(document: unknown): DesktopSt
     port: parseDesktopPort(values.port),
     macosMaterial: parseMacosWindowMaterial(values.macosMaterial),
     windowsMaterial: parseWindowsWindowMaterial(values.windowsMaterial),
-    linuxMaterial: parseLinuxWindowMaterial(values.linuxMaterial),
     openBrowser,
     networkExposure: desktopNetworkExposureForBrowserAccess(openBrowser, networkExposure),
   }
@@ -266,8 +260,6 @@ export interface PreparedDesktopProfile {
   macosMaterial: MacosWindowMaterial
   /** Native backdrop preference retained for Windows generations. */
   windowsMaterial: WindowsWindowMaterial
-  /** Native translucency preference retained for Linux generations. */
-  linuxMaterial: LinuxWindowMaterial
   /** Persisted Web port applied to every startup consumer. */
   port: number
   /** Whether Desktop advertises the marker-free compatibility client for browser use. */
@@ -981,7 +973,6 @@ export function prepareDesktopProfile(
     port,
     macosMaterial,
     windowsMaterial,
-    linuxMaterial,
     openBrowser,
     networkExposure,
   } = readDesktopStartupSettings(settingsConfig)
@@ -1138,7 +1129,6 @@ export function prepareDesktopProfile(
       networkExposure,
       macosMaterial,
       windowsMaterial,
-      linuxMaterial,
     },
   })
   return {
@@ -1152,7 +1142,6 @@ export function prepareDesktopProfile(
     port,
     macosMaterial,
     windowsMaterial,
-    linuxMaterial,
     openBrowser,
     networkExposure,
     lanAddresses,
