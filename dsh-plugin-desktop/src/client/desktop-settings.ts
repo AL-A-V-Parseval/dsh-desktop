@@ -3,11 +3,7 @@
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
-import {
-  DesktopSettingsSection,
-  type DesktopNotificationSettings,
-  type DesktopShellSettings,
-} from './DesktopSettingsSection.tsx'
+import { DesktopSettingsSection, type DesktopNotificationSettings, type DesktopShellSettings } from './DesktopSettingsSection.tsx'
 import { DesktopTerminalSettingsAction } from './DesktopTerminalSettingsAction.tsx'
 import { createDesktopSettingsApi } from './desktop-settings-api.ts'
 import { en, zh, type DesktopSettingsLocaleKey } from './desktop-settings-locales.ts'
@@ -82,37 +78,6 @@ export function applyDesktopSettings(
     () => installDesktopSettingsStyles(),
     'dsh-plugin-desktop: settings styles',
   )
-  // Apply the motion preference once, from the generation that is booting, so
-  // changing it only takes effect after a restart. The settings mirror becomes
-  // ready without necessarily notifying subscribers, so retry until it is ready
-  // and then stop watching: later updates are ignored until the next launch.
-  ctx.effect(() => {
-    let applied = false
-    let poll: number | undefined
-    const stopPolling = (): void => {
-      if (poll !== undefined) {
-        window.clearInterval(poll)
-        poll = undefined
-      }
-    }
-    const apply = (): void => {
-      if (applied) return
-      const snapshot = desktopSettings.getSnapshot()
-      if (snapshot.status !== 'ready') return
-      applied = true
-      stopPolling()
-      if (snapshot.value?.motion === false) document.body.dataset.dshDesktopMotion = 'off'
-      else delete document.body.dataset.dshDesktopMotion
-    }
-    apply()
-    if (!applied) poll = window.setInterval(apply, 50)
-    const giveUp = window.setTimeout(stopPolling, 5_000)
-    return () => {
-      stopPolling()
-      window.clearTimeout(giveUp)
-      delete document.body.dataset.dshDesktopMotion
-    }
-  }, 'dsh-plugin-desktop: glass motion preference')
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'desktop',

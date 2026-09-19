@@ -58,15 +58,6 @@ body[data-dsh-desktop-mode="extended"] .dshDesktopSidebarSurface {
 body[data-dsh-desktop-mode="extended"] .dshDesktopFrame {
   background: var(--dsh-desktop-frame-fill);
 }
-/* Linux renders the command bar in the content document, so reserve its band
-   and let the bar blur the frame behind it. */
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-mode="extended"] {
-  --dsh-desktop-frame-height: ${DESKTOP_FRAME_HEIGHT}px;
-}
-body[data-dsh-desktop-platform="linux"][data-dsh-desktop-mode="extended"] .dshDesktopFrame {
-  box-sizing: border-box;
-  padding-top: ${DESKTOP_FRAME_HEIGHT}px;
-}
 body[data-dsh-desktop-mode="extended"] .dshDesktopConversationSurface {
   box-sizing: border-box;
   overflow: hidden;
@@ -95,8 +86,6 @@ body[data-dsh-desktop-mode="compatibility"]:not([data-dsh-desktop-material="off"
 body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
   --dsh-desktop-frame-fill: color-mix(in srgb, var(--dsw-alias-bg-base) 18%, transparent);
 }
-/* The Linux transparent material is fully styled by the Liquid Glass layer in
-   styles.ts; here the opaque fallback keeps its own frame fill. */
 .dshDesktopFrameTitlebar {
   position: fixed;
   z-index: 2147483647;
@@ -126,25 +115,24 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
   left: 50%;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   min-width: 0;
   transform: translateX(-50%);
   pointer-events: none;
 }
-.dshDesktopFrameProduct { font-size: 13.5px; font-weight: 600; letter-spacing: .01em; white-space: nowrap; }
+.dshDesktopFrameProduct { font-size: 13px; font-weight: 600; white-space: nowrap; }
 .dshDesktopFrameVersion {
-  min-height: 24px;
-  padding: 3px 9px;
+  min-height: 22px;
+  padding: 2px 5px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 6px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
   cursor: default;
   font: inherit;
-  font-size: 11.5px;
+  font-size: 11px;
   pointer-events: auto;
   white-space: nowrap;
-  transition: background-color 160ms ease, color 160ms ease, transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
   -webkit-app-region: no-drag;
 }
 .dshDesktopFrameVersion:hover,
@@ -227,18 +215,17 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
 .dshDesktopFrameMode {
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
-  padding: 3px 10px;
+  min-height: 22px;
+  padding: 2px 8px;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 999px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
   font: inherit;
-  font-size: 11.5px;
+  font-size: 11px;
   pointer-events: auto;
   white-space: nowrap;
-  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
   -webkit-app-region: no-drag;
 }
 .dshDesktopFrameMode:hover,
@@ -334,15 +321,14 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 7px;
   background: color-mix(in srgb, var(--dsw-alias-bg-base) 34%, transparent);
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
-  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
   -webkit-app-region: no-drag;
 }
 .dshDesktopTitlebarIconButton:hover:not(:disabled),

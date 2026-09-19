@@ -167,8 +167,8 @@ describe('applyExtendedShell presentation ownership', () => {
 
     applyExtendedShell(ctx as never, environmentFor('extended') as never)
 
-    // layout + owned styles + exit animations + presenter + root slot + framed chrome styles
-    expect(ctx.effect).toHaveBeenCalledTimes(6)
+    // layout + owned styles + presenter + root slot + framed chrome styles
+    expect(ctx.effect).toHaveBeenCalledTimes(5)
     expect(ctx.slots.register).toHaveBeenCalledTimes(1)
   })
 

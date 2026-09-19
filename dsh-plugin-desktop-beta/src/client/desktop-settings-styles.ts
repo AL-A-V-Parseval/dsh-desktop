@@ -67,7 +67,6 @@ const CSS = `
 .dshDesktopSettingsChoice[aria-disabled="true"]:not([data-selected="true"]) { opacity: .58; }
 .dshDesktopSettingsChoiceCopy { display: block; flex: 1; min-width: 0; }
 .dshDesktopSettingsToggleLabel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.dshDesktopSettingsToggleLabelStacked { display: block; flex: 1; min-width: 0; }
 .dshDesktopSettingsChoiceAside { flex: 0 0 auto; margin-left: 12px; }
 .dshDesktopSettingsDeleteConfirm { display: flex; align-items: flex-end; flex-direction: column; gap: 8px; max-width: 320px; }
 .dshDesktopSettingsDeleteWarning { color: var(--dsw-alias-state-warning-primary); font-size: 12px; line-height: 1.4; text-align: right; }
@@ -237,67 +236,19 @@ const CSS = `
   background: var(--dsw-alias-bg-layer-1);
 }
 .dshDesktopSettingsMaterialCopy { min-width: 0; }
-.dshDesktopSettingsSelectWrap { position: relative; flex: 0 0 auto; }
 .dshDesktopSettingsSelect {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  flex: 0 0 auto;
   min-width: 150px;
   min-height: 32px;
-  padding: 4px 10px;
+  padding: 4px 28px 4px 10px;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 8px;
   background: var(--dsw-alias-bg-layer-1);
   color: var(--dsw-alias-label-primary);
-  cursor: pointer;
   font: inherit;
   font-size: 12px;
-  transition: background-color 160ms ease, border-color 160ms ease;
 }
-.dshDesktopSettingsSelect:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
-.dshDesktopSettingsSelect:disabled { opacity: .55; cursor: default; }
-.dshDesktopSettingsSelectChevron { opacity: .7; transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1); }
-.dshDesktopSettingsSelect[aria-expanded="true"] .dshDesktopSettingsSelectChevron { transform: rotate(180deg); }
-.dshDesktopSettingsMenu {
-  position: absolute;
-  z-index: 60;
-  top: calc(100% + 6px);
-  right: 0;
-  display: grid;
-  gap: 2px;
-  min-width: 150px;
-  padding: 5px;
-  border: 1px solid var(--dsw-alias-border-l1);
-  border-radius: 12px;
-  background: var(--dsw-alias-bg-layer-1);
-  box-shadow: 0 12px 32px color-mix(in srgb, #000 28%, transparent);
-  transform-origin: top right;
-  animation: dshDesktopSelectIn 160ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-@keyframes dshDesktopSelectIn {
-  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-  to { opacity: 1; transform: none; }
-}
-.dshDesktopSettingsMenuItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 30px;
-  padding: 5px 8px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--dsw-alias-label-primary);
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  text-align: start;
-  transition: background-color 140ms ease;
-}
-.dshDesktopSettingsMenuItem:hover,
-.dshDesktopSettingsMenuItem[data-selected] { background: var(--dsw-alias-interactive-bg-hover); }
+.dshDesktopSettingsSelect:disabled { opacity: .55; }
 .dshDesktopSettingsNotice,
 .dshDesktopSettingsError,
 .dshDesktopSettingsSuccess {
@@ -313,50 +264,35 @@ const CSS = `
 .dshDesktopSettingsToggle {
   flex: 0 0 auto;
   position: relative;
-  width: 44px;
-  height: 26px;
+  width: 40px;
+  height: 22px;
   padding: 2px;
   border: none;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--dsw-alias-label-primary) 16%, transparent);
+  background: var(--dsw-alias-border-l2);
   cursor: pointer;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #000000 8%, transparent);
-  transition:
-    background-color 260ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 200ms ease;
+  transition: background-color var(--ds-transition-duration-fast) var(--ds-ease-in-out);
 }
 .dshDesktopSettingsToggle[aria-checked="true"] {
   background: var(--dsw-alias-brand-primary);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #000000 6%, transparent);
 }
 .dshDesktopSettingsToggle:disabled { cursor: default; opacity: .5; }
 .dshDesktopSettingsToggle:focus-visible {
   outline: 2px solid var(--dsw-alias-brand-primary);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 .dshDesktopSettingsToggleKnob {
   display: block;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: #ffffff;
-  box-shadow:
-    0 3px 8px color-mix(in srgb, #000000 30%, transparent),
-    0 1px 1px color-mix(in srgb, #000000 18%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 90%, transparent);
+  background: var(--dsw-alias-label-primary-foreground);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .24);
   transform: translateX(0);
-  transition:
-    transform 340ms cubic-bezier(0.22, 1.2, 0.36, 1),
-    width 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--ds-transition-duration-fast) var(--ds-ease-in-out);
 }
 .dshDesktopSettingsToggle[aria-checked="true"] .dshDesktopSettingsToggleKnob {
   transform: translateX(18px);
-}
-/* Press feedback: the knob stretches and settles back with a spring. */
-.dshDesktopSettingsToggle:active .dshDesktopSettingsToggleKnob { width: 26px; }
-.dshDesktopSettingsToggle[aria-checked="true"]:active .dshDesktopSettingsToggleKnob {
-  width: 26px;
-  transform: translateX(14px);
 }
 .dshDesktopSettingsDetails {
   display: grid;

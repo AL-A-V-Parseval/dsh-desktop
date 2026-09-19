@@ -20,12 +20,10 @@ export interface DesktopShellSettings {
   readonly mode: 'compatibility' | 'extended' | 'advanced'
   readonly macosMaterial: 'off' | 'transparent'
   readonly windowsMaterial: 'off' | 'acrylic' | 'mica'
-  readonly linuxMaterial: 'off' | 'transparent'
   readonly port: number
   readonly openBrowser: boolean
   readonly networkExposure: 'loopback' | 'lan'
   readonly logLevel: 'debug' | 'info' | 'warn' | 'error'
-  readonly motion: boolean
 }
 
 /** Browser view of the Host `dsh-desktop-notifications` settings namespace. */
@@ -55,7 +53,7 @@ export type DesktopSettingsSectionProps =
   & InjectFace<DesktopSettingsSectionInjected>
 
 type Translate = DesktopSettingsSectionProps['t']
-type BusyOperation = 'load' | 'create-profile' | 'select-profile' | 'delete-profile' | 'select-aa' | 'select-market' | 'mode' | 'material' | 'motion' | 'web' | 'notification'
+type BusyOperation = 'load' | 'create-profile' | 'select-profile' | 'delete-profile' | 'select-aa' | 'select-market' | 'mode' | 'material' | 'web' | 'notification'
 type RestartState = 'none' | 'restarting' | 'required'
 type LanPollWait = (signal: AbortSignal) => Promise<void>
 
@@ -228,14 +226,12 @@ function RepositoryLink({ href, children }: { href: string; children: ReactNode 
 
 function ToggleRow({
   label,
-  body,
   badge,
   checked,
   disabled,
   onChange,
 }: {
   label: ReactNode
-  body?: ReactNode
   badge?: ReactNode
   checked: boolean
   disabled: boolean
@@ -244,22 +240,10 @@ function ToggleRow({
   const labelId = useId()
   return (
     <div className="dshDesktopSettingsToggleRow">
-      {body === undefined
-        ? (
-          <span className="dshDesktopSettingsToggleLabel" id={labelId}>
-            {label}
-            {badge !== undefined && <span className="dshDesktopSettingsBadge">{badge}</span>}
-          </span>
-          )
-        : (
-          <span className="dshDesktopSettingsToggleLabel dshDesktopSettingsToggleLabelStacked" id={labelId}>
-            <span className="dshDesktopSettingsChoiceTitle">
-              {label}
-              {badge !== undefined && <span className="dshDesktopSettingsBadge">{badge}</span>}
-            </span>
-            <span className="dshDesktopSettingsChoiceBody">{body}</span>
-          </span>
-          )}
+      <span className="dshDesktopSettingsToggleLabel" id={labelId}>
+        {label}
+        {badge !== undefined && <span className="dshDesktopSettingsBadge">{badge}</span>}
+      </span>
       <button
         type="button"
         role="switch"
@@ -311,74 +295,6 @@ function marketBody(option: (typeof MARKET_OPTIONS)[number], t: Translate): Reac
       {t(option.body)}{' '}
       <RepositoryLink href={AWESOME_DSH_PLUGIN_URL}>awesome-dsh-plugin</RepositoryLink>
     </>
-  )
-}
-
-function MaterialSelect({
-  value,
-  options,
-  disabled,
-  onChange,
-}: {
-  readonly value: string
-  readonly options: readonly { readonly value: string; readonly label: string }[]
-  readonly disabled: boolean
-  readonly onChange: (value: string) => void
-}): JSX.Element {
-  const [open, setOpen] = useState(false)
-  const rootRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!open) return
-    const dismiss = (event: MouseEvent): void => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
-    }
-    const escape = (event: KeyboardEvent): void => { if (event.key === 'Escape') setOpen(false) }
-    document.addEventListener('mousedown', dismiss)
-    document.addEventListener('keydown', escape)
-    return () => {
-      document.removeEventListener('mousedown', dismiss)
-      document.removeEventListener('keydown', escape)
-    }
-  }, [open])
-  const current = options.find(option => option.value === value) ?? options[0]
-  return (
-    <div className="dshDesktopSettingsSelectWrap" ref={rootRef}>
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        className="dshDesktopSettingsSelect"
-        disabled={disabled}
-        onClick={() => { setOpen(open => !open) }}
-      >
-        <span className="dshDesktopSettingsSelectValue">{current?.label}</span>
-        <svg aria-hidden="true" className="dshDesktopSettingsSelectChevron" height="14" viewBox="0 0 16 16" width="14">
-          <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
-        </svg>
-      </button>
-      {open && (
-        <div className="dshDesktopSettingsMenu" role="listbox">
-          {options.map(option => (
-            <button
-              key={option.value}
-              aria-selected={option.value === value}
-              className="dshDesktopSettingsMenuItem"
-              data-selected={option.value === value || undefined}
-              role="option"
-              type="button"
-              onClick={() => { onChange(option.value); setOpen(false) }}
-            >
-              <span>{option.label}</span>
-              {option.value === value && (
-                <svg aria-hidden="true" height="14" viewBox="0 0 16 16" width="14">
-                  <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
-                </svg>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
   )
 }
 
@@ -454,7 +370,6 @@ export function DesktopSettingsSection({
   const requestRestart = (): void => { setRestart('restarting') }
   const settingsWritable = desktop.status === 'ready' && desktop.writable
   const notificationsWritable = notifications.status === 'ready' && notifications.writable
-  const motionEnabled = desktop.value?.motion !== false
   const storedMode = desktop.value?.mode ?? initialMode
   const configuredNetworkExposure = desktop.value?.networkExposure ?? 'loopback'
   const browserAccess = desktopBrowserAccessEnabled(
@@ -544,19 +459,7 @@ export function DesktopSettingsSection({
           throw new Error(`dsh-plugin-desktop: unavailable Windows material ${JSON.stringify(next)}`)
         }
         await desktopSettings.set('windowsMaterial', next)
-      } else if (platform === 'linux') {
-        if (next !== 'off' && next !== 'transparent') {
-          throw new Error(`dsh-plugin-desktop: invalid Linux material ${JSON.stringify(next)}`)
-        }
-        await desktopSettings.set('linuxMaterial', next)
       }
-      requestRestart()
-    })
-  }
-
-  const setMotion = (checked: boolean): void => {
-    void run('motion', async () => {
-      await desktopSettings.set('motion', checked)
       requestRestart()
     })
   }
@@ -780,38 +683,33 @@ export function DesktopSettingsSection({
             status={mode === 'advanced' ? t('selected') : undefined}
           />
         </div>
-        <label className="dshDesktopSettingsMaterialField">
-          <span className="dshDesktopSettingsMaterialCopy">
-            <span className="dshDesktopSettingsChoiceTitle">{t('windowMaterial')}</span>
-            <span className="dshDesktopSettingsChoiceBody">{t('windowMaterialBody')}</span>
-          </span>
-          <MaterialSelect
-            value={platform === 'darwin'
-              ? desktop.value?.macosMaterial ?? 'transparent'
-              : platform === 'linux'
-                ? desktop.value?.linuxMaterial ?? 'off'
+        {platform !== 'linux' && (
+          <label className="dshDesktopSettingsMaterialField">
+            <span className="dshDesktopSettingsMaterialCopy">
+              <span className="dshDesktopSettingsChoiceTitle">{t('windowMaterial')}</span>
+              <span className="dshDesktopSettingsChoiceBody">{t('windowMaterialBody')}</span>
+            </span>
+            <select
+              className="dshDesktopSettingsSelect"
+              value={platform === 'darwin'
+                ? desktop.value?.macosMaterial ?? 'transparent'
                 : desktop.value?.windowsMaterial === 'acrylic'
                   || (!micaSupported && desktop.value?.windowsMaterial === 'mica')
                   ? 'off'
                   : desktop.value?.windowsMaterial ?? 'off'}
-            options={[
-              { value: 'off', label: t('windowMaterialOff') },
-              ...(platform === 'darwin' || platform === 'linux'
-                ? [{ value: 'transparent', label: t('windowMaterialTransparent') }]
-                : micaSupported ? [{ value: 'mica', label: t('windowMaterialMica') }] : []),
-            ]}
-            disabled={!settingsWritable || busy !== undefined || restart !== 'none'}
-            onChange={setMaterial}
-          />
-        </label>
-        {platform === 'linux' && (
-          <ToggleRow
-            label={t('motion')}
-            body={t('motionBody')}
-            checked={motionEnabled}
-            disabled={!settingsWritable || busy !== undefined || restart !== 'none'}
-            onChange={setMotion}
-          />
+              disabled={!settingsWritable || busy !== undefined || restart !== 'none'}
+              onChange={event => { setMaterial(event.currentTarget.value) }}
+            >
+              <option value="off">{t('windowMaterialOff')}</option>
+              {platform === 'darwin'
+                ? <option value="transparent">{t('windowMaterialTransparent')}</option>
+                : (
+                    <>
+                      {micaSupported && <option value="mica">{t('windowMaterialMica')}</option>}
+                    </>
+                  )}
+            </select>
+          </label>
         )}
       </section>
 
