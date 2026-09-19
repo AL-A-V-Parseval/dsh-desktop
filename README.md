@@ -19,7 +19,7 @@
   <img src="https://img.shields.io/badge/Linux-x64-4493F8?style=flat-square" alt="Target platform: Linux x64">
 </p>
 
-<p align="center"><sub>本仓库是社区 fork，基于 <a href="https://github.com/anywhere-labs/dsh-desktop">anywhere-labs/dsh-desktop</a>（DSH Desktop <strong>2.0.11</strong>，runtime <code>0.1.5-rc.2</code>）。与 DeepSeek（深度求索）及上游项目不存在隶属、合作、授权或背书关系。</sub></p>
+<p align="center"><sub>本仓库是社区 fork，基于 <a href="https://github.com/anywhere-labs/dsh-desktop">anywhere-labs/dsh-desktop</a>（DSH Desktop <strong>2.0.13</strong>，runtime <code>0.1.5-rc.2</code>）。与 DeepSeek（深度求索）及上游项目不存在隶属、合作、授权或背书关系。</sub></p>
 
 ## 这是什么
 
@@ -27,7 +27,7 @@ DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harne
 
 本 fork **聚焦 Linux**：修复上游桌面端在 Linux 上无法稳定运行的问题，让 `bash` / `glob` / `grep` 等子进程工具、插件市场与附件等能力在 Linux 上可用。
 
-- 上游基线：上游 [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) 最新 `master`（构建基线 `cb736b6edf`，产品版本 2.0.11）
+- 上游基线：上游 [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) 最新 `master`（构建基线 `ce9288fd75`，产品版本 2.0.13）
 - 目标平台：**Linux x64**
 - 产物：便携包（tar.gz）与 Debian/Ubuntu 安装包（.deb），随 `SHA256SUMS` 提供 GPG 分离签名，`.deb` 另含 `debsigs` 内部签名
 
@@ -35,7 +35,7 @@ DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harne
 
 ### 1. Linux 支持扩展 / 增强窗口模式
 
-此前 fork 只提供兼容模式。Electron 在 Linux 上支持 **Window Controls Overlay**（`titleBarStyle: "hidden"` + `titleBarOverlay`），因此本 fork 让 **扩展模式** 与 **增强模式** 也能在 Linux 上运行：无边框窗口仍保留原生最小化 / 最大化 / 关闭按钮，扩展模式使用独立命令栏，增强模式使用 32 像素 caption row。Linux 窗口材质可选 `off` 或 `transparent`：`transparent` 采用液态玻璃（Liquid Glass）设计语言——控制栏、侧栏、消息框、设置对话框与弹出菜单均使用半透明磨砂玻璃，对话框上的下拉、外观卡片与导航会透出背后的模糊内容，并以顶部高光、底部暗边的镜片式边缘呈现；菜单与对话框弹性入场、关闭时收回，控件按下与悬停带柔和回弹。可在桌面设置或窗口模式按钮中切换窗口材质，桌面设置另提供「界面动画」开关（均需重启生效）。
+此前 fork 只提供兼容模式。Electron 在 Linux 上支持 **Window Controls Overlay**（`titleBarStyle: "hidden"` + `titleBarOverlay`），因此本 fork 让 **扩展模式** 与 **增强模式** 也能在 Linux 上运行：无边框窗口仍保留原生最小化 / 最大化 / 关闭按钮，扩展模式使用渲染进程内的独立命令栏，增强模式使用 32 像素 caption row。内容为命令栏让出顶部 36 像素，避免与原生窗口按钮重叠。
 
 ### 2. sharp 走真实 Node 桥接（修复 Host 反复崩溃 / 前端一直「重连」）
 
@@ -64,16 +64,16 @@ Linux 版 Electron 会向进程空间泄漏 glib 符号，与 sharp/libvips 的 
 ### 便携包（tar.gz）
 
 ```sh
-tar -xzf DSH-Desktop-2.0.11-linux.1-x64-portable.tar.gz
-cd DSH-Desktop-2.0.11-linux.1-x64
+tar -xzf DSH-Desktop-2.0.13-linux.1-x64-portable.tar.gz
+cd DSH-Desktop-2.0.13-linux.1-x64
 ./dsh-plugin-desktop
 ```
 
 ### Debian / Ubuntu 安装包（.deb）
 
 ```sh
-sudo apt install ./dsh-desktop_2.0.11-linux.1_amd64.deb
-# 或：sudo dpkg -i dsh-desktop_2.0.11-linux.1_amd64.deb && sudo apt -f install
+sudo apt install ./dsh-desktop_2.0.13-linux.1_amd64.deb
+# 或：sudo dpkg -i dsh-desktop_2.0.13-linux.1_amd64.deb && sudo apt -f install
 ```
 
 安装后可从应用菜单启动，或在终端运行 `dsh-desktop`。`.deb` 会：
@@ -101,7 +101,7 @@ gpg --import Jic2007-release-key.asc
 gpg --verify SHA256SUMS.asc SHA256SUMS
 sha256sum -c SHA256SUMS
 # 可选：校验 .deb 内部签名（需要 debsigs）
-debsigs --verify dsh-desktop_2.0.11-linux.1_amd64.deb
+debsigs --verify dsh-desktop_2.0.13-linux.1_amd64.deb
 ```
 
 ## 从源码构建
