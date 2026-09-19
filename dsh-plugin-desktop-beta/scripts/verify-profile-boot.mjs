@@ -3,7 +3,8 @@
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { setTimeout as delay } from 'node:timers/promises'
 import { boot } from '@deepseek-ai/dsh-app-boot'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import {
@@ -15,6 +16,7 @@ import { installDesktopPnpmRuntime } from '../lib/desktop-runtime-environment.js
 import { installProfilePackageResolver } from '../lib/module-resolution.js'
 import { prepareDesktopProfile } from '../lib/profile.js'
 import { DesktopProfileService } from '../lib/profile-service.js'
+import { createDesktopProfileBoot } from '../lib/profile-context.js'
 
 const BIN_NAME = 'dsh-plugin-desktop-profile-smoke'
 const HOST_SERVICE_PLUGIN_NAME = 'dsh-desktop-host-services-smoke-plugin'
@@ -82,21 +84,14 @@ try {
     hostServicePluginDir,
     { recursive: true, force: false, errorOnExist: true },
   )
-  const patches = [
-    // Deliberately compose the consumer before the desktop-pnpm provider row.
-    // Its required injection must keep it pending until that service mounts.
-    {
-      insert: [{
-        id: 'desktop-host-services-smoke-plugin',
-        name: HOST_SERVICE_PLUGIN_NAME,
-      }],
-    },
-    ...prepared.patches,
-    // Keep this headless probe independent of the operator's AA account.
+  prepared.overlays = [
+    { insert: [{ id: 'desktop-host-services-smoke-plugin', name: HOST_SERVICE_PLUGIN_NAME }] },
+    // Isolate the bridge from the operator's real AA account on every reload.
     ...(prepared.aaEnabled ? [{ id: 'agents-anywhere-bridge-next', config: {
       dshHome: home, stateRoot: join(home, 'aa-smoke-state'),
     } }] : []),
   ]
+  const patches = [...prepared.patches, ...prepared.overlays]
   const packageRoot = new URL('../', import.meta.url)
   const pnpmBinPath = fileURLToPath(new URL('node_modules/pnpm/bin/pnpm.mjs', packageRoot))
   const electronVersion = JSON.parse(
@@ -152,29 +147,32 @@ try {
     async requestRestart() {},
     prepareToQuit() {},
   }
+  const pnpmBootstrap = {
+    activeProfileName: 'desktop',
+    activeProfileDir: prepared.profile.dir,
+    homeDir: prepared.homeDir,
+    appExecutable: process.execPath,
+    pnpmBinPath,
+    electronVersion,
+    nodeBinDir: pnpmRuntime.nodeBinDir,
+    nodeShimPath: pnpmRuntime.nodeShimPath,
+    clearEnvironmentPath: pnpmRuntime.clearEnvironmentPath,
+    dshBootstrapPath: fileURLToPath(new URL('../lib/desktop-cli.js', import.meta.url)),
+  }
+  const profileBoot = createDesktopProfileBoot(prepared, pnpmBootstrap)
   ctx = await boot(
     BIN_NAME,
     prepared.rootConfig,
     patches,
     async (host) => {
+      profileBoot.prepare(host)
       // Match the public resolver path used by packaged Electron.
       host.loader.internal = undefined
       host.provide(DSH_LAUNCH_ENVIRONMENT_KEY, createLaunchEnvironmentSnapshot([]))
       host.provide('desktopBrowserAccess', BROWSER_ACCESS)
       host.provide('desktopLanHttps', LAN_HTTPS)
       host.provide('desktopRuntime', runtime)
-      host.provide('desktopPnpmBootstrap', {
-        activeProfileName: 'desktop',
-        activeProfileDir: prepared.profile.dir,
-        homeDir: prepared.homeDir,
-        appExecutable: process.execPath,
-        pnpmBinPath,
-        electronVersion,
-        nodeBinDir: pnpmRuntime.nodeBinDir,
-        nodeShimPath: pnpmRuntime.nodeShimPath,
-        clearEnvironmentPath: pnpmRuntime.clearEnvironmentPath,
-        dshBootstrapPath: fileURLToPath(new URL('../lib/desktop-cli.js', import.meta.url)),
-      })
+      host.provide('desktopPnpmBootstrap', pnpmBootstrap)
       await host.plugin(DesktopProfileService, {
         current: {
           name: 'desktop',
@@ -197,6 +195,7 @@ try {
     },
     prepared.bareModuleBaseUrl,
   )
+  profileBoot.markReady()
   await runtime.mountScheduled()
 
   if (ctx.get('desktopPnpm') === undefined) {
@@ -221,6 +220,32 @@ try {
   if (minimalPreset.id !== 'minimal') {
     throw new Error(`assembled Windows profile remapped minimal preset to ${minimalPreset.id}`)
   }
+  if (ctx.get('pluginManager') === undefined) {
+    throw new Error('Desktop Profile did not activate the official plugin manager')
+  }
+  // Resolve AND mount Creator: discovery alone cannot catch missing Host services.
+  await agentPresets.standingKeyFor('cordis')
+  if ((await ctx.get('pluginManager').listPlugins()).length === 0) {
+    throw new Error('Official plugin manager cannot inspect the Desktop composition')
+  }
+  // Exercise the actual Profile watcher twice, rather than invoking our reader
+  // directly. Both generations must preserve the Desktop layers and fixture.
+  const reloadProbePath = join(home, 'reload-probe.mjs')
+  writeFileSync(reloadProbePath, "export function apply(ctx, config) { ctx.provide('desktopReloadProbe', config.value) }\n")
+  for (const value of [1, 2]) {
+    writeFileSync(prepared.profile.patchPath, JSON.stringify([{ insert: [{
+      id: 'desktop-reload-probe', name: pathToFileURL(reloadProbePath).href, config: { value },
+    }] }]))
+    const deadline = Date.now() + 15_000
+    while (ctx.get('desktopReloadProbe') !== value && Date.now() < deadline) await delay(50)
+    if (ctx.get('desktopReloadProbe') !== value) {
+      throw new Error(`Profile HMR failed to activate generation ${value}`)
+    }
+  }
+  if (ctx.get('desktopRuntime') !== runtime || ctx.get('pluginManager') === undefined) {
+    throw new Error('Profile reload lost Desktop or plugin-manager services')
+  }
+  await ctx.agentPresets.standingKeyFor('cordis')
   const hostServiceProbe = ctx.get(HOST_SERVICE_PROBE_KEY)
   if (hostServiceProbe?.current?.name !== 'desktop'
     || hostServiceProbe.current.dir !== prepared.profile.dir
@@ -357,6 +382,7 @@ try {
   ]) {
     if (ids.has(id)) throw new Error(`assembled advanced Web graph unexpectedly includes ${id}`)
   }
+  process.stdout.write('verify-profile-boot: Creator, plugin manager and two Profile HMR generations passed\n')
 } finally {
   await ctx?.fiber.dispose()
   releasePackageResolver?.()

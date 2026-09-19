@@ -78,6 +78,7 @@ import {
   selectDesktopProfile,
 } from './profile-manager.ts'
 import { DesktopProfileService } from './profile-service.ts'
+import { createDesktopProfileBoot } from './profile-context.ts'
 import { DesktopActionsService } from './desktop-actions.ts'
 import { clearDesktopProfilePluginState, DesktopPluginsService } from './desktop-plugins.ts'
 import {
@@ -1542,11 +1543,13 @@ async function start(): Promise<void> {
       startupStage = 'host-boot'
       lifecycleRecorder.transitionStartupStage(startupStage)
       const releasePackageResolver = installProfilePackageResolver(prepared.bareModuleBaseUrl)
+      const profileBoot = createDesktopProfileBoot(prepared, desktopPnpmBootstrap)
       const ctx = await boot(
         BIN_NAME,
         prepared.rootConfig,
         prepared.patches,
         async (hostCtx) => {
+          profileBoot.prepare(hostCtx)
           // Keep Host imports and browser bundle discovery on the same public
           // profile-overlay resolver used by packaged Electron.
           hostCtx.loader.internal = undefined
@@ -1712,6 +1715,7 @@ async function start(): Promise<void> {
         throw cause
       })
       generation.bindHost(ctx)
+      profileBoot.markReady()
       fileExporter?.setThreshold((ctx.settings.get(DESKTOP_SETTINGS_NAMESPACE) as DesktopSettings | undefined)?.logLevel ?? 'info')
       ctx.on('settings/updated', (namespace, next) => {
         if (namespace === DESKTOP_SETTINGS_NAMESPACE) {

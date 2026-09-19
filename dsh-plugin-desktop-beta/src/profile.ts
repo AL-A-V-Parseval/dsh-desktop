@@ -242,6 +242,17 @@ function requiredWebBundles(): string[] {
 
 /** Prepared profile inputs consumed by app-boot. */
 export interface PreparedDesktopProfile {
+  /** Extra launcher-owned patches, also replayed after Profile HMR. */
+  overlays?: PatchOptions[]
+  /** Serializable inputs for the Desktop-owned alpha.2 Profile reload path. */
+  reloadOptions: {
+    telemetryDisabled: string | undefined
+    platform: NodeJS.Platform
+    profileName: string
+    pluginStatePath: string | undefined
+    marketSelection: DesktopMarketSnapshot
+    aaEnabled: boolean
+  }
   /** Harness home shared by the launcher and generated command environment. */
   homeDir: string
   /** Resolved profile and its persistent user layer. */
@@ -849,7 +860,10 @@ export function prepareDesktopProfile(
   const profile = loadedProfile.profile
   const rootConfig = join(profileDir, DESKTOP_PROFILE_ROOT)
   const bareModuleBaseUrl = pathToFileURL(join(profile.dir, 'package.json')).href
-  writeFileSync(rootConfig, '[]\n')
+  // Profile HMR reuses preparation; do not retrigger the root watcher on reads.
+  if (!existsSync(rootConfig) || readFileSync(rootConfig, 'utf8') !== '[]\n') {
+    writeFileSync(rootConfig, '[]\n')
+  }
 
   const desktopPatches = loadOverlayPatches(BIN_NAME, DESKTOP_PATCH_PATH)
   const bundlePatches: PatchOptions[] = []
@@ -1133,6 +1147,14 @@ export function prepareDesktopProfile(
   })
   return {
     homeDir: home,
+    reloadOptions: {
+      telemetryDisabled,
+      platform,
+      profileName,
+      pluginStatePath,
+      marketSelection: structuredClone(marketSelection),
+      aaEnabled: hooks.aaEnabled === true,
+    },
     profile,
     rootConfig,
     bareModuleBaseUrl,

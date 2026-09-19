@@ -1828,6 +1828,27 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@deepseek-ai/dsh-app-boot@patch:@deepseek-ai/dsh-app-boot@file%3Avendor/dsh-runtime/0.1.6-alpha.2/deepseek-ai-dsh-app-boot-0.1.6-alpha.2.tgz#./patches/dsh-app-boot@0.1.6-alpha.2.patch::locator=deepseek-harness-desktop%40workspace%3A.":
+  version: 0.1.6-alpha.2
+  resolution: "@deepseek-ai/dsh-app-boot@patch:@deepseek-ai/dsh-app-boot@file%3Avendor/dsh-runtime/0.1.6-alpha.2/deepseek-ai-dsh-app-boot-0.1.6-alpha.2.tgz%23vendor/dsh-runtime/0.1.6-alpha.2/deepseek-ai-dsh-app-boot-0.1.6-alpha.2.tgz%3A%3Ahash=bae2de&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/dsh-app-boot@0.1.6-alpha.2.patch::version=0.1.6-alpha.2&hash=0dbdd4&locator=deepseek-harness-desktop%40workspace%3A."
+  dependencies:
+    "@deepseek-ai/dsh-atomic-write": "npm:^0.1.6-alpha.2"
+    "@deepseek-ai/dsh-package-manifest": "npm:^0.1.6-alpha.2"
+    js-yaml: "npm:^4.2.0"
+    node-addon-require-builtin: "npm:^0.1.6"
+    resolve.exports: "npm:^2.0.3"
+  peerDependencies:
+    "@deepseek-ai/cordis": ^4.0.2
+    "@deepseek-ai/cordis-plugin-group": ^1.0.2
+    "@deepseek-ai/cordis-plugin-include": ^1.0.7
+    "@deepseek-ai/cordis-plugin-loader": ^1.0.3
+    "@deepseek-ai/dsh-home-paths": ^0.1.6-alpha.2
+    "@deepseek-ai/dsh-launch-environment": ^0.1.6-alpha.2
+    "@deepseek-ai/dsh-system-prompt": ^0.1.6-alpha.2
+  checksum: 10c0/081d544c10b6a1e6d7fb75d4d462641091a5054bc1a215b1146d147f3cd052d065bcff53b1f1de054a39dafaaccb517c90fec5f09f0d54f634d3e3ee932a6ee0
+  languageName: node
+  linkType: hard
+
 "@deepseek-ai/dsh-atomic-write@file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-atomic-write-0.1.5-rc.2.tgz::locator=deepseek-harness-desktop%40workspace%3A.":
   version: 0.1.5-rc.2
   resolution: "@deepseek-ai/dsh-atomic-write@file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-atomic-write-0.1.5-rc.2.tgz#vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-atomic-write-0.1.5-rc.2.tgz::hash=f6dcbf&locator=deepseek-harness-desktop%40workspace%3A."
@@ -4067,6 +4088,25 @@ __metadata:
     "@deepseek-ai/dsh-app-boot": ^0.1.6-alpha.2
     "@deepseek-ai/dsh-cmdline": ^0.1.6-alpha.2
   checksum: 10c0/79b903d37927719364bc951da28a10bfe3430af850817f1992417ccc8200bc7ddfaebe92a5b8647efbb33c13007f45ad737e35407bc4614a7510dcda2cbea879
+  languageName: node
+  linkType: hard
+
+"@deepseek-ai/dsh-hmr@patch:@deepseek-ai/dsh-hmr@file%3Avendor/dsh-runtime/0.1.6-alpha.2/deepseek-ai-dsh-hmr-0.1.6-alpha.2.tgz#./patches/dsh-hmr@0.1.6-alpha.2.patch::locator=deepseek-harness-desktop%40workspace%3A.":
+  version: 0.1.6-alpha.2
+  resolution: "@deepseek-ai/dsh-hmr@patch:@deepseek-ai/dsh-hmr@file%3Avendor/dsh-runtime/0.1.6-alpha.2/deepseek-ai-dsh-hmr-0.1.6-alpha.2.tgz%23vendor/dsh-runtime/0.1.6-alpha.2/deepseek-ai-dsh-hmr-0.1.6-alpha.2.tgz%3A%3Ahash=918990&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/dsh-hmr@0.1.6-alpha.2.patch::version=0.1.6-alpha.2&hash=cad765&locator=deepseek-harness-desktop%40workspace%3A."
+  dependencies:
+    "@babel/code-frame": "npm:^7.29.0"
+    "@deepseek-ai/schemastery": "npm:^3.18.2"
+    chokidar: "npm:^4.0.3"
+    picomatch: "npm:^4.0.3"
+  peerDependencies:
+    "@deepseek-ai/cordis": ^4.0.2
+    "@deepseek-ai/cordis-plugin-include": ^1.0.7
+    "@deepseek-ai/cordis-plugin-loader": ^1.0.3
+    "@deepseek-ai/cordis-plugin-timer": ^1.1.4
+    "@deepseek-ai/dsh-app-boot": ^0.1.6-alpha.2
+    "@deepseek-ai/dsh-cmdline": ^0.1.6-alpha.2
+  checksum: 10c0/335650458334d21aeb9ae04b900d00481b276802a75b34fb6276addd6bc6e243cce664f90a592706a5849b942d76d4f3207c32da7ac87bb3584cb23c3afa177c
   languageName: node
   linkType: hard
 
