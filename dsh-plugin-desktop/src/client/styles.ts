@@ -86,6 +86,9 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   --dsh-lg-blur-control: blur(26px) saturate(185%);
   --dsh-lg-blur-popover: blur(64px) saturate(215%);
   --dsh-lg-blur-surface: blur(40px) saturate(195%);
+  /* Edge refraction: the SVG filter is injected by installDesktopOwnedStyles.
+     Set to none to fall back to plain frosted glass. */
+  --dsh-lg-refract: url(#dsh-lg-refract);
   /* The shell keeps its original dark base; the glass is reserved for the
      controls, the composer, and the floating layers that sit on top of it. */
   --dsh-lg-tint-base: var(--dsw-static-neutral-bluish-950);
@@ -205,6 +208,7 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   border-radius: inherit;
   -webkit-backdrop-filter: var(--dsh-lg-blur-surface);
   backdrop-filter: var(--dsh-lg-blur-surface);
+  filter: var(--dsh-lg-refract);
 }
 /* Desktop-owned controls: full glass; we own their state styling. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
@@ -547,22 +551,60 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
   .dshDesktopSettingsMenu,
   .dshShadcnHoverCardContent
 ) {
-  background-color: var(--dsh-lg-tint-popover) !important;
-  background-image: var(--dsh-lg-noise);
-  background-size: 140px 140px;
-  -webkit-backdrop-filter: var(--dsh-lg-blur-popover);
-  backdrop-filter: var(--dsh-lg-blur-popover);
+  background-color: transparent !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  isolation: isolate;
   border: 1px solid color-mix(in srgb, #ffffff 26%, transparent);
   box-shadow: var(--dsh-lg-shadow);
   color: var(--dsw-alias-label-primary);
 }
+/* The frost (and the edge refraction) live on a ::before layer so the SVG
+   displacement can bend the backdrop without distorting the menu text. */
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] :is(
+  [role="menu"],
+  [role="listbox"],
+  [role="tooltip"],
+  [role="dialog"]:not([aria-modal="true"]),
+  .dshDesktopVersionPopover,
+  .dshDesktopActionMenu,
+  .dshDesktopSettingsMenu,
+  .dshShadcnHoverCardContent
+)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background-color: var(--dsh-lg-tint-popover);
+  background-image: var(--dsh-lg-noise);
+  background-size: 140px 140px;
+  -webkit-backdrop-filter: var(--dsh-lg-blur-popover);
+  backdrop-filter: var(--dsh-lg-blur-popover);
+  filter: var(--dsh-lg-refract);
+}
 /* Settings and other modals: a deep frosted pane above the receded shell. */
 body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [aria-modal="true"] {
   background-color: transparent !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  isolation: isolate;
+}
+body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"] [aria-modal="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
   background-image: linear-gradient(180deg, color-mix(in srgb, var(--dsw-static-neutral-bluish-900) 42%, transparent), color-mix(in srgb, var(--dsw-static-neutral-bluish-950) 52%, transparent)), var(--dsh-lg-noise);
   background-size: 100% 100%, 140px 140px;
   -webkit-backdrop-filter: blur(48px) saturate(200%);
   backdrop-filter: blur(48px) saturate(200%);
+  filter: var(--dsh-lg-refract);
 }
 /* Glass motion: popovers and menus spring in, the modal glass settles, and
    controls press/raise with short springy easings rather than snapping. */
@@ -670,6 +712,31 @@ body[data-dsh-desktop-platform="linux"][data-dsh-desktop-material="transparent"]
 }
 `
 
+/** Static 256x256 displacement map driving the Liquid Glass edge refraction. */
+const GLASS_DISPLACEMENT_MAP = "data:image/jpeg;base64,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cUAUAkEkziomgGgkoxZGgxZFQFQlYnQHRdPfj/10KCSCKESCNiVkViPSLpD0h6I0Q0I0A2IoBWBIJIBKBIJoJIJ2R2J0JWBUJ0JUB0XTv479dFZDYiglYigkhEgjZFQjRFQjRFQjQigFYigHYigmgEgmglYlYnQlQlYlQHQlQnQ9P/kf1yVkNiNCNkNiVENiNiViNEViNkVCVgKCViViViSCViSCVgdCViVCViVCdgVCVCdD1D+U/XBWQ2I0I2Q2JUQ2I0JWQ0I2JUQ2JUI2JUI2J0JWJWJWA2R0BWJ0I2JUJ2BUJUJ0P//EABkQAQEBAQEBAAAAAAAAAAAAAAECABEDEP/aAAgBAQABAgB1atWrVq1atWrVq1atWrVq1atWrVq1atWrVq+OrVq1atWrVq1atWrVq1atWrVq1atWrVq1atXxVppppppdWrVq1atWrVq1NNNNNNNNNNNPVWmmmmms6tWrVq1atWpppppppppppppp6q0000uc51atWrVq1ammmmmmmmmmmmmt1Vpppc5znVq1atWrVqaaaaaaaaaaaaaeqtNLnOc51atWrVq1ammmmmmmmmmmmmnqrS5znOc6tWrVq16222mmmmmmlVppp6tKuc5znOrVq1a9TbbbbTTTTTSq000qtLnOc5zq1atWrW0222200000qqqtKqrnOc5zq1atTbbbbbbbbTTTSqqqqqq5znOc6tTTTbbbbbbbbTTTSqqqqrlVznOctNNNtttttttttNNNNKqqqrqznKqrTTTTbbbbbbbbbTTTSqqqqrqznOc5aaaabbbbbbbbbaaaaVVVVVdWc5znVq1NNttttttttttNNKqqqqudWc5znVq16tbbbbbbbbbbTTSqqqq5XVnOc6tWrVrb1tttttttttNNKqqqqrWrK5VWmmm2230bbbbbbaaaXOc5zlVa1KuVVppptttt9G22222mmlzlVznK6tWVVWmmmm2222222222mlznOc5znLWppVVWmmm22222229bTWrOc5znOcq1qaaVpWmm222222229erVqznOc5znKtatStK0rTbTTbbbberXr1as5znOc5aVpppppWlabaabbbb1ta9WrVnOc5znU0rTTTTTTTTTbTTbbbTWvVq1as5znOdTTStNNNNNNNNNtNNtttN6tWvVq1ZznOrU00rTTTTTTTTTTTTTbTWvVq1atWrOc6tTTTStNNNNNNNNNNtNNtNa9WrVq1Z1Z1NNNNNK1q1NNNNNNNNNNNtNatWrVq1atWrU00000rWrVq1atWrVq1alaaa1atWrVq1NNNammmmla1atWrVq1aterVq16tWrVnVqa1NK1qaaaVX/xAAWEAADAAAAAAAAAAAAAAAAAAAhgJD/2gAIAQEAAz8AaExf/8QAGhEBAQEBAQEBAAAAAAAAAAAAAQISEQADEP/aAAgBAgEBAgDx48ePHjx48ePHjx48ePHjx48ePHjx48ePHj86IiIiIiInjx48ePHjx48IiIiIj0oooooooooRERER73ve60UUUUUUVrWiiiiiihERERER73ve97ooooorRWiiiiihKERERER73ve973RRRRWtFFFFFFCIiIiIiPe973ve60UUVrRRRRRRQiIlCIiI973ve973pRRWiiiiiiiiiiiiiiihEe973ve973RRWtFFFFFFFFFFFFFFFFFFa13ve973WitaKKKKKKKKKKKKKKKKKK1rWtd1rutFa1oooooooooooosssooorWta1rWta1rRRRRRRRRRRZZZZZZZZZWta1rWta1rRRRRRRRRZZZZZZZZZZZZe9a1rWta1rWitaKLLLLLLLLLLLLLLLLL3rWta1rWtFbLLLLLLLLLLLLLLLLLLLL3vWta1rWita1ssssssss+hZZZZZZZZe961rWta0Vre97LLLLLLLLLLLPoWWWWWXrWta1oorWta3ssss+hZZZZ9Cyyyyyyyyiita1orWta1ve9llllllllllllllllFFa0VorWta1ve9llllllllllllllllllFFFaK1rWta1rWiyyyyyyyyyyyyiiiiiiitFFa1rWta1oosoosssssoooosoooorRRRWta1rWta0UUUUUWUUUUUUUUUUUVoooorWta1rWtaKKKKKKmiiiiiiiiiiiiiiitd73ve61oSiiipoqaKKKKKKKKKK0UUUVrve973vREREZoSihEooooorRRRRWtd73ve9EREREREoSiiiiitFllllla73ve9ERERERESiiiiiitH0PoWWWWVrXe96IiIiMoiJRRRRRRWjwlFFllllFFd6IiIiIlCUUUUUUUUUePHjx48ePCIiIiIiIiUUUUUUUUUUUePHjx48ePHjx48ePHjx48IiUUUUUUJRRRX//xAAWEQADAAAAAAAAAAAAAAAAAAABYJD/2gAIAQIBAz8AtEV7/8QAFxEBAQEBAAAAAAAAAAAAAAAAAAECEP/aAAgBAwEBAgCtNNNNNNNNNNNNNNNNNNNNNNNNNNNNNcrTTTTTTTTTTTTTTTTTTTTTTTTTTTTTXKrTTTTTTTU000000000000000000001FVpppppqampqaaaaaaaaaaaaaaaaaaaa5Vaaaaampqampqammmmmmmmmmmlaaaaaaiq0001NTU1NTU1NTTTTTTTTTTSqqtNNNcqtNNSyzU1LNTU1NTTTTTTTTTSqqq001ytNLLLLNTU1NTU1NTbbbTTTTTSqqq001ytNLLLLLNTU1NTU3NttttNNNNNKqq001KrSyyyyyzU1NTU3Nzc02220000qqqqrSqqyyyyyzU1NTU3Nzc3NttttNNNKqqqqqqssssss1NTU3Nzc3NzbbbbTTTSqqqqqqrLLLLLNTU1Nzc3Nzc22220000qqqqqqqqssss1NTU3Nzc3NzbbbbbTTSqqqqqqqqqqzU1NTc3Nzc3Nzbc22000qqqqqqqqqqqtTU3Nzc3Nzc3NtzbTTSqqqqrKqqqqqtNNzc23Nzc3Nzc3NTU1KqqqrKqqqqqtNNNNttzc3Nzc3NzU1NLLLLLKqqqqqqqq0022223Nzc3NzU1NSyyyyyyqqqqqqqrTTbbbbc3Nzc3NTU1LLLLLLKsqqqqqqrTTTTbbbc3Nzc1NTUsssssssqqqqqqrTTTTTbbbTc3NTU1NTUsssssqqqqqqqq0000222023NTU1NTUsssssqqqqqqqq000000003NTU1NTU1LLLLLNKrTSqqqqtNNNNNNtNNTU1NSzUssss00qq0qqqqrTTTTTTTTTU1NTUs1LLLNNNKrTTTSqqq00000000001NTU1LNTU0000qtNNNKqqqtNNNNNNNNTU1NTUs1NNNNNKss1NNNK00qtK0000001NNTU0s000000qq000001NKrStNNNNK1NNNNStNNNNNKqtNNNNNNNK0000000rU0000rTTTTTSq00000rTTTTTTTTTTTTTTTTStNNNNKr/xAAUEQEAAAAAAAAAAAAAAAAAAACg/9oACAEDAQM/AAAf/9k="
+
+/**
+ * SVG refraction filter: an edge-only displacement with the centre kept sharp.
+ * Adapted from rdev/liquid-glass-react (MIT). The chromatic-aberration channel
+ * split is dropped: over the dark shell it read as a coloured red/green border
+ * rather than refraction, so this keeps a single displaced edge instead.
+ */
+function glassRefractionSvg(): string {
+  const displacement = -42
+  return `<svg width="0" height="0" style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true"><defs>
+  <filter id="dsh-lg-refract" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+    <feImage x="0" y="0" width="100%" height="100%" result="MAP" href="${GLASS_DISPLACEMENT_MAP}" preserveAspectRatio="none"/>
+    <feColorMatrix in="MAP" type="matrix" values="0.33 0.33 0.33 0 0  0.33 0.33 0.33 0 0  0.33 0.33 0.33 0 0  0 0 0 1 0" result="EDGE"/>
+    <feComponentTransfer in="EDGE" result="MASK"><feFuncA type="table" tableValues="0 0.35 1"/></feComponentTransfer>
+    <feDisplacementMap in="SourceGraphic" in2="MAP" scale="${displacement}" xChannelSelector="R" yChannelSelector="B" result="BENT"/>
+    <feComposite in="BENT" in2="MASK" operator="in" result="EDGE_BENT"/>
+    <feComponentTransfer in="MASK" result="INV"><feFuncA type="table" tableValues="1 0"/></feComponentTransfer>
+    <feComposite in="SourceGraphic" in2="INV" operator="in" result="CENTER"/>
+    <feComposite in="EDGE_BENT" in2="CENTER" operator="over"/>
+  </filter>
+</defs></svg>`
+}
+
 /** Install shared panel styles; mode selectors keep enhanced and extended chrome independent. */
 export function installDesktopOwnedStyles(): () => void {
   const style = document.createElement('style')
@@ -677,7 +744,30 @@ export function installDesktopOwnedStyles(): () => void {
   style.dataset.pluginCss = 'dsh-plugin-desktop/desktop-owned-layout'
   style.textContent = DESKTOP_OWNED_STYLES
   document.head.appendChild(style)
-  return () => { style.remove() }
+  // The refraction CSS references #dsh-lg-refract; install the filter together
+  // with the sheet so the reference is never dangling (an invalid filter url
+  // would drop the element from the render tree).
+  const removeFilter = installGlassRefractionFilter()
+  return () => { style.remove(); removeFilter() }
+}
+
+/**
+ * Add the document-level SVG refraction filter. Guarded so the client unit
+ * tests' minimal document doubles (no body or no element methods) stay no-ops.
+ */
+export function installGlassRefractionFilter(): () => void {
+  if (typeof document === 'undefined' || !document.body) return () => {}
+  if (typeof document.body.appendChild !== 'function') return () => {}
+  const host = document.createElement('div')
+  if (typeof host.setAttribute !== 'function') return () => {}
+  host.id = 'dsh-lg-refract-host'
+  host.setAttribute('aria-hidden', 'true')
+  if (host.style !== undefined) {
+    host.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:0;height:0;overflow:hidden'
+  }
+  host.innerHTML = glassRefractionSvg()
+  document.body.appendChild(host)
+  return () => { host.remove() }
 }
 
 const GLASS_POPOVER_SELECTOR = [
