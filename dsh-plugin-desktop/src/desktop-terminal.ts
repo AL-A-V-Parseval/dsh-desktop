@@ -11,7 +11,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { createHash, randomUUID } from 'node:crypto'
-import { basename, dirname, join, win32 } from 'node:path'
+import { basename, dirname, join, posix, win32 } from 'node:path'
 import { assertDesktopProfileName } from './profile-manager.ts'
 import { PNPM_IGNORE_MINIMUM_RELEASE_AGE } from './pnpm-policy.ts'
 
@@ -49,7 +49,7 @@ const WINDOWS_SHELL_COMMANDS = ['pwsh.exe', 'powershell.exe', 'cmd.exe'] as cons
 const ELECTRON_HEADERS_URL = 'https://electronjs.org/headers'
 
 /** Platforms with a native terminal launch contract owned by DSH Desktop. */
-export type DesktopTerminalPlatform = 'darwin' | 'win32'
+export type DesktopTerminalPlatform = 'darwin' | 'linux' | 'win32'
 
 /** Process launcher injected by the Electron adapter. */
 export type DesktopTerminalSpawn = (
@@ -67,6 +67,14 @@ export type DesktopTerminalExecutableResolver = (
   environment: Readonly<NodeJS.ProcessEnv>,
   exists: DesktopTerminalExecutableExists,
 ) => string | undefined
+
+/** Optional Linux terminal accepting the welcome script after its argument prefix. */
+export interface LinuxTerminalLauncher {
+  /** Terminal executable, for example `konsole`. */
+  executable: string
+  /** Arguments placed before the welcome script. */
+  arguments?: readonly string[]
+}
 
 /** Optional Windows terminal accepting a selected shell command after its argument prefix. */
 export interface WindowsTerminalLauncher {
@@ -102,6 +110,12 @@ export interface DesktopTerminalOptions {
   spawn: DesktopTerminalSpawn
   /** Environment copied into the terminal child; defaults to `process.env`. */
   environment?: NodeJS.ProcessEnv
+  /** Optional Linux terminal wrapper. Known emulators are discovered when omitted. */
+  linuxTerminal?: LinuxTerminalLauncher
+  /** Linux executable existence probe; defaults to `existsSync`. */
+  linuxExecutableExists?: DesktopTerminalExecutableExists
+  /** Linux executable resolver; defaults to a `PATH` lookup. */
+  linuxExecutableResolver?: DesktopTerminalExecutableResolver
   /** Optional Windows terminal wrapper. Windows Terminal is discovered when omitted. */
   windowsTerminal?: WindowsTerminalLauncher
   /** Windows executable existence probe; defaults to `existsSync`. */
@@ -364,7 +378,7 @@ function macWelcome(
     '  *)',
     '    export DSH_DESKTOP_USER_ZDOTDIR="${ZDOTDIR:-${HOME:-}}"',
     `    export ZDOTDIR=${quoteSh(options.stateDir)}`,
-    '    exec /bin/zsh -i',
+    '    exec "${SHELL:-/bin/sh}" -i',
     '    ;;',
     'esac',
     '',
@@ -427,7 +441,7 @@ function windowsCmdWelcome(): string {
 
 /** Create command shims and the interactive welcome script. */
 function prepareDesktopTerminalFiles(options: DesktopTerminalOptions): DesktopTerminalFiles {
-  if (options.platform !== 'darwin' && options.platform !== 'win32') {
+  if (options.platform !== 'darwin' && options.platform !== 'linux' && options.platform !== 'win32') {
     throw new Error(`dsh-plugin-desktop: terminal is unsupported on ${options.platform}`)
   }
   assertDesktopProfileName(options.profileName)
@@ -445,13 +459,13 @@ function prepareDesktopTerminalFiles(options: DesktopTerminalOptions): DesktopTe
   prepareStateDirectory(options.stateDir)
   const shimDir = join(options.stateDir, 'bin')
   prepareStateDirectory(shimDir)
-  if (options.platform === 'darwin') {
+  if (options.platform === 'darwin' || options.platform === 'linux') {
     const files: DesktopTerminalFiles = {
       shimDir,
       dshShimPath: join(shimDir, 'dsh'),
       pnpmShimPath: join(shimDir, 'pnpm'),
       nodeShimPath: join(shimDir, 'node'),
-      welcomePath: join(options.stateDir, 'welcome.command'),
+      welcomePath: join(options.stateDir, options.platform === 'darwin' ? 'welcome.command' : 'welcome.sh'),
     }
     const bashRcPath = join(options.stateDir, 'bashrc')
     replacePrivateFile(files.dshShimPath, macDshShim(options), EXECUTABLE_FILE_MODE)
@@ -553,6 +567,68 @@ function defaultWindowsExecutableResolver(
     }
   }
   return candidates.find(candidate => exists(candidate))
+}
+
+/** Known Linux terminal emulators with the argv prefix that precedes a command. */
+const LINUX_TERMINALS: readonly { readonly command: string; readonly arguments: readonly string[] }[] = [
+  { command: 'xdg-terminal-exec', arguments: [] },
+  { command: 'gnome-terminal', arguments: ['--'] },
+  { command: 'kgx', arguments: ['--'] },
+  { command: 'ptyxis', arguments: ['--'] },
+  { command: 'konsole', arguments: ['-e'] },
+  { command: 'kitty', arguments: [] },
+  { command: 'alacritty', arguments: ['-e'] },
+  { command: 'wezterm', arguments: ['start', '--'] },
+  { command: 'foot', arguments: [] },
+  { command: 'ghostty', arguments: ['-e'] },
+  { command: 'xfce4-terminal', arguments: ['-x'] },
+  { command: 'mate-terminal', arguments: ['-x'] },
+  { command: 'tilix', arguments: ['-e'] },
+  { command: 'terminator', arguments: ['-x'] },
+  { command: 'x-terminal-emulator', arguments: ['-e'] },
+  { command: 'urxvt', arguments: ['-e'] },
+  { command: 'rxvt', arguments: ['-e'] },
+  { command: 'xterm', arguments: ['-e'] },
+]
+
+/** Resolve one Linux terminal from an explicit path or the inherited `PATH`. */
+function defaultLinuxExecutableResolver(
+  command: string,
+  environment: Readonly<NodeJS.ProcessEnv>,
+  exists: DesktopTerminalExecutableExists,
+): string | undefined {
+  if (command.includes('/')) return exists(command) ? command : undefined
+  const inheritedPath = environment[PATH]
+  if (inheritedPath === undefined) return undefined
+  for (const dir of inheritedPath.split(':')) {
+    if (dir.length === 0) continue
+    const candidate = posix.join(dir, command)
+    if (exists(candidate)) return candidate
+  }
+  return undefined
+}
+
+/** Select a Linux terminal emulator, preferring an explicit wrapper or `$TERMINAL`. */
+function resolveLinuxTerminal(
+  options: DesktopTerminalOptions,
+  environment: Readonly<NodeJS.ProcessEnv>,
+): LinuxTerminalLauncher {
+  if (options.linuxTerminal !== undefined) return options.linuxTerminal
+  const exists = options.linuxExecutableExists ?? existsSync
+  const resolveExecutable = options.linuxExecutableResolver ?? defaultLinuxExecutableResolver
+  const preferred = environment.TERMINAL
+  const candidates = preferred === undefined || preferred.length === 0
+    ? LINUX_TERMINALS
+    : [{ command: preferred, arguments: [] as readonly string[] }, ...LINUX_TERMINALS]
+  for (const candidate of candidates) {
+    const executable = resolveExecutable(candidate.command, environment, exists)
+    if (executable === undefined) continue
+    assertScriptValue(`${candidate.command} executable`, executable)
+    return { executable, arguments: candidate.arguments }
+  }
+  throw new Error(
+    'dsh-plugin-desktop: terminal requires xdg-terminal-exec, konsole, gnome-terminal, alacritty, kitty, foot, or another terminal emulator on Linux',
+  )
 }
 
 interface ResolvedWindowsShell {
@@ -674,6 +750,10 @@ export function openDesktopTerminal(options: DesktopTerminalOptions): DesktopTer
   if (options.platform === 'darwin') {
     command = '/usr/bin/open'
     args = ['-a', 'Terminal', files.welcomePath]
+  } else if (options.platform === 'linux') {
+    const linuxTerminal = resolveLinuxTerminal(options, env)
+    command = linuxTerminal.executable
+    args = [...(linuxTerminal.arguments ?? []), files.welcomePath]
   } else {
     const shell = resolveWindowsShell(options, env)
     const shellArgs = windowsShellArgv(shell, files)

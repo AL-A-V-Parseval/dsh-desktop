@@ -96,6 +96,30 @@ function windowsOptions(stateDir: string, spawn: DesktopTerminalSpawn): DesktopT
   }
 }
 
+function linuxOptions(stateDir: string, spawn: DesktopTerminalSpawn): DesktopTerminalOptions {
+  return {
+    platform: 'linux',
+    appExecutable: '/opt/dsh-desktop/dsh-plugin-desktop',
+    dshBootstrapPath: '/opt/dsh-desktop/resources/app/lib/dsh-terminal-bootstrap.js',
+    pnpmBinPath: '/opt/dsh-desktop/resources/app/node_modules/pnpm/bin/pnpm.mjs',
+    electronVersion: '43.4.0',
+    profileName: 'desktop',
+    productVersion: '2.0.0',
+    profileDir: '/home/example/.config/DSH Desktop/profiles/desktop',
+    homeDir: '/home/example/.config/DSH Desktop',
+    stateDir,
+    spawn,
+    environment: {
+      PATH: '/usr/local/bin:/usr/bin:/bin',
+      SHELL: '/bin/bash',
+      DSH_HOME: '/inherited/dsh-home',
+      electron_run_as_node: 'inherited-node-mode',
+      KEEP: 'value',
+    },
+    linuxExecutableResolver: command => command === 'konsole' ? '/usr/bin/konsole' : undefined,
+  }
+}
+
 afterEach(() => {
   for (const dir of temporaryDirectories.splice(0)) rmSync(dir, { recursive: true, force: true })
 })
@@ -218,6 +242,65 @@ describe('desktop terminal environment', () => {
     })
   })
 
+  it('generates private Linux shims and opens a terminal emulator', () => {
+    const stateDir = join(temporaryDirectory(), 'terminal state')
+    const harness = spawnHarness()
+    const options = linuxOptions(stateDir, harness.spawn)
+
+    const launch = openDesktopTerminal(options)
+
+    expect(launch).toMatchObject({
+      shimDir: join(stateDir, 'bin'),
+      dshShimPath: join(stateDir, 'bin', 'dsh'),
+      pnpmShimPath: join(stateDir, 'bin', 'pnpm'),
+      nodeShimPath: join(stateDir, 'bin', 'node'),
+      welcomePath: join(stateDir, 'welcome.sh'),
+      child: harness.child,
+    })
+    if (process.platform !== 'win32') {
+      expect(lstatSync(stateDir).mode & 0o777).toBe(0o700)
+      for (const filename of [launch.dshShimPath, launch.pnpmShimPath, launch.nodeShimPath, launch.welcomePath]) {
+        expect(lstatSync(filename).mode & 0o777).toBe(0o700)
+      }
+      expect(spawnSync('/bin/sh', ['-n', launch.dshShimPath]).status).toBe(0)
+      expect(spawnSync('/bin/sh', ['-n', launch.welcomePath]).status).toBe(0)
+    }
+
+    const welcome = readFileSync(launch.welcomePath, 'utf8')
+    expect(welcome).toContain('unset ELECTRON_RUN_AS_NODE')
+    expect(welcome).toContain('exec "${SHELL}" --noprofile --rcfile')
+    expect(welcome).toContain('exec "${SHELL}" -i')
+    expect(welcome).toContain('exec "${SHELL:-/bin/sh}" -i')
+
+    expect(harness.calls).toHaveLength(1)
+    expect(harness.calls[0]).toEqual({
+      command: '/usr/bin/konsole',
+      args: ['-e', launch.welcomePath],
+      options: {
+        cwd: options.profileDir,
+        detached: true,
+        env: {
+          SHELL: '/bin/bash',
+          KEEP: 'value',
+          PATH: `${launch.shimDir}:/usr/local/bin:/usr/bin:/bin`,
+          DSH_HOME: options.homeDir,
+        },
+        shell: false,
+        stdio: 'ignore',
+        windowsHide: false,
+      },
+    })
+  })
+
+  it('fails when no Linux terminal emulator is available', () => {
+    const stateDir = join(temporaryDirectory(), 'terminal-state')
+    const harness = spawnHarness()
+    const options = { ...linuxOptions(stateDir, harness.spawn), linuxExecutableResolver: () => undefined }
+
+    expect(() => openDesktopTerminal(options)).toThrow('terminal emulator on Linux')
+    expect(harness.calls).toHaveLength(0)
+  })
+
   it('generates Windows batch shims and opens PowerShell through a visible-console broker', () => {
     const stateDir = join(temporaryDirectory(), 'terminal-state')
     const harness = spawnHarness()
@@ -253,7 +336,7 @@ describe('desktop terminal environment', () => {
 
     expect(launch.windowsLauncherPath).toBe(join(stateDir, 'launch.cmd'))
     const launcher = readFileSync(launch.windowsLauncherPath!, 'utf8')
-    expect(launcher).toContain('start "DSH Desktop Beta" /D "!DSH_DESKTOP_PROFILE_DIRECTORY!"')
+    expect(launcher).toContain('start "DSH Desktop" /D "!DSH_DESKTOP_PROFILE_DIRECTORY!"')
     expect(launcher).toContain('"!DSH_DESKTOP_SHELL_EXECUTABLE!" -NoLogo -NoExit')
     expect(launcher).toContain('-File "!DSH_DESKTOP_POWERSHELL_WELCOME!"')
 
@@ -475,8 +558,8 @@ describe('desktop terminal environment', () => {
     const root = temporaryDirectory()
     const harness = spawnHarness()
     const unsupported = macOptions(join(root, 'unsupported'), harness.spawn)
-    unsupported.platform = 'linux'
-    expect(() => openDesktopTerminal(unsupported)).toThrow('terminal is unsupported on linux')
+    unsupported.platform = 'freebsd'
+    expect(() => openDesktopTerminal(unsupported)).toThrow('terminal is unsupported on freebsd')
     expect(() => lstatSync(unsupported.stateDir)).toThrow()
 
     const unsafe = macOptions(join(root, 'unsafe'), harness.spawn)
