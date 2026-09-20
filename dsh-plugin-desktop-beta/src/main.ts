@@ -52,6 +52,7 @@ import type {
   DesktopLifecycleRendererFailureReason,
 } from './lifecycle-events.ts'
 import { FileExporter } from './file-exporter.ts'
+import { installAgentErrorLogging } from './agent-error-logging.ts'
 import { DESKTOP_SETTINGS_NAMESPACE, type DesktopSettings } from './index.ts'
 import {
   desktopLanBrowserUrls,
@@ -1609,6 +1610,8 @@ async function start(): Promise<void> {
             fileExporter = new FileExporter(logSink)
             hostCtx.logger.exporter(fileExporter)
           }
+          // Registered before the plugin tree mounts, so no agent can fail unrecorded.
+          installAgentErrorLogging(hostCtx)
           await hostCtx.plugin(DesktopProfileService, {
             current: {
               name: activeProfileName,
