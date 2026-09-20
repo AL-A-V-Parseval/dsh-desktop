@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { Readable } from 'node:stream'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 interface DesktopOperationHandle {
   readonly stdout: NodeJS.ReadableStream
@@ -47,6 +47,15 @@ afterEach(() => {
   for (const profile of temporaryProfiles.splice(0)) rmSync(profile, { recursive: true, force: true })
   vi.unstubAllEnvs()
   vi.restoreAllMocks()
+})
+
+beforeEach(() => {
+  // The market resolves versions through the `undici` package, which the
+  // `globalThis.fetch` mocks below cannot intercept; without this, the tests
+  // assert against the live npm registry and break as `dshmarket` advances.
+  // A closed loopback port keeps the offline fallback deterministic.
+  vi.stubEnv('DSHM_NPM_MIRROR', 'http://127.0.0.1:9/')
+  vi.stubEnv('DSHM_REGISTRY_URL', 'http://127.0.0.1:9/')
 })
 
 async function runtimeFactory(): Promise<(
