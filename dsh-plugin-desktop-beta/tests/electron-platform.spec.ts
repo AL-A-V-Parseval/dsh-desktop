@@ -45,6 +45,7 @@ describe('electronPlatformStrategy', () => {
     expect(strategy.updateDownloadPlatform).toBe('win32')
     expect(strategy.canPickDirectory).toBe(true)
     expect(strategy.canToggleShellMode).toBe(true)
+    expect(strategy.hidesWindowOnClose).toBe(true)
 
     strategy.configureApplication(icon, 'DSH Desktop')
     strategy.configureWindow(window as never)
@@ -67,6 +68,7 @@ describe('electronPlatformStrategy', () => {
     expect(strategy.updateDownloadPlatform).toBe('darwin')
     expect(strategy.canPickDirectory).toBe(false)
     expect(strategy.canToggleShellMode).toBe(true)
+    expect(strategy.hidesWindowOnClose).toBe(true)
 
     strategy.configureApplication(icon, 'DSH Desktop')
     strategy.configureWindow(window as never)
@@ -87,6 +89,9 @@ describe('electronPlatformStrategy', () => {
     expect(strategy.updateDownloadPlatform).toBeUndefined()
     expect(strategy.canPickDirectory).toBe(false)
     expect(strategy.canToggleShellMode).toBe(false)
+    // No Linux desktop guarantees a status area, so a hidden window would have
+    // no way back. Linux generations minimize on close instead.
+    expect(strategy.hidesWindowOnClose).toBe(false)
 
     strategy.configureApplication({} as never, 'DSH Desktop')
     strategy.configureWindow(window as never)
