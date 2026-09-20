@@ -56,7 +56,6 @@ const manifest = JSON.parse(readFileSync(new URL('package.json', packageRoot), '
       icon?: unknown
       asarUnpack?: unknown
       synopsis?: unknown
-      desktopName?: unknown
       desktop?: { entry?: Record<string, unknown> }
     }
     deb?: Record<string, unknown>
@@ -894,7 +893,6 @@ describe('published package surface', () => {
     })
     expect(manifest.build?.linux?.icon).toBe('build/icons')
     expect(manifest.build?.linux?.synopsis).toBe('Agentic coding desktop for the DeepSeek Harness (Beta)')
-    expect(manifest.build?.linux?.desktopName).toBe('dsh-desktop-beta.desktop')
     // Electron reports the window's WM_CLASS as the package name, not as
     // productName. A desktop entry whose StartupWMClass says anything else
     // never binds to the running window, and the dock, taskbar, and alt-tab

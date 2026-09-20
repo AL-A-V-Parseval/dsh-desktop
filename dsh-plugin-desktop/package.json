@@ -433,7 +433,6 @@
       "synopsis": "Agentic coding desktop for the DeepSeek Harness",
       "maintainer": "DeepSeek <dsh-desktop@deepseek.com>",
       "executableName": "dsh-desktop",
-      "desktopName": "dsh-desktop.desktop",
       "desktop": {
         "entry": {
           "StartupWMClass": "dsh-plugin-desktop"

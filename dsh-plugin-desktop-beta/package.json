@@ -439,7 +439,6 @@
       "synopsis": "Agentic coding desktop for the DeepSeek Harness (Beta)",
       "maintainer": "DeepSeek <dsh-desktop@deepseek.com>",
       "executableName": "dsh-desktop-beta",
-      "desktopName": "dsh-desktop-beta.desktop",
       "desktop": {
         "entry": {
           "StartupWMClass": "dsh-plugin-desktop-beta"
