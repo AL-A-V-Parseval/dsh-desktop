@@ -760,25 +760,21 @@ export function DesktopSettingsSection({
               className="dshDesktopSettingsSelect"
               value={platform === 'darwin'
                 ? desktop.value?.macosMaterial ?? 'transparent'
-                : platform === 'linux'
-                  ? desktop.value?.linuxMaterial ?? 'off'
-                  : desktop.value?.windowsMaterial === 'acrylic'
-                    || (!micaSupported && desktop.value?.windowsMaterial === 'mica')
-                    ? 'off'
-                    : desktop.value?.windowsMaterial ?? 'off'}
+                : desktop.value?.windowsMaterial === 'acrylic'
+                  || (!micaSupported && desktop.value?.windowsMaterial === 'mica')
+                  ? 'off'
+                  : desktop.value?.windowsMaterial ?? 'off'}
               disabled={!settingsWritable || busy !== undefined || restart !== 'none'}
               onChange={event => { setMaterial(event.currentTarget.value) }}
             >
               <option value="off">{t('windowMaterialOff')}</option>
               {platform === 'darwin'
                 ? <option value="transparent">{t('windowMaterialTransparent')}</option>
-                : platform === 'linux'
-                  ? null
-                  : (
-                      <>
-                        {micaSupported && <option value="mica">{t('windowMaterialMica')}</option>}
-                      </>
-                    )}
+                : (
+                    <>
+                      {micaSupported && <option value="mica">{t('windowMaterialMica')}</option>}
+                    </>
+                  )}
             </select>
           </label>
         )}
