@@ -1,0 +1,136 @@
+# DSH Desktop Next
+
+English | [中文](README.zh.md)
+
+A separate experimental package based on DeepSeek Harness **0.1.6-alpha.2**. The main window loads the official published `@deepseek-ai/dsh-web-frontend`, sharing the official Web application, plugin manager, and basic Desktop presentation. Next adds the system tray, desktop preferences and tools, Profiles, recovery, Agents Anywhere remote control, Community Market, and dshmarket.
+
+## Development and verification
+
+Run from the outer repository root with Node.js `^22.19.0` or `>=24.0.0` and Corepack's Yarn 4.18.0:
+
+```sh
+git submodule update --init --recursive
+corepack yarn install --immutable
+corepack yarn check:next
+corepack yarn dev:next
+```
+
+`check:next` builds Market and Next, runs typechecks, unit tests, official-frontend and sandboxed-preload checks, and a real Host smoke in a temporary home. It never opens a graphical application. The smoke uses an offline local fixture plugin to exercise pnpm, Market removal and restart requests, authentication, profile switching, and recovery boot, then cleans up its processes and files. An additional real-runtime smoke exercises the native-only HTTP/WebSocket gate, browser access changes, corrupt manifests, isolated safe mode, global-patch repair, and process teardown.
+
+`dev:next` explicitly launches the graphical application. Use `corepack yarn start:next` with an existing build. An uncached Electron binary is downloaded on first use. To additionally exercise the real Electron executable in Node mode, build first and run:
+
+```sh
+corepack yarn workspace dsh-desktop-next verify:host:electron
+```
+
+This check opens no Electron window. Window presentation, native dialogs, and a real phone connection still require manual acceptance.
+
+CI also runs `xvfb-run --auto-servernum corepack yarn workspace dsh-desktop-next verify:protocol --no-sandbox` on Linux. This separate test uses a real Electron renderer and custom protocol with a temporary Host, exercises Market source changes with ordinary browser access disabled, and rejects requests from a different page origin. It is not part of the portable `check:next` command. The sandbox flag applies only to the isolated CI process.
+
+The macOS sidebar and titlebar regression runs the official frontend's Desktop boot branch in headless Chromium with a temporary home. It serves the same entry document as Next, supplies real Host injections through a simulated preload contract, and asserts that Desktop transport is active. It checks reopening the sidebar from the homepage and plugin manager, drag-region geometry, and clickable page actions. It also opens the Desktop section inside the official Settings dialog, verifies preference and Profile commands, and renders the exact standalone recovery artifact with no Host dependency. Native IPC is simulated for these browser checks. After building, install the test browser once and run:
+
+```sh
+corepack yarn workspace dsh-desktop-next exec playwright install chromium
+corepack yarn workspace dsh-desktop-next verify:window-controls
+```
+
+Set `DSH_NEXT_TEST_BROWSER_CHANNEL=chrome` to use an installed Google Chrome instead. Screenshots are saved under `dsh-desktop-next/.desktop-next/verification/`. Native macOS window movement still needs manual verification. These additive controls use official layout actions and do not modify the upstream frontend.
+
+## Usage
+
+Use **Settings → Desktop** in the official frontend. The tray’s **Settings…** entry and `CmdOrCtrl+,` reveal the main window and open the same official Settings dialog; there is no separate settings window. Recovery and Profile tools retain their existing windows. If the Host fails, the settings shortcut opens the recovery assistant. Profile switches and port changes interrupt active tasks while replacing the Host. Browser and LAN access toggles apply immediately without restarting.
+
+- **Tray and background operation:** retain the original Desktop ordering: open the main window, reload the interface, open DSH Terminal, export diagnostics, enter/exit safe mode, then select or create a Profile. Desktop settings and the recovery assistant remain directly accessible. Native menus follow the in-app language. Closing the main window keeps the Host and remote connection running when background operation is enabled and a tray is available. Explicit Quit stops the HTTPS edge and Host. Without a usable tray, closing the main window quits rather than leaving an inaccessible process.
+- **Desktop preferences:** background operation, macOS transparency, supported Windows Mica, local/LAN access, log level, and separate notifications for completed/failed user turns. Background jobs never send notifications. The page reuses the existing Desktop grouped cards, Profile choices and notification toggles. Toggles and materials save immediately. The official Settings header provides terminal and restart shortcuts, including reload, application restart and restart into recovery. Acrylic stays disabled, as in the existing Desktop; Mica requires Windows build 22621 or newer. The OS must also allow notifications. Notifications only appear while the main window is unfocused. Successful turns use the current user message as the title and the final visible assistant reply as the body, with bounded text previews. Failed turns use a generic status; subagents and automated turns do not notify.
+- **Profiles:** create, switch, open, or remove an inactive Profile. New Profile from the tray focuses the name and offers creation followed by switching. Malformed manifests and Profiles missing the Next bundle are marked unavailable; selecting the already-active Profile does not restart it. Removed Profiles move into recovery backups; the active and default Profiles cannot be removed. Profiles have separate plugin dependencies, activation lists and patches. Sessions, settings and credentials follow upstream rules and are shared within one Next home; Profiles do not isolate accounts or data.
+- **Markets:** choose `dsh-community-market` (on by default) or `dshmarket` at the top of the official **Plugins** page. The choices reuse the original Desktop names, descriptions and repository links. Choosing one disables the other in a single official plugin-manager operation and retains installed plugins. Community Market keeps its sidebar entry; dshmarket keeps **Settings → Plugin Market**. Community Market retains discovery, sources, installation previews, confirmation and removal. Package operations use the bundled pnpm. Completed operations can request a restart; the terminal action is available on macOS and Windows.
+- **Remote control:** the separate switch at the top of **Plugins** enables `@agents-anywhere/dsh-bridge-next` (off by default). The gear to its left opens the existing phone connection dialog, also available from the sidebar. The gear becomes available after enablement. Connector state is scoped by Profile within Next home. Switching Profiles stops the previous Host and its remote connection.
+- **Desktop tools:** open the data/Profile/log directories, reload the interface, open developer tools, export diagnostics, and open a macOS/Windows terminal with this installation’s `dsh`, `pnpm` and Electron-backed `node`. The terminal selects the original Profile even while the main app is in safe mode.
+
+Markets, remote control and Computer Use appear above the ordinary plugin list, aligned to its content width. Remote control and Computer Use stack vertically, with settings gears to the left of their switches. The markets and remote bundle no longer appear again as ordinary plugin cards. These controls still use the official manager and persist in the current Profile; an existing Profile with both markets active asks the user to choose one. Bundle plugins installed by either market remain in the ordinary list for enablement, disablement and removal. dshmarket’s own plugin-disable behavior is unchanged. Existing choices migrate once from `desktop-next.features.json` into `package.json`; subsequent starts respect the official manager. Per-Profile remote connector paths remain unchanged.
+
+Sidebar extension entries reuse the original Desktop footer layout: entries stack vertically above Settings, with bounded scrolling to preserve the workspace list.
+
+### Browser and LAN access
+
+Browser access is disabled by default. Enabling local access provides an authenticated loopback login link; enabling LAN access adds an HTTPS/WSS edge while the Host stays bound to `127.0.0.1`. Ports default to `0` (automatic). Access toggles do not restart the Host. Disabling browser access also disconnects existing browser WebSockets while preserving native streams and running tasks. Port changes require a Host restart. LAN addresses are sampled at startup; restart after a network change.
+
+The settings page displays the complete local login URL and a separate HTTPS login URL for every LAN address, including the browser `token`. Each row opens or copies that exact URL. The login links are read through sender-validated native IPC and kept out of general runtime state and diagnostics. The page can also export the installation’s public CA certificate. Trust that certificate on the other device after comparing its SHA-256 fingerprint. Login links grant access and should only be shared with trusted devices. The CA private key is sealed with OS-backed storage; if secure storage or a suitable LAN address is unavailable, LAN HTTPS stays closed and the UI shows the failure. Native renderer credentials are never copied into these links and are stripped at the LAN edge.
+
+### Native permissions and Computer Use
+
+The gear beside Computer Use and **Settings → Desktop → Permissions** open an in-app permission dialog built with the official Modal, Button and StateDot components. It shows screen-recording, macOS Accessibility and microphone status. Opening the dialog only queries permissions. A user click requests OS consent or opens the corresponding system privacy pane. On macOS, changes made in System Settings may require restarting the application. Windows microphone restrictions link to Windows privacy settings; unsupported status APIs report `unknown`, never a fabricated grant.
+
+Next provides the `desktopPermissions` Cordis service to native client plugins and Host plugins. Import its types from `dsh-desktop-next/permissions` and inject `desktopPermissions`. Ordinary browser clients do not receive this service. Its methods are `query(permission)`, `request(permission)` and `openSettings(permission)`, where permission is `microphone`, `screen` or `accessibility`. Results include `status`, `canRequest` and `canOpenSettings`.
+
+```ts
+import type { Context } from '@deepseek-ai/cordis'
+import type {} from 'dsh-desktop-next/permissions'
+
+export const inject = ['desktopPermissions']
+
+// Call directly from the native client plugin's Record button.
+export async function record(ctx: Context) {
+  const state = await ctx.desktopPermissions.request('microphone')
+  if (state.status === 'denied' || state.status === 'restricted') return
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+  // Pass the stream to the recorder; stop every track when recording ends.
+  return stream
+}
+```
+
+Client requests require an active user gesture and the owning foreground window. Host requests cannot impersonate a user gesture: they reveal the permission dialog in the main window and return the current OS state, so the plugin must recheck after the user authorizes. Native settings requests made before the client mounts are retained for delivery. Host IPC uses correlated, bounded requests and rejects pending work on teardown. Permission status is always read again from the OS.
+
+Screen sharing uses `navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })` directly from the user's Share button. On macOS 15 and later, Electron uses the system picker; other systems use a native source-selection menu. No source is selected automatically. Per-capture system-picker consent can differ from the global screen-recording grant. The permission service does not record media, and screen sharing does not grant computer input control. The development Electron app already declares microphone usage in its Info.plist; a future packaged Next app must retain `NSMicrophoneUsageDescription` with the product's explanation.
+
+The official `@deepseek-ai/dsh-experimental-computer-use-cua-driver-native@0.1.6-alpha.2` provider is bundled and **disabled by default**. Use the Computer Use section at the top of **Plugins** to enable it and read its live loading status. This entry uses the official Plugins slot, switch and plugin manager; its Profile row ID is `computer-use-cua-driver-native`. The shared `computer-use` registry is already provided. Tools and screenshots use existing conversation tool cards and image attachments; screenshot understanding requires a model route declaring image input. The gear to the left of the switch opens the permission dialog.
+
+The version-scoped Yarn patch at `patches/dsh-experimental-computer-use-cua-driver-native@0.1.6-alpha.2.patch` routes `check_permissions` through `desktopPermissions` when available. `prompt: true` reveals the permission dialog for missing grants, then the driver performs a read-only check with `prompt: false`. The driver remains the authority for its own actual permission status; no grant is inferred from the Desktop response. Without the Desktop service, the provider retains upstream behavior. The pinned `@trycua/cua-driver@0.28.0` binary, operation tools, image handling and shutdown ownership are unchanged. Only one provider can register, but that does not serialize concurrent Sessions operating the same desktop.
+
+Unit tests exercise the installed patched provider with a fake native SDK. The optional native activation check requires a supported SDK platform, loads and shuts down the real provider, and sends no input or screenshots:
+
+```sh
+corepack yarn workspace dsh-desktop-next verify:host --computer-use
+```
+
+The optional `verify:window-controls --computer-use` smoke also enables and disables the real provider through the official frontend in headless Chromium, without calling its computer tools. Native OS consent and actual computer actions still need manual acceptance.
+
+### Recovery
+
+The independent recovery assistant shows the startup error and recent logs even if no Host is running. It offers retry, Profile switching, diagnostics, safe mode, repair, rollback and Quit. Restart in Recovery Mode from the Settings header fully stops the background service before relaunching directly into this assistant. The current Profile and plugins are not loaded until Start or retry is selected.
+
+- **Safe mode** starts the official interface in a separate temporary home with only shipped bundles, no original credentials, and remote control, Market and browser access disabled. Original data and configuration remain untouched. Leaving safe mode returns to the original Profile and removes the temporary home; work created in that temporary environment is not retained.
+- **Profile repair** backs up the manifest, Profile patch and feature switches before restoring built-in bundles and disabling third-party activation, remote control and Market. A malformed `package.json` can be repaired. Installed plugin files, shared sessions and credentials are retained.
+- **Profile rollback** restores the most recent successful Host-start configuration after backing up the current files and verifying the backup checksums. It covers `package.json`, `cordis.patch.yml` and Next feature switches, not installed plugin versions or shared data.
+- **Global patch repair** separately backs up and disables the home-level `cordis.patch.yml`; this affects all Next Profiles. Profile repair never silently changes that patch.
+
+Backups stay under `home/recovery/`. Diagnostics export a bounded JSON report with versions, state and redacted logs, without reading session or credential files. Logs can still contain local paths and plugin output; inspect the report before sharing. Local desktop logs are bounded to 128 KiB at `home/logs/desktop-next.log`. Desktop preferences live independently of Host settings in `home/desktop-preferences.json`.
+
+The default data directory is `.desktop-next/home` inside this package, including Electron state. Set `DSH_DESKTOP_NEXT_HOME` to an absolute path to choose a dedicated directory. Next does not select its home from the existing `DSH_HOME`. First launch does not migrate Stable/Beta data.
+
+## Architecture and provenance
+
+```text
+Official Web frontend + official basic Desktop presentation
+                        |  dsh-app://app
+                 Next Electron main
+                        |  authenticated HTTP / WebSocket
+                 Electron Node-mode Host
+                        |  upstream shared runProfile
+                 Official Web bundles + Next bundle
+                        |- Community Market
+                        |- dshmarket
+                        `- Agents Anywhere bridge
+```
+
+Alpha.2 replaced alpha.1's portless pipes with WebServer. This package uses the real upstream WebServer rather than simulating HTTP routes. The Host binds only to `127.0.0.1`, with an OS-assigned port by default so other editions can run concurrently. A separate optional TLS edge owns LAN ingress. Main retains Host cookies and a fresh native capability for each Host generation; ordinary HTTP and WebSocket requests are denied while browser access is off. Electron remains pinned to 44.0.0 for compatibility with the upstream native modules. Before forwarding a Host request, the main process attaches its native capability only to requests from the owned main frame at `dsh-app://app`, stripping that marker from other destinations and redirects. Native fetches may omit the HTTP `Origin` header. Market requests also require Host authentication, and mutations retain their translated loopback origin checks.
+
+The main interface consumes official frontend artifacts without copying chat, settings, or plugin-manager pages. macOS window material, platform markers, the Windows caption menu, and native theme synchronization follow the official implementation. Next contributes its Desktop section through `settings.section` and header shortcuts through `settings.action`. The Desktop section directly reuses `dsh-plugin-desktop-beta`'s `DesktopSettingsSection`, header actions and stylesheet. Recovery and Profile windows reuse its native React pages, frame and UI components. Next supplies state and command adapters, and capability options hide unsupported features; it does not maintain a second copy of those pages. Shared component changes are mirrored to Stable while preserving both editions' defaults. Narrow sender-validated IPC exposes only named native actions. Ordinary browsers receive no native Desktop bridge.
+
+Next is a profile bundle so shared plugin-manager reconciliation retains its capabilities. Version-scoped patches read `dsh.optionalBundles` and `dsh.exclusiveBundles` from the installation manifest and add `plugins.overview` and `plugins.bundle.hidden` slots to the published plugin-manager UI. Next uses these slots for the top controls and to omit duplicate bundle cards; installations without an exclusive group keep the original manager behavior. The dshmarket package runner uses the official `runPluginCommand` operation with Next’s Profile, installation anchor and bundled pnpm; it does not require pnpm on the system PATH. Development startup creates one managed link for Next itself under `home/profiles/node_modules`; alpha.2 runtime resolution owns all other dependency fallbacks. All upstream runtime dependencies come from published packages, without source links into or edits to `deepseek-harness/`.
+
+[upstream-reference.json](upstream-reference.json) records the reference commit and original hashes of copied files; [LICENSE.upstream](LICENSE.upstream) retains the original license.
+
+## Current limits
+
+This is a runnable development package without signed installers, automatic updates, or Stable/Beta data migration. The official distribution's offline Python/Office runtime and skill payloads are not yet integrated. Our enhanced/extended window modes remain deferred. Unavailable update channels and window modes have no placeholder actions; Next never installs a Stable/Beta package. Headless Node/Electron checks do not qualify cross-platform installers or visual behavior.
