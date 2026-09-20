@@ -22,6 +22,7 @@ const workspaceRoot = new URL('../', packageRoot)
 const manifest = JSON.parse(readFileSync(new URL('package.json', packageRoot), 'utf8')) as {
   name?: unknown
   version?: unknown
+  desktopName?: unknown
   bin?: Record<string, unknown>
   exports?: Record<string, unknown>
   files?: unknown
@@ -56,7 +57,7 @@ const manifest = JSON.parse(readFileSync(new URL('package.json', packageRoot), '
       icon?: unknown
       asarUnpack?: unknown
       synopsis?: unknown
-      desktop?: { entry?: Record<string, unknown> }
+      syncDesktopName?: unknown
     }
     deb?: Record<string, unknown>
   }
@@ -893,11 +894,13 @@ describe('published package surface', () => {
     })
     expect(manifest.build?.linux?.icon).toBe('build/icons')
     expect(manifest.build?.linux?.synopsis).toBe('Agentic coding desktop for the DeepSeek Harness (Beta)')
-    // Electron reports the window's WM_CLASS as the package name, not as
-    // productName. A desktop entry whose StartupWMClass says anything else
-    // never binds to the running window, and the dock, taskbar, and alt-tab
-    // ring all lose their icon. Pin the two together rather than to a literal.
-    expect(manifest.build?.linux?.desktop?.entry?.StartupWMClass).toBe(manifest.name)
+    // Electron derives the window's WM_CLASS from the root desktopName, and
+    // syncDesktopName names the installed entry after it. Without the pair,
+    // WM_CLASS falls back to the npm package name while the entry advertises
+    // productName, nothing binds the running window to the installed entry,
+    // and the dock, taskbar, and alt-tab ring all lose their icon.
+    expect(manifest.desktopName).toBe('dsh-desktop-beta.desktop')
+    expect(manifest.build?.linux?.syncDesktopName).toBe(true)
     expect(manifest.build?.deb).toEqual({
       packageName: 'dsh-desktop-beta',
       packageCategory: 'devel',
