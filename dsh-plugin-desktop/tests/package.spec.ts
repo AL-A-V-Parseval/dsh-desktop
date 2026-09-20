@@ -50,7 +50,14 @@ const manifest = JSON.parse(readFileSync(new URL('package.json', packageRoot), '
     win?: { asar?: unknown; compression?: unknown; icon?: unknown; asarUnpack?: unknown; target?: unknown; artifactName?: unknown }
     nsis?: Record<string, unknown>
     portable?: Record<string, unknown>
-    linux?: { icon?: unknown; asarUnpack?: unknown }
+    linux?: {
+      icon?: unknown
+      asarUnpack?: unknown
+      synopsis?: unknown
+      desktopName?: unknown
+      desktop?: { entry?: Record<string, unknown> }
+    }
+    deb?: Record<string, unknown>
   }
   dependencies?: Record<string, unknown>
   optionalDependencies?: Record<string, unknown>
@@ -827,7 +834,19 @@ describe('published package surface', () => {
       useZip: false,
       artifactName: 'DSH-Desktop-${version}-${arch}-Setup.${ext}',
     })
-    expect(manifest.build?.linux?.icon).toBe('build/app-icon.png')
+    expect(manifest.build?.linux?.icon).toBe('build/icons')
+    expect(manifest.build?.linux?.synopsis).toBe('Agentic coding desktop for the DeepSeek Harness')
+    expect(manifest.build?.linux?.desktopName).toBe('dsh-desktop.desktop')
+    // Electron reports the window's WM_CLASS as the package name, not as
+    // productName. A desktop entry whose StartupWMClass says anything else
+    // never binds to the running window, and the dock, taskbar, and alt-tab
+    // ring all lose their icon. Pin the two together rather than to a literal.
+    expect(manifest.build?.linux?.desktop?.entry?.StartupWMClass).toBe(manifest.name)
+    expect(manifest.build?.deb).toEqual({
+      packageName: 'dsh-desktop',
+      packageCategory: 'devel',
+      priority: 'optional',
+    })
   })
 
   it('separates unsigned smoke packaging from the signed macOS release', () => {
