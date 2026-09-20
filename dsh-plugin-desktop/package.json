@@ -427,12 +427,24 @@
           ]
         }
       ],
-      "icon": "build/app-icon.png",
+      "icon": "build/icons",
       "artifactName": "DSH-Desktop-${version}-${arch}.${ext}",
       "category": "Development",
+      "synopsis": "Agentic coding desktop for the DeepSeek Harness",
       "maintainer": "DeepSeek <dsh-desktop@deepseek.com>",
       "executableName": "dsh-desktop",
+      "desktopName": "dsh-desktop.desktop",
+      "desktop": {
+        "entry": {
+          "StartupWMClass": "dsh-plugin-desktop"
+        }
+      },
       "asar": false
+    },
+    "deb": {
+      "packageName": "dsh-desktop",
+      "packageCategory": "devel",
+      "priority": "optional"
     },
     "npmRebuild": false
   }

@@ -433,12 +433,24 @@
           ]
         }
       ],
-      "icon": "build/app-icon.png",
+      "icon": "build/icons",
       "artifactName": "DSH-Desktop-Beta-${version}-${arch}.${ext}",
       "category": "Development",
+      "synopsis": "Agentic coding desktop for the DeepSeek Harness (Beta)",
       "maintainer": "DeepSeek <dsh-desktop@deepseek.com>",
       "executableName": "dsh-desktop-beta",
+      "desktopName": "dsh-desktop-beta.desktop",
+      "desktop": {
+        "entry": {
+          "StartupWMClass": "dsh-plugin-desktop-beta"
+        }
+      },
       "asar": false
+    },
+    "deb": {
+      "packageName": "dsh-desktop-beta",
+      "packageCategory": "devel",
+      "priority": "optional"
     }
   }
 }
