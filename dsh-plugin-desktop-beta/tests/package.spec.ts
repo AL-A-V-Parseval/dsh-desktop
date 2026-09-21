@@ -1049,6 +1049,48 @@ describe('published package surface', () => {
     expect(readFileSync(new URL('build/app-icon.icns', packageRoot)).subarray(0, 4).toString()).toBe('icns')
   })
 
+  // The hash pin above only catches drift in an already-committed file: `icons:export` rewrites
+  // `outputs` from whatever it just produced, so a generator regression re-exported on macOS
+  // updates artifact and pin together and passes. Windows picks a frame by exact pixel size and
+  // silently scales a neighbour when one is missing, so a dropped frame surfaces as a blurred
+  // taskbar or installer icon, not a failing build. Mirrors the stable variant's structural check.
+  it('generates exact-DPI Windows application and installer icon frames', () => {
+    const icon = readFileSync(new URL('build/app-icon.ico', packageRoot))
+    const expectedSizes = [16, 20, 24, 28, 30, 32, 36, 40, 48, 60, 64, 72, 80, 96, 128, 256]
+
+    expect(icon.readUInt16LE(0)).toBe(0)
+    expect(icon.readUInt16LE(2)).toBe(1)
+    expect(icon.readUInt16LE(4)).toBe(expectedSizes.length)
+
+    const entries = expectedSizes.map((expectedSize, index) => {
+      const offset = 6 + index * 16
+      const width = icon[offset] === 0 ? 256 : icon[offset]
+      const height = icon[offset + 1] === 0 ? 256 : icon[offset + 1]
+      const byteLength = icon.readUInt32LE(offset + 8)
+      const dataOffset = icon.readUInt32LE(offset + 12)
+      expect(width).toBe(expectedSize)
+      expect(height).toBe(expectedSize)
+      expect(icon.readUInt16LE(offset + 4)).toBe(1)
+      expect(icon.readUInt16LE(offset + 6)).toBe(32)
+      expect(dataOffset + byteLength).toBeLessThanOrEqual(icon.length)
+      return { size: expectedSize, byteLength, dataOffset }
+    })
+
+    for (const entry of entries.slice(0, -1)) {
+      expect(icon.readUInt32LE(entry.dataOffset)).toBe(40)
+      expect(icon.readInt32LE(entry.dataOffset + 4)).toBe(entry.size)
+      expect(icon.readInt32LE(entry.dataOffset + 8)).toBe(entry.size * 2)
+      expect(icon.readUInt16LE(entry.dataOffset + 12)).toBe(1)
+      expect(icon.readUInt16LE(entry.dataOffset + 14)).toBe(32)
+      expect(icon.readUInt32LE(entry.dataOffset + 16)).toBe(0)
+    }
+
+    const largest = entries.at(-1)
+    expect(largest).toBeDefined()
+    expect(icon.subarray(largest?.dataOffset, (largest?.dataOffset ?? 0) + 8))
+      .toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+  })
+
   it('generates a centered macOS icon with a 100-pixel visual inset', async () => {
     const source = await sharp(readFileSync(new URL('build/app-icon.png', packageRoot))).metadata()
     const icon = sharp(readFileSync(new URL('build/app-icon-mac.png', packageRoot)))
