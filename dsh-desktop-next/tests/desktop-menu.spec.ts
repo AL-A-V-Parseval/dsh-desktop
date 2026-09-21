@@ -16,7 +16,7 @@ it('keeps the original tray tool order, direct recovery actions and Profile crea
   const show = vi.fn()
   const menu = desktopMenu(state, 'zh-CN', show, run)
   expect(menu.filter(item => item.type !== 'separator').map(item => item.label)).toEqual([
-    '打开 DSH Desktop Next', '重新加载界面', '打开 DSH 终端', '导出诊断信息…', '进入安全模式…',
+    '打开 DSH NEXT', '重新加载界面', '打开 DSH 终端', '导出诊断信息…', '进入安全模式…',
     'Profile：desktop', '设置…', '恢复助手…', '退出',
   ])
   const profiles = menu.find(item => item.label === 'Profile：desktop')!.submenu
@@ -44,9 +44,10 @@ it('keeps valid escape routes during failure or safe mode and only advertises su
   expect(desktopMenu({ ...state, browserUrl: 'http://127.0.0.1:1234' }, 'en', vi.fn(), vi.fn()).some(item => item.label === 'Open in Browser')).toBe(true)
 })
 
-it('preserves application arguments while replacing one-shot recovery and safe-mode flags', () => {
-  const argv = ['/fixture/lib/main.js', '--next-recovery', '--next-safe-mode', '--example=value']
-  expect(relaunchArguments(argv, true, true)).toEqual(['/fixture/lib/main.js', '--example=value', '--next-recovery'])
-  expect(relaunchArguments(argv, false, true)).toEqual(['/fixture/lib/main.js', '--example=value', '--next-safe-mode'])
+it('preserves application arguments while replacing one-shot launch modes', () => {
+  const argv = ['/fixture/lib/main.js', '--next-recovery', '--next-safe-mode', '--next-onboarding', '--example=value']
+  expect(relaunchArguments(argv, true, true, true)).toEqual(['/fixture/lib/main.js', '--example=value', '--next-recovery'])
+  expect(relaunchArguments(argv, false, true, true)).toEqual(['/fixture/lib/main.js', '--example=value', '--next-safe-mode'])
+  expect(relaunchArguments(argv, false, false, true)).toEqual(['/fixture/lib/main.js', '--example=value', '--next-onboarding'])
   expect(relaunchArguments(argv, false, false)).toEqual(['/fixture/lib/main.js', '--example=value'])
 })

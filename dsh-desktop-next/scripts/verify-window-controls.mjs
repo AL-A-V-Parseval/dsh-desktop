@@ -1,14 +1,15 @@
 /** Official Desktop boot in headless Chromium; simulated IPC/platform, no native window or user profile. */
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { delimiter, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { DesktopHostProcess } from '../lib/host-process.js'
 import { NextProfiles } from '../lib/profiles.js'
 import { authenticateWebHost, serveWebDocument } from '../lib/web-document.js'
+import { browserFixture, verifySidebarBrowser, verifyWebBrowserFallback } from './verify-sidebar-browser-ui.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const require = createRequire(import.meta.url)
@@ -20,8 +21,23 @@ const screenshots = join(root, '.desktop-next', 'verification')
 const manager = new NextProfiles(home)
 manager.ensure('desktop')
 manager.setFeatures('desktop', { market: false, remoteControl: false })
+// The renderer below simulates darwin, so the Host must mount the matching
+// `native` directory flow for the preload-backed picker to be the surface under
+// test. Upstream's chooser resolves `browse` on a Linux host with no
+// zenity/kdialog on PATH, which is every headless CI runner: hand it a display
+// and an executable chooser stub so one platform does not silently verify a
+// different flow. Nothing ever runs the stub — the client short-circuits to the
+// injected `__DSH_DIRECTORY_PICKER__` before the Host backend is consulted.
+const chooserEnv = {}
+if (process.platform === 'linux') {
+  const chooserDir = join(home, 'chooser-bin')
+  mkdirSync(chooserDir)
+  writeFileSync(join(chooserDir, 'zenity'), '#!/bin/sh\nexit 1\n', { mode: 0o755 })
+  chooserEnv.PATH = `${chooserDir}${delimiter}${process.env.PATH ?? ''}`
+  chooserEnv.DISPLAY = process.env.DISPLAY ?? ':0'
+}
 const host = new DesktopHostProcess(process.execPath, root, manager.directory('desktop'), undefined,
-  { ...process.env, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1' }, undefined, undefined, 'runtime', undefined,
+  { ...process.env, ...chooserEnv, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1' }, undefined, undefined, 'runtime', undefined,
   join(root, 'lib', 'host.js'))
 let browser
 let page
@@ -39,6 +55,7 @@ try {
     ...(process.env.DSH_NEXT_TEST_BROWSER_CHANNEL ? { channel: process.env.DSH_NEXT_TEST_BROWSER_CHANNEL } : {}),
   })
   const context = await browser.newContext({ viewport: { width: 1280, height: 840 }, locale: 'zh-CN', colorScheme: 'dark' })
+  const nativeBrowser = await browserFixture(context)
   await context.addInitScript(path => { globalThis.__DSH_DIRECTORY_PICKER__ = { pick: async () => path } }, workspace)
   // Chromium classifies the intercepted document separately from its loopback Host.
   await context.grantPermissions(['local-network-access'], { origin: streamBaseUrl })
@@ -52,7 +69,10 @@ try {
       networkExposure: 'loopback', port: 0, lanPort: 0, logLevel: 'info', notifications: true,
       turnCompleted: true, turnFailed: true, jobCompleted: false, jobFailed: false },
     phase: 'ready', busy: false, failure: '', safeMode: false, home: '[temporary test home]', platform: 'darwin',
-    version: '0.1.0-dev.0', trayAvailable: true, notificationsAvailable: true, windowsMicaSupported: false, browserUrl: null, lan: null,
+    version: '2.0.14-next', updates: { phase: 'idle', installable: true }, trayAvailable: true, notificationsAvailable: true, windowsMicaSupported: false, browserUrl: null, lan: null,
+    recovery: { bundles: [{ bundleId: 'fixture-plugin', packageName: 'fixture-plugin', owner: 'profile', status: 'active', action: 'uninstall' }],
+      checkpoints: [{ id: 'fixture-checkpoint', created: new Date().toISOString(), fileCount: 3, totalBytes: 128 }],
+      profileDirectory: '[temporary profile]', usingDefaultDirectory: true },
     checkpoint: { created: new Date().toISOString() }, logs: 'Headless UI fixture; native actions are recorded only.',
   }
   await context.exposeFunction('__nextTestState', () => structuredClone(controlState))
@@ -73,6 +93,9 @@ try {
   await context.exposeFunction('__nextTestCommand', command => {
     if (command.type === 'preferences' && rejectPreference) { rejectPreference = false; throw new Error('Fixture: preference save rejected') }
     controlCommands.push(command)
+    if (command.type === 'recovery-action' && command.action === 'preview-checkpoint') {
+      controlState.recovery.notice = { tone: 'success', title: '检查点已恢复', body: '配置和所需插件依赖已恢复。请点击“退出并重启”使恢复生效。' }
+    }
     if (command.type === 'preferences') {
       controlState.preferences = command.preferences
       controlState.browserUrl = command.preferences.browserAccess ? streamBaseUrl + '/' : null
@@ -86,6 +109,10 @@ try {
   })
   await context.addInitScript(() => {
     window.desktopNext = { state: () => window.__nextTestState(), browserLinks: () => window.__nextTestBrowserLinks(), command: command => window.__nextTestCommand(command) }
+    window.desktopNext.sidebarBrowser = {
+      command: request => window.__nextBrowserCommand(request),
+      subscribe: listener => { window.__nextBrowserEmit = listener; return () => { delete window.__nextBrowserEmit } },
+    }
     window.desktopNext.onOpenSettings = listener => {
       window.__nextTestOpenSettings = listener
       return () => { delete window.__nextTestOpenSettings }
@@ -186,6 +213,8 @@ try {
   await checkDrag()
   await collapse.click()
   await reopen.waitFor({ state: 'visible' })
+  assert.equal(await page.locator('[data-sidebar-header-controls] button').count(), 2,
+    'Conversation headers keep both official sidebar and new-session controls')
   mkdirSync(screenshots, { recursive: true })
   await page.screenshot({ path: join(screenshots, 'new-session-collapsed.png'), animations: 'disabled' })
   // A tray/shortcut request activates the official Settings trigger even with the sidebar collapsed.
@@ -322,6 +351,22 @@ try {
   await refresh.click()
   const pluginPanel = page.locator('[data-plugin-panel]')
   const pluginHeader = page.locator('[data-plugin-page-header="list"]')
+  const checkPluginReopen = async () => {
+    await reopen.waitFor({ state: 'visible' })
+    await page.waitForFunction(() => Number.parseFloat(getComputedStyle(document.querySelector('[data-shell-overlay]').parentElement).gridTemplateColumns) === 0)
+    assert.equal(await page.locator('[data-sidebar-header-controls] button').count(), 1,
+      'Plugins exposes only the official sidebar toggle, without a new-session action')
+    const geometry = await reopen.evaluate(button => {
+      const box = button.getBoundingClientRect()
+      return { x: box.x, y: box.y, width: box.width, height: box.height,
+        inPageHeader: !!button.closest('[data-plugin-page-header]'),
+        clickable: button.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)),
+        region: getComputedStyle(button).getPropertyValue('-webkit-app-region') }
+    })
+    assert.deepEqual(geometry, { x: 88, y: 12, width: 28, height: 28,
+      inPageHeader: false, clickable: true, region: 'no-drag' },
+    'The official toggle stays beside the native traffic lights, independently of the centered content and scrolling')
+  }
   const checkPluginCaption = async () => {
     const geometry = await drag.evaluate(column => {
       const panel = column.querySelector('[data-plugin-panel]')
@@ -387,14 +432,34 @@ try {
   await checkPluginCaption()
   await collapse.click()
   await checkPluginCaption()
+  await checkPluginReopen()
   await expand()
-  await detailHeader.getByRole('button').last().click()
+  await detailHeader.click()
   await controls.waitFor({ state: 'visible' })
   await collapse.click()
-  await reopen.waitFor({ state: 'visible' })
-  await checkPluginCaption()
+  for (const width of [1800, 800, 1280]) {
+    await page.setViewportSize({ width, height: 840 })
+    await checkPluginCaption()
+    await checkPluginReopen()
+    assert.ok(await pluginPanel.evaluate(panel => Math.abs(panel.querySelector('h1').getBoundingClientRect().x
+      - panel.querySelector('[data-next-plugin-controls]').getBoundingClientRect().x) < 1),
+      'Collapsing the sidebar must not shift the official title away from its content')
+    if (width === 800) await page.screenshot({ path: join(screenshots, 'plugins-collapsed-narrow.png'), animations: 'disabled' })
+  }
+  await addPlugin.click()
+  await page.getByRole('dialog').waitFor()
+  assert.equal(await dragRegion(), 'no-drag')
+  assert.equal(await page.evaluate(() => !!document.elementFromPoint(102, 26)?.closest('[data-plugin-sidebar-control]')), false,
+    'The fixed sidebar toggle must not sit above a modal')
+  await page.getByRole('dialog').press('Escape')
+  await page.getByRole('dialog').waitFor({ state: 'hidden' })
   await page.screenshot({ path: join(screenshots, 'plugins-collapsed.png'), animations: 'disabled' })
+  await page.setViewportSize({ width: 1280, height: 480 })
+  await pluginPanel.evaluate(element => { element.scrollTop = 220 })
+  assert.ok(await pluginPanel.evaluate(element => element.scrollTop) > 0)
+  await checkPluginReopen()
   await expand()
+  await page.setViewportSize({ width: 1280, height: 840 })
   // Re-entering the homepage must retain a working sidebar action after navigation.
   await page.getByRole('button', { name: /^(新建会话|New session)$/i }).last().click()
   await collapse.click()
@@ -412,6 +477,7 @@ try {
   await reopen.waitFor({ state: 'visible' })
   await page.screenshot({ path: join(screenshots, 'blank-session-collapsed.png'), animations: 'disabled' })
   await expand()
+  await verifySidebarBrowser(page, nativeBrowser, screenshots)
 
   // Other platforms retain their own native chrome; no macOS drag region leaks through.
   for (const platform of ['win32', 'linux']) {
@@ -448,6 +514,29 @@ try {
   await page.getByRole('button', { name: /^(桌面设置|Desktop settings)$/ }).click()
   await settings.getByRole('heading', { name: /^(DSH Desktop 设置|DSH Desktop Settings)$/ }).waitFor()
   assert.equal(await settings.locator('nav').count(), 0)
+  const updateSection = settings.locator('[data-next-updates]')
+  await updateSection.getByRole('button', { name: /检查更新|Check for updates/ }).click()
+  assert.equal(controlCommands.at(-1).type, 'check-updates')
+  controlState.updates = { phase: 'downloading', version: '2.0.15-next.1', installable: true, received: 50, total: 100 }
+  await updateSection.getByText(/正在下载更新 50%|Downloading update 50%/).waitFor()
+  assert.equal(await updateSection.locator('progress').getAttribute('value'), '50')
+  await updateSection.scrollIntoViewIfNeeded()
+  await page.screenshot({ path: join(screenshots, 'desktop-update-progress.png'), animations: 'disabled' })
+  controlState.updates = { phase: 'ready', version: '2.0.15-next.1', installable: true }
+  await updateSection.getByRole('button', { name: /安装并重启|Install and restart/ }).click()
+  assert.equal(controlCommands.at(-1).type, 'install-update')
+  controlState.updates = { phase: 'idle', installable: true }
+  const setupWizard = settings.getByRole('button', { name: /^(设置向导|Setup wizard)$/ })
+  await setupWizard.click()
+  assert.equal(controlCommands.at(-1).type, 'restart-onboarding')
+  assert.equal(await setupWizard.evaluate(button => button === button.parentElement.firstElementChild), true)
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-next-desktop-settings] button')].some(button => /^(设置向导|Setup wizard)$/.test(button.textContent) && !button.disabled))
+  controlState.safeMode = true
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-next-desktop-settings] button')].some(button => /^(设置向导|Setup wizard)$/.test(button.textContent) && button.disabled))
+  controlState.safeMode = false
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-next-desktop-settings] button')].some(button => /^(设置向导|Setup wizard)$/.test(button.textContent) && !button.disabled))
+  await settings.locator('.dshDesktopSettingsGroup').filter({ has: page.getByRole('heading', { name: /^(桌面工具|Desktop tools)$/ }) }).scrollIntoViewIfNeeded()
+  await page.screenshot({ path: join(screenshots, 'desktop-setup-wizard-entry.png'), animations: 'disabled' })
   assert.equal(await settings.getByRole('radio', { name: /^broken/ }).getAttribute('aria-disabled'), 'true')
   assert.equal(await settings.getByRole('radio', { name: /增强模式|扩展模式|Advanced mode|Extended mode/ }).count(), 0)
   assert.equal(await settings.locator('#dsh-desktop-market-title, #dsh-desktop-aa-title').count(), 0)
@@ -548,11 +637,26 @@ try {
   await recoveryPage.getByRole('tab', { name: '快速恢复' }).waitFor()
   assert.equal(await recoveryPage.getByText(controlState.failure, { exact: true }).textContent(), controlState.failure)
   assert.equal(await recoveryPage.locator('pre script').count(), 0)
-  assert.equal(await recoveryPage.getByRole('tab').count(), 4)
+  assert.equal(await recoveryPage.getByRole('tab').count(), 6)
+  await recoveryPage.getByRole('link', { name: '退出并重启', exact: true }).click()
+  assert.deepEqual(controlCommands.at(-1), { type: 'recovery-action', action: 'restart' })
   await recoveryPage.getByRole('link', { name: '进入安全模式', exact: true }).click()
   assert.equal(controlCommands.at(-1).type, 'safe-mode')
   await recoveryPage.screenshot({ path: join(screenshots, 'recovery-assistant.png'), animations: 'disabled', fullPage: true })
+  await recoveryPage.getByRole('tab', { name: /插件/ }).click()
+  await recoveryPage.locator('a[href*="preview-uninstall"]').click()
+  assert.deepEqual(controlCommands.at(-1), { type: 'recovery-action', action: 'preview-uninstall', id: 'fixture-plugin' })
+  await recoveryPage.getByRole('tab', { name: /回滚/ }).click()
+  await recoveryPage.locator('a[href*="preview-checkpoint"]').click()
+  assert.deepEqual(controlCommands.at(-1), { type: 'recovery-action', action: 'preview-checkpoint', id: 'fixture-checkpoint' })
+  await recoveryPage.locator('[data-sonner-toast]').getByText('检查点已恢复', { exact: true }).waitFor()
+  await recoveryPage.getByText('配置和所需插件依赖已恢复。请点击“退出并重启”使恢复生效。', { exact: true }).waitFor()
+  await recoveryPage.getByRole('tab', { name: /数据/ }).click()
+  await recoveryPage.locator('a[href*="begin-change-data-directory"]').click()
+  assert.deepEqual(controlCommands.at(-1), { type: 'recovery-action', action: 'begin-change-data-directory' })
   await recoveryPage.getByRole('tab', { name: /诊断/ }).click()
+  await recoveryPage.locator('a[href*="open-profile-manifest"]').click()
+  assert.deepEqual(controlCommands.at(-1), { type: 'recovery-action', action: 'open-profile-manifest' })
   await recoveryPage.getByRole('link', { name: /保存诊断|导出诊断/ }).click()
   assert.equal(controlCommands.at(-1).type, 'diagnostics')
   assert.deepEqual(recoveryErrors, [])
@@ -572,8 +676,10 @@ try {
   await page.reload()
   await page.locator('.dshNextSafeModeNotice').waitFor({ state: 'visible' })
   await page.getByRole('button', { name: /^(稍后配置|Configure later)$/ }).click()
-  await page.locator('.dshNextSafeModeNotice button').click()
+  await page.locator('.dshNextSafeModeNotice').getByRole('button', { name: /打开恢复助手|Open recovery assistant/ }).click()
   assert.deepEqual(controlCommands.at(-1), { type: 'controls', page: 'recovery' })
+  await page.locator('.dshNextSafeModeNotice').getByRole('button', { name: /关闭提示|Dismiss notice/ }).click()
+  await page.locator('.dshNextSafeModeNotice').waitFor({ state: 'detached' })
   // The marker-free Web frontend must not inherit any native Settings actions.
   const webContext = await browser.newContext({ locale: 'zh-CN', viewport: { width: 1280, height: 840 } })
   await webContext.addCookies([{ url: streamBaseUrl, name: cookie.slice(0, cookieSeparator), value: cookie.slice(cookieSeparator + 1) }])
@@ -593,10 +699,12 @@ try {
   await webPage.locator('[data-next-plugin-controls]').waitFor()
   await webPage.locator('[data-next-computer-use]').getByRole('button', { name: /^(授权设置|Permissions)$/ }).click()
   await webPage.getByRole('dialog', { name: /^(系统权限|System permissions)$/ }).getByText(/请在运行 DSH 的桌面应用中管理系统权限/).waitFor()
+  await webPage.getByRole('dialog', { name: /^(系统权限|System permissions)$/ }).press('Escape')
+  await verifyWebBrowserFallback(webPage)
   await webContext.close()
   assert.deepEqual(errors, [])
   assert.deepEqual(await page.evaluate(() => globalThis.__NEXT_TEST_BOOT__.failures), [])
-  console.log('Next window controls passed through the official alpha.2 Desktop boot branch: stacked sidebar extension entries, homepage/plugin collapse and reopen, navigation, caption geometry, clickable actions, existing-header and platform isolation, official Settings header shortcuts and keyboard navigation, grouped Desktop Settings and immediate saves, per-address login URL rows with exact open/copy targets, Profile cards and tray creation, and the Host-independent recovery artifact. Chromium simulates the preload contract; native Electron window movement is not tested.')
+  console.log('Next window controls passed through the official alpha.2 Desktop boot branch: stacked sidebar extension entries, homepage/plugin collapse and reopen, navigation, caption geometry, clickable actions, existing-header and platform isolation, official Settings header shortcuts and keyboard navigation, grouped Desktop Settings and immediate saves, per-address login URL rows with exact open/copy targets, Profile cards and tray creation, the Host-independent recovery artifact, and native Browser toolbar, navigation, pane geometry, overlay isolation, tab lifetime and Web iframe fallback. Chromium simulates the preload contract; native Electron window movement and page loading are not tested here.')
   console.log(`Screenshots: ${screenshots}`)
 } catch (error) {
   console.error(error)

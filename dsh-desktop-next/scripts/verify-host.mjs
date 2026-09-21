@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { DesktopHostProcess } from '../lib/host-process.js'
+import { NextRecovery } from '../lib/recovery.js'
 import { NEXT_PACKAGE, NextProfiles } from '../lib/profiles.js'
 import { bundledPnpmEntry, createPackageRunner } from '../lib/extensions.js'
 import { forwardWebRequest } from '../lib/web-document.js'
@@ -74,6 +75,21 @@ try {
     const reply = await response.json()
     assert.equal(reply.result.ok, true, JSON.stringify(reply))
     return reply.result.value
+  }
+  // The official overview discovers installation-owned bundles from direct
+  // dependencies, even when their packages are already present transitively.
+  const availableBundles = await rpc('listBundles')
+  for (const [name, rowId] of [
+    ['@deepseek-ai/dsh-experimental-agent-team-profile', 'agent-team'],
+    ['@deepseek-ai/dsh-experimental-agent-team-web-profile', 'ui-agent-team'],
+  ]) {
+    const bundle = availableBundles.find(row => row.name === name)
+    assert.ok(bundle, `Official Plugins overview must offer ${name}`)
+    assert.equal(bundle.optional, true)
+    assert.equal(bundle.enabled, false, 'Team bundles must remain opt-in')
+    assert.equal(bundle.removable, false)
+    assert.equal(bundle.error, undefined)
+    assert.ok(bundle.rows.some(row => row.rowId === rowId), JSON.stringify(bundle))
   }
   const packages = ['dsh-community-market', 'dshmarket', '@agents-anywhere/dsh-bridge-next']
   for (const name of packages) {
@@ -204,6 +220,9 @@ try {
   assert.equal((await rpc('listBundles')).some(row => row.name === 'fixture-next-plugin'), false)
   const withRecentDependency = await rpc('installBundle', { spec: fixture })
   assert.equal(withRecentDependency.application, 'applied', JSON.stringify(withRecentDependency))
+  const recovery = new NextRecovery(manager)
+  recovery.checkpoint('desktop')
+  const checkpoint = recovery.checkpoints('desktop')[0]
   const removedAgain = await rpc('removeBundle', { name: 'fixture-next-plugin' })
   assert.equal(removedAgain.application, 'applied', JSON.stringify(removedAgain))
   assert.equal(readFileSync(policyFile, 'utf8'), policy, 'Desktop policy must not rewrite Profile configuration')
@@ -211,6 +230,20 @@ try {
   assert.equal(finalManifest.dependencies[registry.name], registry.version)
   assert.equal(finalManifest.dsh.profile.bundles.includes('fixture-next-plugin'), false)
   await runner.dispose()
+  await stop()
+  // Reinstall dependencies after restoring a manifest that refers to a removed plugin. The restored
+  // manifest is ahead of the lockfile by design, so this repeats the flag the recovery assistant
+  // passes: a frozen install, which is pnpm's default under CI, refuses that reconciliation.
+  await recovery.restore('desktop', checkpoint.id)
+  runner = createPackageRunner(pnpmInvocation, dir)
+  const reconcile = runner.runPlugin(['install', '--offline', '--ignore-scripts', '--no-frozen-lockfile'], dir)
+  let reconciliationOutput = ''
+  reconcile.stdout.on('data', chunk => { reconciliationOutput += chunk })
+  reconcile.stderr.on('data', chunk => { reconciliationOutput += chunk })
+  assert.equal((await reconcile.done).exitCode, 0, reconciliationOutput)
+  await runner.dispose()
+  ;({ origin, cookie } = await boot('desktop'))
+  assert.ok((await rpc('listBundles')).some(row => row.name === 'fixture-next-plugin' && row.installed), 'Rollback must restore the removed plugin before reboot')
   await stop()
   writeFileSync(join(dir, 'cordis.patch.yml'), ': broken: [yaml')
   await manager.recover('desktop')
@@ -231,9 +264,9 @@ try {
   await switchedState.body?.cancel()
   await stop()
   if (process.argv.includes('--computer-use')) {
-    const cua = manager.create('computer-use')
-    manager.setFeatures('computer-use', { remoteControl: false, market: false })
-    writeFileSync(join(cua, 'cordis.patch.yml'), '- id: computer-use-cua-driver-native\n  disabled: false\n')
+    manager.create('computer-use')
+    manager.finishOnboarding('computer-use', { features: { remoteControl: false, market: false }, computerUse: true })
+    assert.equal(manager.onboardingRequired('computer-use'), false)
     const enabled = await boot('computer-use')
     const rpcId = crypto.randomUUID()
     const response = await fetch(`${enabled.origin}/api/pluginManager/listPlugins`, {
@@ -247,8 +280,14 @@ try {
     const provider = reply.result.value.find(row => row.moduleName === '@deepseek-ai/dsh-experimental-computer-use-cua-driver-native')
     assert.equal(provider?.enabled, true)
     assert.equal(provider?.fiberPhase, 'active', JSON.stringify(provider))
+    // Onboarding writes a normal Profile row; official settings must remain authoritative.
+    ;({ origin, cookie } = enabled)
+    const disabled = await rpc('setPluginEnabled', { id: provider.entryId, enabled: false })
+    assert.equal(disabled.application, 'applied', JSON.stringify(disabled))
+    assert.equal((await rpc('listPlugins')).find(row => row.entryId === provider.entryId)?.enabled, false)
+    assert.equal(manager.computerUseEnabled('computer-use'), false)
     await stop()
-    console.log('Opt-in Cua native provider activation and teardown passed without capturing screens, sending input or prompting for OS permissions.')
+    console.log('Onboarding Cua native provider activation and teardown passed without capturing screens, sending input or prompting for OS permissions.')
   }
   console.log(`Next Host smoke passed (${process.argv.includes('--electron') ? 'Electron Node mode' : 'Node'}): authenticated alpha.2 Web, exclusive market selection and independent AA persisted, official row toggles, dshmarket offline install and cross-market removal, official install/remove with a freshly published locked dependency, native dshmarket update origin gate, graceful shutdown, recovery boot and profile switch.`)
 } finally {
