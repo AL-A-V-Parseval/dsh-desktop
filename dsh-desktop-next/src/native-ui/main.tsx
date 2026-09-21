@@ -16,7 +16,7 @@ import './theme.css'
 
 function App() {
   const adapter = useMemo(() => window.desktopNext ? new NextSettingsAdapter(window.desktopNext) : undefined, [])
-  if (!adapter) return <Alert variant="destructive"><AlertDescription>Desktop controls could not load. Restart DSH Desktop Next.</AlertDescription></Alert>
+  if (!adapter) return <Alert variant="destructive"><AlertDescription>Desktop controls could not load. Restart DSH NEXT.</AlertDescription></Alert>
   return <NativePages adapter={adapter} />
 }
 
