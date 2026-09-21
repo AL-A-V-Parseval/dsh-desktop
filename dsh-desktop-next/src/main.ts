@@ -440,7 +440,10 @@ async function command(value: unknown, source: 'app' | 'shell' | 'native' = 'app
 
 async function restoreCheckpoint(id?: string): Promise<void> {
   await runtime.recovery.restore(runtime.selected, id)
-  try { await runRecoveryPlugin(['install']) } catch (error) {
+  // A checkpoint holds configuration only, so the restored manifest deliberately disagrees with the
+  // lockfile until this install reconciles them. pnpm refuses that reconciliation whenever it treats
+  // the environment as CI, which would make recovery fail exactly where it is needed.
+  try { await runRecoveryPlugin(['install', '--no-frozen-lockfile']) } catch (error) {
     throw new Error(t('配置已恢复，但插件依赖安装失败。请检查以下错误并重试恢复：', 'Configuration was restored, but plugin dependencies could not be installed. Check the error and retry recovery:') + '\n' + String(error))
   }
   recoveryNotice = { tone: 'success', title: t('检查点已恢复', 'Checkpoint restored'),
