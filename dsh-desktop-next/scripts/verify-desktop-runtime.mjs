@@ -1,6 +1,6 @@
 /** Real shell-owned Host/recovery/network lifecycle, without Electron windows or user data. */
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { request as requestHttp } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -30,8 +30,12 @@ async function upgrade(origin, headers = {}, keep = false) {
 }
 try {
   runtime.initialize()
-  runtime.profiles.ensure('default')
-  runtime.profiles.setFeatures('default', { market: false, remoteControl: false })
+  runtime.safeMode = true
+  assert.throws(() => runtime.terminalTarget(), /not ready/, 'A pending safe runtime must never fall back to the original Profile')
+  runtime.safeMode = false
+  assert.equal(runtime.selected, 'desktop', 'Fresh installations must select the Desktop Profile')
+  runtime.profiles.ensure('desktop')
+  runtime.profiles.setFeatures('desktop', { market: false, remoteControl: false })
   await runtime.start()
   assert.equal(runtime.state().phase, 'ready')
   assert.ok(runtime.state().checkpoint)
@@ -108,7 +112,7 @@ try {
   const afterStartup = await fetch(new URL(runtime.auth.url).origin, { headers: { cookie: runtime.auth.cookie } })
   assert.equal(afterStartup.status, 403, 'The running Host receives the preference saved while it was starting')
   await afterStartup.body?.cancel()
-  const dir = runtime.profiles.directory('default')
+  const dir = runtime.profiles.directory('desktop')
   await runtime.backend.stop()
   writeFileSync(join(dir, 'package.json'), '{ broken manifest')
   await assert.rejects(runtime.start())
@@ -117,12 +121,22 @@ try {
   await runtime.restart(() => { runtime.safeMode = true })
   assert.equal(runtime.state().phase, 'ready')
   assert.equal(runtime.state().safeMode, true)
+  const safeHome = readdirSync(runtime.recovery.directory).find(name => name.startsWith('safe-runtime-'))
+  assert.ok(safeHome)
+  assert.ok(existsSync(join(runtime.recovery.directory, safeHome, 'profiles', 'desktop', 'package.json')),
+    'Safe mode must use the same desktop Profile name in its isolated home')
+  const safeTarget = runtime.terminalTarget()
+  assert.deepEqual(safeTarget, { homeDir: join(runtime.recovery.directory, safeHome),
+    profileDir: join(runtime.recovery.directory, safeHome, 'profiles', 'desktop'), profileName: 'desktop', mode: 'safe' })
+  assert.deepEqual(runtime.terminalTarget(true), { homeDir: home, profileDir: dir, profileName: 'desktop', mode: 'recovery' })
   assert.equal(runtime.state().browserUrl, null)
   assert.equal(readFileSync(join(dir, 'package.json'), 'utf8'), '{ broken manifest')
   assert.throws(() => runtime.browserLink(), /unavailable/)
-  await runtime.restart(async () => { await runtime.profiles.recover('default'); runtime.safeMode = false })
+  await runtime.restart(async () => { await runtime.profiles.recover('desktop'); runtime.safeMode = false })
   assert.equal(runtime.state().phase, 'ready')
   assert.equal(runtime.state().safeMode, false)
+  assert.deepEqual(runtime.terminalTarget(), { homeDir: home, profileDir: dir, profileName: 'desktop', mode: 'normal' })
+  assert.equal(existsSync(safeTarget.homeDir), false)
   assert.deepEqual(runtime.state().features, { remoteControl: false, market: false })
   // Broken global patches require their separate repair, never a silent reset.
   await runtime.backend.stop()

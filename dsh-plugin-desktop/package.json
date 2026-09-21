@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-desktop",
-  "version": "2.0.13",
+  "version": "2.0.14",
   "description": "DSH Desktop: an Electron shell composed as a DeepSeek Harness Cordis plugin",
   "desktopName": "dsh-desktop.desktop",
   "license": "MIT",
@@ -89,7 +89,10 @@
     "README.md",
     "README.zh.md",
     "README.i18n.yaml",
-    "THIRD_PARTY_NOTICES.md"
+    "THIRD_PARTY_NOTICES.md",
+    "build/app-icon.icon/**",
+    "build/app-icon.icns",
+    "build/app-icon.resources.json"
   ],
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
@@ -111,7 +114,7 @@
     }
   },
   "scripts": {
-    "build": "node scripts/generate-windows-app-icon.mjs && node scripts/generate-mac-app-icon.mjs && node scripts/generate-tray-icons.mjs && node scripts/clean.mjs && tsdown && vite build --config vite.native-ui.config.ts && tsc -p tsconfig.json --emitDeclarationOnly && tsc -p tsconfig.client.json --emitDeclarationOnly",
+    "build": "node scripts/clean.mjs && tsdown && vite build --config vite.native-ui.config.ts && tsc -p tsconfig.json --emitDeclarationOnly && tsc -p tsconfig.client.json --emitDeclarationOnly",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json --noEmit && tsc -p tsconfig.native-ui.json --noEmit && tsc -p tsconfig.tests.json --noEmit && tsc -p tsconfig.tests.client.json --noEmit",
     "test": "vitest run",
     "verify:closure": "node --test scripts/runtime-closure.spec.mjs && node scripts/verify-runtime-closure.mjs",
@@ -135,7 +138,8 @@
     "dist:linux": "node scripts/package-linux.ts",
     "prepack": "yarn run check",
     "verify:aa": "node ../scripts/prepare-agents-anywhere-runtime.mjs && DSH_VERIFY_AA=1 node scripts/verify-profile-boot.mjs",
-    "prepare:electron-native": "node scripts/prepare-fs-ext.ts"
+    "prepare:electron-native": "node scripts/prepare-fs-ext.ts",
+    "icons:export": "node ../scripts/export-app-icons.mjs --channel stable"
   },
   "dependencies": {
     "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.ca022d9286dd0.rc4b2a1d2.tgz",
@@ -374,7 +378,7 @@
         ]
       },
       "hardenedRuntime": true,
-      "icon": "build/app-icon-mac.png",
+      "icon": "build/app-icon.icon",
       "mergeASARs": false,
       "notarize": true,
       "signIgnore": [
@@ -442,6 +446,9 @@
       "packageCategory": "devel",
       "priority": "optional"
     },
-    "npmRebuild": false
+    "npmRebuild": false,
+    "dmg": {
+      "icon": "build/app-icon.icns"
+    }
   }
 }
