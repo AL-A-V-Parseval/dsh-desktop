@@ -9,14 +9,13 @@ import { releaseMac } from '../../dsh-plugin-desktop-beta/scripts/release-mac.ts
 import { packageMacSmoke } from '../../dsh-plugin-desktop-beta/scripts/package-mac.ts'
 import { createWindowsPackageOptions, packageWindowsInstaller } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
 import { prepareNextMacRuntime } from './mac-runtime.ts'
+import { runNextPackagingCommand } from './packaging-command.ts'
 
 const desktopRoot = fileURLToPath(new URL('..', import.meta.url))
 const workspaceRoot = resolve(desktopRoot, '..')
 const require = createRequire(import.meta.url)
 const run = (command: string, args: readonly string[], cwd: string, env: NodeJS.ProcessEnv): void => {
-  const result = spawnSync(command, args.map(arg => arg.replaceAll('dsh-plugin-desktop-beta', 'dsh-desktop-next')), { cwd, env, stdio: 'inherit' })
-  if (result.error) throw result.error
-  if (result.status !== 0) throw new Error(`Packaging command failed (${result.status}): ${command}`)
+  runNextPackagingCommand(command, args, cwd, env, workspaceRoot)
 }
 const prepareRuntime = (): void => {
   prepareNextMacRuntime(desktopRoot)
