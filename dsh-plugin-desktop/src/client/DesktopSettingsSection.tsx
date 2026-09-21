@@ -20,6 +20,7 @@ import {
 export interface DesktopShellSettings {
   readonly mode: 'compatibility' | 'extended' | 'advanced'
   readonly macosMaterial: 'off' | 'transparent'
+  readonly linuxMaterial: 'off' | 'transparent'
   readonly windowsMaterial: 'off' | 'acrylic' | 'mica'
   readonly port: number
   readonly openBrowser: boolean
@@ -519,6 +520,11 @@ export function DesktopSettingsSection({
           throw new Error(`dsh-plugin-desktop: invalid macOS material ${JSON.stringify(next)}`)
         }
         await desktopSettings.set('macosMaterial', next)
+      } else if (platform === 'linux') {
+        if (next !== 'off' && next !== 'transparent') {
+          throw new Error(`dsh-plugin-desktop: invalid Linux material ${JSON.stringify(next)}`)
+        }
+        await desktopSettings.set('linuxMaterial', next)
       } else if (platform === 'win32') {
         if (next !== 'off' && (next !== 'mica' || !micaSupported)) {
           throw new Error(`dsh-plugin-desktop: unavailable Windows material ${JSON.stringify(next)}`)

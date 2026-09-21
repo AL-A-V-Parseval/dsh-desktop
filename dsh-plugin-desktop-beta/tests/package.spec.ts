@@ -22,6 +22,7 @@ const workspaceRoot = new URL('../', packageRoot)
 const manifest = JSON.parse(readFileSync(new URL('package.json', packageRoot), 'utf8')) as {
   name?: unknown
   version?: unknown
+  desktopName?: unknown
   bin?: Record<string, unknown>
   exports?: Record<string, unknown>
   files?: unknown
@@ -53,7 +54,13 @@ const manifest = JSON.parse(readFileSync(new URL('package.json', packageRoot), '
     win?: { compression?: unknown; icon?: unknown; asarUnpack?: unknown; target?: unknown; artifactName?: unknown }
     nsis?: Record<string, unknown>
     portable?: Record<string, unknown>
-    linux?: { icon?: unknown; asarUnpack?: unknown }
+    linux?: {
+      icon?: unknown
+      asarUnpack?: unknown
+      synopsis?: unknown
+      syncDesktopName?: unknown
+    }
+    deb?: Record<string, unknown>
   }
   dependencies?: Record<string, unknown>
   optionalDependencies?: Record<string, unknown>
@@ -891,7 +898,20 @@ describe('published package surface', () => {
       useZip: false,
       artifactName: 'DSH-Desktop-Beta-${version}-${arch}-Setup.${ext}',
     })
-    expect(manifest.build?.linux?.icon).toBe('build/app-icon.png')
+    expect(manifest.build?.linux?.icon).toBe('build/icons')
+    expect(manifest.build?.linux?.synopsis).toBe('Agentic coding desktop for the DeepSeek Harness (Beta)')
+    // Electron derives the window's WM_CLASS from the root desktopName, and
+    // syncDesktopName names the installed entry after it. Without the pair,
+    // WM_CLASS falls back to the npm package name while the entry advertises
+    // productName, nothing binds the running window to the installed entry,
+    // and the dock, taskbar, and alt-tab ring all lose their icon.
+    expect(manifest.desktopName).toBe('dsh-desktop-beta.desktop')
+    expect(manifest.build?.linux?.syncDesktopName).toBe(true)
+    expect(manifest.build?.deb).toEqual({
+      packageName: 'dsh-desktop-beta',
+      packageCategory: 'devel',
+      priority: 'optional',
+    })
   })
 
   it('separates unsigned smoke packaging from the signed macOS release', () => {
@@ -1185,7 +1205,7 @@ describe('published package surface', () => {
     expect(installedSessionRuntime).toContain('@deepseek-ai/node-addon-system/flock')
   })
 
-  it('starts the Windows Job runner in Electron Node mode without changing target environment', () => {
+  it('starts the private runner in Electron Node mode on every platform without changing target environment', () => {
     const workspaceRequire = createRequire(new URL('package.json', packageRoot))
     const root = dirname(workspaceRequire.resolve('@deepseek-ai/dsh-subprocess-local/package.json'))
     const index = readFileSync(join(root, 'lib/index.js'), 'utf8')
@@ -1215,8 +1235,9 @@ describe('published package surface', () => {
     expect(runner.DSH_SUBPROCESS_RUNNER).toBe('windows')
     expect(target).toEqual({ PATH: 'target-path', electron_run_as_node: '0', NODE_OPTIONS: '--trace-warnings' })
     expect(evaluate('win32')).not.toHaveProperty('ELECTRON_RUN_AS_NODE')
-    expect(evaluate('darwin', '43.3.0')).not.toHaveProperty('ELECTRON_RUN_AS_NODE')
-    expect(evaluate('linux', '43.3.0', '/request')).not.toHaveProperty('ELECTRON_RUN_AS_NODE')
+    expect(evaluate('darwin', '43.3.0')).toHaveProperty('ELECTRON_RUN_AS_NODE', '1')
+    expect(evaluate('linux', '43.3.0', '/request')).toHaveProperty('ELECTRON_RUN_AS_NODE', '1')
+    expect(evaluate('linux')).not.toHaveProperty('ELECTRON_RUN_AS_NODE')
   })
 
   // A patch whose filename does not match the pinned version degrades silently to the
