@@ -40,6 +40,8 @@ export interface DesktopNotificationSettings {
 export interface DesktopSettingsSectionInjected {
   readonly api: DesktopSettingsApi
   readonly platform: DesktopClientPlatform
+  /** Installed Desktop product version rendered by the update section. */
+  readonly version: string
   readonly initialMode: DesktopShellSettings['mode']
   readonly micaSupported: boolean
   readonly setMode: (mode: DesktopShellSettings['mode']) => Promise<void>
@@ -54,6 +56,7 @@ export interface DesktopSettingsSectionInjected {
     readonly materialRequiresRestart?: boolean
     readonly nativeLanConfirmation?: boolean
     readonly jobNotifications?: boolean
+    readonly updates?: boolean
   }
   readonly introNotice?: ReactNode
   readonly browserActions?: ReactNode
@@ -350,6 +353,7 @@ export function DesktopSettingsSection({
   t,
   api,
   platform,
+  version,
   initialMode,
   micaSupported,
   setMode: persistMode,
@@ -371,6 +375,7 @@ export function DesktopSettingsSection({
   const [restart, setRestart] = useState<RestartState>('none')
   const [pendingProfileDelete, setPendingProfileDelete] = useState<string>()
   const [confirmLan, setConfirmLan] = useState(false)
+  const [updateCheck, setUpdateCheck] = useState<'idle' | 'checking' | 'failed'>('idle')
   const lanPoll = useRef<AbortController>()
 
   const refreshView = useCallback(async () => {
@@ -526,6 +531,15 @@ export function DesktopSettingsSection({
 
   const setNotification = (field: keyof DesktopNotificationSettings, checked: boolean): void => {
     void run('notification', async () => { await notificationSettings.set(field, checked) })
+  }
+
+  // The interactive update flow owns its own native dialogs and downloads, so it
+  // stays outside the settings-scope busy state and reports only its own failures.
+  const runUpdateCheck = (): void => {
+    setUpdateCheck('checking')
+    void api.checkForUpdates()
+      .then(() => { setUpdateCheck('idle') })
+      .catch(() => { setUpdateCheck('failed') })
   }
 
   const setBrowserAccess = (checked: boolean): void => {
@@ -880,6 +894,33 @@ export function DesktopSettingsSection({
           /></>}
         </div>
       </section>
+
+      {capabilities?.updates !== false && (
+        <section className="dshDesktopSettingsGroup" aria-labelledby="dsh-desktop-updates-title">
+          <div>
+            <h3 id="dsh-desktop-updates-title">{t('updatesTitle')}</h3>
+            <p className="dshDesktopSettingsGroupIntro">{t('updatesIntro')}</p>
+          </div>
+          <div className="dshDesktopSettingsUpdateRow">
+            <span className="dshDesktopSettingsChoiceCopy">
+              <span className="dshDesktopSettingsChoiceTitle">{t('currentVersion')}</span>
+              <span className="dshDesktopSettingsChoiceBody">{`v${version}`}</span>
+            </span>
+            <button
+              type="button"
+              className="dshDesktopSettingsButton"
+              disabled={updateCheck === 'checking'}
+              onClick={runUpdateCheck}
+            >
+              {t(updateCheck === 'checking' ? 'checkingForUpdates' : 'checkForUpdates')}
+            </button>
+          </div>
+          {updateCheck === 'failed' && (
+            <p className="dshDesktopSettingsError" role="alert">{t('checkForUpdatesError')}</p>
+          )}
+        </section>
+      )}
+
       {extraSections}
       {confirmLan && (
         <div className="dshDesktopSettingsDialogBackdrop" role="presentation">
