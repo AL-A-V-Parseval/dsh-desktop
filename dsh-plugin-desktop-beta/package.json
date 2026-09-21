@@ -92,7 +92,8 @@
     "build/app-icon.icon/**",
     "build/app-icon.icns",
     "build/app-icon.resources.json",
-    "build/app-icon.ico"
+    "build/app-icon.ico",
+    "build/icons/**"
   ],
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
