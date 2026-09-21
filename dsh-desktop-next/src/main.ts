@@ -367,7 +367,7 @@ async function command(value: unknown, source: 'app' | 'shell' = 'app'): Promise
       'repair-global': t('备份并停用全局补丁？这会影响所有 Next Profile。', 'Back up and disable the global patch? This affects every Next Profile.'),
       rollback: t('恢复最近成功启动的 Profile 配置？当前配置会先备份。', 'Restore the last successful-start Profile configuration? The current configuration will be backed up first.'),
       'safe-mode': t('在独立的临时环境中进入安全模式？原有数据和配置会保留。', 'Enter safe mode in a separate temporary environment? Existing data and configuration are preserved.'),
-      'normal-mode': t('退出安全模式，重新启动原 Profile？', 'Leave safe mode and restart the original Profile?'),
+      'normal-mode': t('退出安全模式并重启原 Profile？', 'Exit Safe Mode and restart the original Profile?'),
     }
     if (!await confirmed(messages[String(type)] ?? t('重启工作环境以应用更改？', 'Restart the environment to apply this change?'))) return
     if (type === 'switch') {
@@ -402,7 +402,9 @@ async function restoreCheckpoint(id?: string): Promise<void> {
     throw new Error(t('配置已恢复，但插件依赖安装失败。请检查以下错误并重试恢复：', 'Configuration was restored, but plugin dependencies could not be installed. Check the error and retry recovery:') + '\n' + String(error))
   }
   recoveryNotice = { tone: 'success', title: t('检查点已恢复', 'Checkpoint restored'),
-    body: t('配置和所需插件依赖已恢复。请点击“退出并重启”使恢复生效。', 'Configuration and required plugin dependencies have been restored. Choose “Quit and restart” to apply them.') }
+    body: runtime.safeMode
+      ? t('配置和所需插件依赖已恢复。请点击“退出安全模式并重启”使恢复生效。', 'Configuration and required plugin dependencies have been restored. Choose “Exit Safe Mode and Restart” to apply them.')
+      : t('配置和所需插件依赖已恢复。请点击“退出并重启”使恢复生效。', 'Configuration and required plugin dependencies have been restored. Choose “Quit and restart” to apply them.') }
   runtime.diagnostics.append(`Recovered checkpoint ${id} for ${runtime.selected}`)
 }
 
@@ -429,8 +431,10 @@ async function recoveryAction(input: Record<string, unknown>): Promise<void> {
   const action = input.action
   recoveryNotice = undefined
   if (action === 'restart') {
-    if (!await confirmed(t('现在重启 DSH Desktop Next？', 'Restart DSH Desktop Next now?'),
-      t('应用将退出安全模式和恢复助手，重新启动原 Profile。正在运行的任务会中断。', 'The app will leave safe mode and recovery, then restart the original Profile. Running tasks will be interrupted.'))) return
+    if (!await confirmed(runtime.safeMode ? t('退出安全模式并重启？', 'Exit Safe Mode and restart?') : t('现在重启 DSH Desktop Next？', 'Restart DSH Desktop Next now?'),
+      runtime.safeMode
+        ? t('应用将返回原 Profile，并移除临时环境。临时数据不会保留，正在运行的任务会中断。', 'The app will return to the original Profile and remove the temporary environment. Temporary data will not be kept, and running tasks will be interrupted.')
+        : t('应用将退出恢复助手，重新启动原 Profile。', 'The app will leave the recovery assistant and restart the original Profile.'))) return
     relaunch = relaunchArguments(process.argv.slice(1), false, false)
     app.quit()
     return
