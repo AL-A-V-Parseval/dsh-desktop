@@ -679,7 +679,9 @@ it.each(['success', 'cancel', 'failure'] as const)('restores a checkpoint with d
     }
     const failed = outcome === 'failure' ? expect(pending).rejects.toThrow('插件依赖安装失败') : undefined
     await vi.waitFor(() => expect(fixture.plugin).toHaveBeenCalled())
-    expect(fixture.plugin.mock.calls[0]![0]).toEqual(['install'])
+    // Recovery restores configuration without the lockfile, so its reconciling install must never
+    // run frozen, which is what pnpm defaults to whenever it treats the environment as CI.
+    expect(fixture.plugin.mock.calls[0]![0]).toEqual(['install', '--no-frozen-lockfile'])
     expect(fixture.plugin.mock.calls[0]![1]).toBe(manager.directory('desktop'))
     expect(readFileSync(patch, 'utf8')).toContain('saved')
     expect(state().busy).toBe(true)
