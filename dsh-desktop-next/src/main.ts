@@ -75,8 +75,10 @@ const runtime = new NextDesktopRuntime({
   onPermission: async (action, permission) => {
     if (quitting) throw new Error('Desktop is shutting down')
     const snapshot = permissions.query(permission)
-    // Host calls reveal the permission dialog; only a user click there may prompt the OS.
-    if (action === 'open-settings' || action === 'request' && snapshot.status !== 'granted' && (snapshot.canRequest || snapshot.canOpenSettings)) {
+    // Host calls reveal the permission dialog on every platform; only a user click there may prompt
+    // the OS. Platforms without an OS request or settings shortcut still receive the dialog, which
+    // reports the current status, because silence would leave the request without any visible answer.
+    if (action === 'open-settings' || action === 'request' && snapshot.status !== 'granted') {
       openSettings('permissions')
     }
     return snapshot
