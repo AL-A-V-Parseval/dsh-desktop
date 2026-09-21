@@ -207,6 +207,7 @@ describe('published package surface', () => {
         '@deepseek-ai/dsh-client-ui-renderer',
         '@deepseek-ai/dsh-client-ui-settings',
         '@deepseek-ai/dsh-client-ui-theme',
+        '@deepseek-ai/dsh-client-ui-workspace',
       ],
     })
     expect(readFileSync(new URL('cordis.patch.yml', packageRoot), 'utf8')).toContain('name: dsh-plugin-desktop-beta')
