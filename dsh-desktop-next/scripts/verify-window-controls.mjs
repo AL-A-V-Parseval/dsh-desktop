@@ -1,9 +1,9 @@
 /** Official Desktop boot in headless Chromium; simulated IPC/platform, no native window or user profile. */
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { delimiter, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { DesktopHostProcess } from '../lib/host-process.js'
@@ -21,8 +21,23 @@ const screenshots = join(root, '.desktop-next', 'verification')
 const manager = new NextProfiles(home)
 manager.ensure('desktop')
 manager.setFeatures('desktop', { market: false, remoteControl: false })
+// The renderer below simulates darwin, so the Host must mount the matching
+// `native` directory flow for the preload-backed picker to be the surface under
+// test. Upstream's chooser resolves `browse` on a Linux host with no
+// zenity/kdialog on PATH, which is every headless CI runner: hand it a display
+// and an executable chooser stub so one platform does not silently verify a
+// different flow. Nothing ever runs the stub — the client short-circuits to the
+// injected `__DSH_DIRECTORY_PICKER__` before the Host backend is consulted.
+const chooserEnv = {}
+if (process.platform === 'linux') {
+  const chooserDir = join(home, 'chooser-bin')
+  mkdirSync(chooserDir)
+  writeFileSync(join(chooserDir, 'zenity'), '#!/bin/sh\nexit 1\n', { mode: 0o755 })
+  chooserEnv.PATH = `${chooserDir}${delimiter}${process.env.PATH ?? ''}`
+  chooserEnv.DISPLAY = process.env.DISPLAY ?? ':0'
+}
 const host = new DesktopHostProcess(process.execPath, root, manager.directory('desktop'), undefined,
-  { ...process.env, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1' }, undefined, undefined, 'runtime', undefined,
+  { ...process.env, ...chooserEnv, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1' }, undefined, undefined, 'runtime', undefined,
   join(root, 'lib', 'host.js'))
 let browser
 let page

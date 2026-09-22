@@ -60,7 +60,7 @@ export interface DesktopState {
   browserUrl: string | null
   lan: DesktopLanHttpsRuntimeSnapshot | null
   recovery?: {
-    bundles: { bundleId: string; packageName: string; status: 'active' | 'disabled'; owner: 'core' | 'profile'; action: 'uninstall' | null }[]
+    bundles: { bundleId: string; packageName: string; status: 'active' | 'disabled'; owner: 'core' | 'profile'; action: 'uninstall' | null; toggle: 'disable' | 'enable' | null }[]
     checkpoints: { id: string; created: string; fileCount: number; totalBytes: number }[]
     error?: string
     profileDirectory: string
