@@ -52,6 +52,36 @@ describe('Desktop launch workspace path', () => {
     )).toEqual({ path: '/home/anna/work', explicit: true })
   })
 
+  it('reads the folder attached to the flag', () => {
+    expect(desktopLaunchWorkspaceFromArguments(
+      [`${DESKTOP_WORKSPACE_ARGUMENT}=C:\\Work\\repo`, 'C:\\app\\lib\\main.js'],
+      'win32',
+    )).toEqual({ path: 'C:\\Work\\repo', explicit: true })
+    expect(desktopLaunchWorkspaceFromArguments(
+      [`${DESKTOP_WORKSPACE_ARGUMENT}=/home/anna/work`],
+      'linux',
+    )).toEqual({ path: '/home/anna/work', explicit: true })
+    expect(desktopLaunchWorkspaceFromArguments([`${DESKTOP_WORKSPACE_ARGUMENT}=work`], 'win32'))
+      .toBeUndefined()
+    expect(desktopLaunchWorkspaceFromArguments([`${DESKTOP_WORKSPACE_ARGUMENT}=`], 'win32'))
+      .toBeUndefined()
+  })
+
+  it('still reads the hand-off after a command line rebuild moved the value', () => {
+    // Chromium hands a second instance its switches first and its positional
+    // arguments last, which tears a space separated value away from its flag.
+    expect(desktopLaunchWorkspaceFromArguments(
+      [
+        '--user-data-dir=C:\\data',
+        DESKTOP_WORKSPACE_ARGUMENT,
+        '--allow-file-access-from-files',
+        'C:\\app\\lib\\main.js',
+        'C:\\Work\\repo',
+      ],
+      'win32',
+    )).toEqual({ path: 'C:\\Work\\repo', explicit: true })
+  })
+
   it('refuses a flag that carries no usable value', () => {
     expect(desktopLaunchWorkspaceFromArguments([DESKTOP_WORKSPACE_ARGUMENT], 'win32')).toBeUndefined()
     expect(desktopLaunchWorkspaceFromArguments([DESKTOP_WORKSPACE_ARGUMENT, '--profile'], 'win32'))
@@ -93,5 +123,19 @@ describe('Desktop launch workspace path', () => {
       .toEqual(['--profile'])
     expect(desktopArgumentsWithoutLaunchWorkspace(['--profile', 'desktop'], 'win32'))
       .toEqual(['--profile', 'desktop'])
+  })
+
+  it('leaves no shape of the hand-off readable in a relaunch command line', () => {
+    const shapes = [
+      [`${DESKTOP_WORKSPACE_ARGUMENT}=C:\\Work`, '--profile=work'],
+      [DESKTOP_WORKSPACE_ARGUMENT, 'C:\\Work', '--profile=work'],
+      [DESKTOP_WORKSPACE_ARGUMENT, '--allow-file-access-from-files', 'C:\\Work'],
+      ['C:\\app\\lib\\main.js', 'C:\\Work'],
+    ]
+    for (const args of shapes) {
+      const filtered = desktopArgumentsWithoutLaunchWorkspace(args, 'win32')
+      expect(filtered).not.toContain('C:\\Work')
+      expect(desktopLaunchWorkspaceFromArguments(filtered, 'win32')).toBeUndefined()
+    }
   })
 })

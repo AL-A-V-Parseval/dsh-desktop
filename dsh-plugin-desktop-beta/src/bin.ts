@@ -122,12 +122,13 @@ async function launchElectron(workspacePath?: string): Promise<number> {
     return 1
   }
   const mainPath = fileURLToPath(new URL('./main.js', import.meta.url))
-  // The folder travels under the launcher's own flag. A bare path next to the
-  // entry script is indistinguishable from a background Node re-entry once a
-  // running instance receives this command line.
+  // The folder travels attached to the launcher's own flag. A bare path next to
+  // the entry script is indistinguishable from a background Node re-entry once
+  // a running instance receives this command line, and a space separated value
+  // is torn away from its flag when Chromium rebuilds that command line.
   const args = workspacePath === undefined
     ? [mainPath]
-    : [mainPath, DESKTOP_WORKSPACE_ARGUMENT, workspacePath]
+    : [mainPath, `${DESKTOP_WORKSPACE_ARGUMENT}=${workspacePath}`]
   return new Promise<number>((resolveExit, reject) => {
     const child = spawn(electronPath, args, {
       stdio: 'inherit',

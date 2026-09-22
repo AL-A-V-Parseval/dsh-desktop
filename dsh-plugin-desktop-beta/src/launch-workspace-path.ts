@@ -6,8 +6,15 @@ import { posix, win32 } from 'node:path'
  * The npm launcher spawns Electron with its own `main.js` entry, so a bare
  * folder argument would be indistinguishable from a background Node re-entry
  * once it reaches the running instance. The flag keeps the two apart.
+ *
+ * Pass the folder in the `--dsh-desktop-workspace=<path>` form. Chromium
+ * rebuilds a second instance command line as switches first and positional
+ * arguments last, which tears a space separated value away from its flag.
  */
 export const DESKTOP_WORKSPACE_ARGUMENT = '--dsh-desktop-workspace'
+
+/** Attached form that survives a Chromium command line rebuild intact. */
+const WORKSPACE_ARGUMENT_PREFIX = `${DESKTOP_WORKSPACE_ARGUMENT}=`
 
 /** One folder hand-off recovered from a process command line. */
 export interface DesktopLaunchWorkspaceRequest {
@@ -24,16 +31,11 @@ function isAbsoluteLaunchPath(value: string, platform: NodeJS.Platform): boolean
   return platform === 'win32' ? win32.isAbsolute(value) : posix.isAbsolute(value)
 }
 
-/**
- * Locate the hand-off within one argument tail.
- * @returns index of the flag or of the accepted bare argument, `-1` when absent.
- */
-function launchWorkspaceIndex(args: readonly string[], platform: NodeJS.Platform): number {
-  const flag = args.indexOf(DESKTOP_WORKSPACE_ARGUMENT)
-  if (flag >= 0) return flag
-  return args.findIndex(argument => !argument.startsWith('-')
+/** Tell a bare folder argument apart from switches and Node entry scripts. */
+function isBareLaunchPath(argument: string, platform: NodeJS.Platform): boolean {
+  return !argument.startsWith('-')
     && !NODE_ENTRY.test(argument)
-    && isAbsoluteLaunchPath(argument, platform))
+    && isAbsoluteLaunchPath(argument, platform)
 }
 
 /**
@@ -46,12 +48,22 @@ export function desktopLaunchWorkspaceFromArguments(
   args: readonly string[],
   platform: NodeJS.Platform = process.platform,
 ): DesktopLaunchWorkspaceRequest | undefined {
-  const index = launchWorkspaceIndex(args, platform)
-  if (index < 0) return undefined
-  if (args[index] !== DESKTOP_WORKSPACE_ARGUMENT) return { path: args[index]!, explicit: false }
-  const value = args[index + 1]
-  if (value === undefined || !isAbsoluteLaunchPath(value, platform)) return undefined
-  return { path: value, explicit: true }
+  const attached = args.find(argument => argument.startsWith(WORKSPACE_ARGUMENT_PREFIX))
+  if (attached !== undefined) {
+    const value = attached.slice(WORKSPACE_ARGUMENT_PREFIX.length)
+    return isAbsoluteLaunchPath(value, platform) ? { path: value, explicit: true } : undefined
+  }
+  const bare = args.find(argument => isBareLaunchPath(argument, platform))
+  if (!args.includes(DESKTOP_WORKSPACE_ARGUMENT)) {
+    return bare === undefined ? undefined : { path: bare, explicit: false }
+  }
+  const adjacent = args[args.indexOf(DESKTOP_WORKSPACE_ARGUMENT) + 1]
+  if (adjacent !== undefined && isAbsoluteLaunchPath(adjacent, platform)) {
+    return { path: adjacent, explicit: true }
+  }
+  // Chromium reordered the command line and the value no longer follows the
+  // flag. The flag still proves the launcher named this folder on purpose.
+  return bare === undefined ? undefined : { path: bare, explicit: true }
 }
 
 /**
@@ -69,6 +81,9 @@ export function desktopLaunchWorkspaceRequest(
 
 /**
  * Drop a folder hand-off so one launch never survives into a relaunch.
+ *
+ * Every shape a hand-off can take goes, so the result always reads back as no
+ * request at all rather than as a differently shaped one.
  * @param args - arguments after the executable.
  * @param platform - platform whose path semantics apply.
  * @returns the same arguments without the hand-off.
@@ -77,13 +92,17 @@ export function desktopArgumentsWithoutLaunchWorkspace(
   args: readonly string[],
   platform: NodeJS.Platform = process.platform,
 ): string[] {
-  const index = launchWorkspaceIndex(args, platform)
-  if (index < 0) return [...args]
-  const value = args[index + 1]
-  const consumed = args[index] === DESKTOP_WORKSPACE_ARGUMENT
-    && value !== undefined
-    && !value.startsWith('-')
-    ? 2
-    : 1
-  return [...args.slice(0, index), ...args.slice(index + consumed)]
+  const kept: string[] = []
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index]!
+    if (argument.startsWith(WORKSPACE_ARGUMENT_PREFIX)) continue
+    if (argument === DESKTOP_WORKSPACE_ARGUMENT) {
+      const value = args[index + 1]
+      if (value !== undefined && !value.startsWith('-')) index += 1
+      continue
+    }
+    if (isBareLaunchPath(argument, platform)) continue
+    kept.push(argument)
+  }
+  return kept
 }
