@@ -4,7 +4,7 @@ import { mkdtempSync } from 'node:fs'
 import { cleanupDisposableTree } from '../../dsh-plugin-desktop-beta/src/disposable-tree.ts'
 import { join } from 'node:path'
 import { DesktopBackendController } from './backend-controller.ts'
-import { DesktopHostProcess } from './host-process.ts'
+import { DesktopHostFatalError, DesktopHostProcess } from './host-process.ts'
 import { DesktopPreferenceStore, parsePreferences } from './desktop-preferences.ts'
 import { DEFAULT_FEATURES, NextProfiles } from './profiles.ts'
 import { DEFAULT_PREFERENCES, DEFAULT_PROFILE, type DesktopBrowserLinks, type DesktopPreferences, type DesktopState, type DesktopNotification } from './desktop-contract.ts'
@@ -57,7 +57,16 @@ export class NextDesktopRuntime {
     this.settings = new DesktopPreferenceStore(options.home)
     this.diagnostics = new DesktopDiagnostics(options.home)
     this.backend = new DesktopBackendController(onFailure => this.createHost(onFailure), state => {
-      if (state.phase === 'error' && !this.closing) this.report(state.message)
+      if (state.phase === 'error' && !this.closing) {
+        this.report(state.message)
+        // The Host now ships its complete inspected error with `fatal`. Recovery
+        // shows only the message; the stack, properties and cause chain go to the
+        // diagnostics log so a startup failure stays diagnosable after the fact.
+        const failure = state.failure
+        if (failure instanceof DesktopHostFatalError && failure.diagnostic !== undefined) {
+          this.diagnostics.append(maskSecrets(failure.diagnostic), 'error')
+        }
+      }
       this.options.onChange()
     })
   }
