@@ -6,7 +6,7 @@ import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 /**
  * Client service Desktop injects to reach the Host's configuration documents.
  * dsh 0.1.5-rc.2 names the settings binder service `settingsScope`; the Beta
- * channel's 0.1.7-alpha.1 core renamed it, so the injected name is
+ * channel's 0.1.7 core renamed it, so the injected name is
  * edition-local.
  */
 export const DESKTOP_SETTINGS_FORMS_SERVICE = 'settingsScope'

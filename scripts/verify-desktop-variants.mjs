@@ -11,7 +11,7 @@ const betaRoot = join(root, 'dsh-plugin-desktop-beta', 'src')
 const betaOnlyPaths = new Set(['profile-context.ts', 'startup-audit.ts'])
 const allowedDifferences = new Set([
   'product-identity.ts',
-  // Beta rides dsh 0.1.7-alpha.1, which collapsed the executor's two argv seams into one:
+  // Beta rides dsh 0.1.7, which collapsed the executor's two argv seams into one:
   // `runArgv`/`startArgv` are gone and `executeArgv(spec, argvOrPrepare, onStarted?)` returns
   // a single ShellExecution handle for foreground and background callers alike, so beta
   // adapts the ACL argv in exactly one override. 0.1.7 also boxes every pwsh-local Config
