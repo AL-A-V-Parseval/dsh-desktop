@@ -29,7 +29,7 @@ import {
   type ProfileManifest,
 } from '@deepseek-ai/dsh-app-boot'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
-import { isMap, isScalar, parseAllDocuments, parseDocument } from 'yaml'
+import { isMap, isPair, isScalar, parseAllDocuments, parseDocument, type Pair, type YAMLMap } from 'yaml'
 import { findOverlayPackage, resolveOverlayPackage } from './package-overlay.ts'
 import { DESKTOP_DEFAULT_WEB_PORT } from './desktop-port.ts'
 import {
@@ -263,13 +263,47 @@ export function resolveDesktopSettingsDocument(
  * window mode, all three materials, port, browser intent, network exposure, log
  * level and every notification preference, silently and irreversibly.
  *
- * The field names inside each section did not change, so a key rename is the
- * whole migration.
+ * Desktop's own two sections kept every field name, so for them the section key
+ * is the whole migration.
+ *
+ * `agent-presets` is upstream's row, not Desktop's, but it has the same gap:
+ * 0.1.7 renamed the row to `agent-preset-registry`
+ * (`packages/bundle/web-app/cordis.patch.yml:541`) without adding the pair to
+ * `LEGACY_SECTION_ENTRIES`, so the import logs `No configurable plugin entry
+ * "agent-presets"` and drops the section. The user's chosen default preset is
+ * discarded and the bundle's own `default: standard` takes over. Desktop is the
+ * only edition that owns this document before the Loader starts, so the rename
+ * has to happen here or not at all.
+ *
+ * That row also renamed the field. 0.1.6's `default` was the user's choice;
+ * 0.1.7 keeps `default` as the bundle-authored fallback and moves the choice to
+ * `selectedDefault`, which is the only one of the two declared `.volatile()`
+ * (`@deepseek-ai/dsh-agent-preset-registry/lib/index.js:454`). The distinction is
+ * not cosmetic: `SettingsForms#write` throws `Config field "default" is not
+ * volatile` before it persists anything, so importing the legacy key under its
+ * old name loses the value just as completely as dropping the section. The
+ * service reads `enabled ? selectedDefault ?? default : default`, so the
+ * imported choice takes effect as soon as it lands under the new name.
  */
-const LEGACY_DESKTOP_SETTINGS_SECTIONS: readonly (readonly [legacy: string, entryId: string])[] = Object.freeze([
-  Object.freeze(['dsh-desktop', 'desktop-shell'] as const),
-  Object.freeze(['dsh-desktop-notifications', 'desktop-notifications'] as const),
+const LEGACY_DESKTOP_SETTINGS_SECTIONS: readonly LegacySettingsSection[] = Object.freeze([
+  Object.freeze({ legacy: 'dsh-desktop', entryId: 'desktop-shell' }),
+  Object.freeze({ legacy: 'dsh-desktop-notifications', entryId: 'desktop-notifications' }),
+  Object.freeze({
+    legacy: 'agent-presets',
+    entryId: 'agent-preset-registry',
+    fields: Object.freeze([Object.freeze(['default', 'selectedDefault'] as const)]),
+  }),
 ])
+
+/** One legacy `settings.yaml` section and the 0.1.7 entry that now owns it. */
+interface LegacySettingsSection {
+  /** Section key written by 0.1.6 and earlier. */
+  readonly legacy: string
+  /** Loader entry id 0.1.7's import keys the section by. */
+  readonly entryId: string
+  /** Field renames inside the section, `[legacy, current]`; absent when none. */
+  readonly fields?: readonly (readonly [legacy: string, field: string])[]
+}
 
 /**
  * Rename Desktop's legacy sections in place so upstream's import can find them.
@@ -280,12 +314,13 @@ const LEGACY_DESKTOP_SETTINGS_SECTIONS: readonly (readonly [legacy: string, entr
  * scalar styles intact, so a document this edition does not fully understand
  * survives untouched.
  *
- * Idempotent in both directions: a document already keyed by entry id has
- * nothing to rename, and a document that somehow carries both keys keeps the
- * entry-id one, because that is the one 0.1.7 would have written.
+ * Idempotent in both directions, for section keys and for the field renames
+ * inside them: a name 0.1.7 already uses has nothing to rename, and a document
+ * that somehow carries both names keeps the current one, because that is the one
+ * 0.1.7 would have written.
  *
  * @param spec - resolved location and encoding of the settings document.
- * @returns the entry ids whose section was renamed; empty when nothing changed.
+ * @returns the entry ids whose section was rewritten; empty when nothing changed.
  */
 export function migrateDesktopSettingsDocumentSections(
   spec: DesktopSettingsDocumentSpec,
@@ -308,15 +343,29 @@ export function migrateDesktopSettingsDocumentSections(
   if (document.errors.length > 0) return []
   const contents = document.contents
   if (!isMap(contents)) return []
-  const keyed = (name: string): boolean => contents.items
-    .some(item => isScalar(item.key) && item.key.value === name)
+  const keyed = (map: YAMLMap, name: string): Pair | undefined => map.items
+    .find((item): item is Pair => isPair(item) && isScalar(item.key) && item.key.value === name)
   const migrated: string[] = []
-  for (const [legacy, entryId] of LEGACY_DESKTOP_SETTINGS_SECTIONS) {
-    if (keyed(entryId)) continue
-    const pair = contents.items.find(item => isScalar(item.key) && item.key.value === legacy)
-    if (pair === undefined || !isScalar(pair.key)) continue
-    pair.key.value = entryId
-    migrated.push(entryId)
+  for (const { legacy, entryId, fields } of LEGACY_DESKTOP_SETTINGS_SECTIONS) {
+    const current = keyed(contents, entryId)
+    const section = current ?? keyed(contents, legacy)
+    if (section === undefined || !isScalar(section.key)) continue
+    let changed = false
+    if (current === undefined) {
+      section.key.value = entryId
+      changed = true
+    }
+    const values = section.value
+    if (fields !== undefined && isMap(values)) {
+      for (const [legacyField, field] of fields) {
+        if (keyed(values, field) !== undefined) continue
+        const pair = keyed(values, legacyField)
+        if (pair === undefined || !isScalar(pair.key)) continue
+        pair.key.value = field
+        changed = true
+      }
+    }
+    if (changed) migrated.push(entryId)
   }
   if (migrated.length === 0) return []
   writeFileSync(spec.filename, String(document))

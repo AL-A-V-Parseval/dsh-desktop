@@ -858,6 +858,37 @@ virtualStoreDirMaxLength: 60
     expect(migrateDesktopSettingsDocumentSections(spec)).toEqual([])
   })
 
+  it('moves the legacy preset choice to the field 0.1.7 can persist', () => {
+    const home = temporaryHome()
+    // 0.1.6 stored the user's chosen preset in `agent-presets.default`. 0.1.7
+    // renamed the row and kept `default` as the bundle-authored fallback, which is
+    // not `.volatile()`: importing the old key under its old name throws
+    // `Config field "default" is not volatile` and the choice is lost either way.
+    writeFileSync(join(home, 'settings.yaml'), [
+      'agent-presets:',
+      '  default: minimal',
+      '',
+    ].join('\n'))
+    const spec = resolveDesktopSettingsDocument({ dshHome: home })
+
+    expect(migrateDesktopSettingsDocumentSections(spec)).toEqual(['agent-preset-registry'])
+    expect(readFileSync(spec.filename, 'utf8'))
+      .toBe(['agent-preset-registry:', '  selectedDefault: minimal', ''].join('\n'))
+    expect(migrateDesktopSettingsDocumentSections(spec)).toEqual([])
+
+    // The field alone still moves under a section 0.1.7 already keys correctly.
+    writeFileSync(spec.filename, ['agent-preset-registry:', '  default: minimal', ''].join('\n'))
+    expect(migrateDesktopSettingsDocumentSections(spec)).toEqual(['agent-preset-registry'])
+    expect(readFileSync(spec.filename, 'utf8'))
+      .toBe(['agent-preset-registry:', '  selectedDefault: minimal', ''].join('\n'))
+
+    // Both fields present: keep the one 0.1.7 writes and leave the fallback alone.
+    const both = ['agent-preset-registry:', '  selectedDefault: minimal', '  default: standard', ''].join('\n')
+    writeFileSync(spec.filename, both)
+    expect(migrateDesktopSettingsDocumentSections(spec)).toEqual([])
+    expect(readFileSync(spec.filename, 'utf8')).toBe(both)
+  })
+
   it('leaves the settings document alone when there is nothing safe to migrate', () => {
     const home = temporaryHome()
     const spec = resolveDesktopSettingsDocument({ dshHome: home })
