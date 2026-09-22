@@ -1280,3 +1280,29 @@ describe('published package surface', () => {
     expect(installedRuntime).toContain('createRestrictedProcess(api, options, commandLine, 4')
   })
 })
+
+describe('recovery bundle selection stays out of profile composition', () => {
+  it('never lets profile composition read the recovery deselection ledger', () => {
+    const profile = readFileSync(new URL('src/profile.ts', packageRoot), 'utf8')
+    expect(profile).not.toContain('desktopDeselectedBundles')
+    expect(profile).not.toContain('readDesktopRecoveryBundleInventory')
+  })
+
+  it('keeps the recovery controller off the community-market disable state writers', () => {
+    const controller = readFileSync(new URL('src/startup-recovery-controller.ts', packageRoot), 'utf8')
+    expect(controller).not.toMatch(
+      /readDesktopDisabledBundles|disableDesktopProfileBundle|enableDesktopProfileBundle/u,
+    )
+    expect(controller).toContain('setDesktopProfileBundleSelected')
+  })
+
+  it('applies a selection change without a package manager run', () => {
+    const controller = readFileSync(new URL('src/startup-recovery-controller.ts', packageRoot), 'utf8')
+    const execute = controller.indexOf('private async executeSelection(')
+    const nextMember = controller.indexOf('\n  private ', execute + 1)
+    const body = controller.slice(execute, nextMember)
+    expect(execute).toBeGreaterThanOrEqual(0)
+    expect(body).toContain('setDesktopProfileBundleSelected')
+    expect(body).not.toContain('uninstallPlugin')
+  })
+})
