@@ -187,6 +187,10 @@ import {
   type DesktopNotificationSettings,
 } from './notifications.ts'
 import {
+  desktopLaunchWorkspaceRequest,
+  type DesktopLaunchWorkspaceRequest,
+} from './launch-workspace-path.ts'
+import {
   desktopDefaultRelaunchArguments,
   desktopRecoveryModeRequested,
   desktopRecoveryRelaunchArguments,
@@ -413,6 +417,12 @@ async function start(): Promise<void> {
   // with it, so keep it for the Host exit record.
   let lastChildProcessGone: string | undefined
   let fileExporter: FileExporter | undefined
+  // A folder named by this launch waits here until the Host page is mounted.
+  // No background-Node guard applies to the first instance: a development run
+  // legitimately looks like one, and a first instance is by definition a real
+  // launch rather than a descendant command re-entering the executable.
+  let pendingLaunchWorkspacePath = desktopLaunchWorkspaceRequest(process.argv)?.path
+  let launchWorkspaceReady = false
   let runtime!: ElectronDesktopRuntime
   let logSink: LogFileSink | undefined
   let startupRecoveryController: DesktopStartupRecoveryController | undefined
@@ -638,6 +648,31 @@ async function start(): Promise<void> {
     }
     return false
   }
+  /** Apply native policy to one launch folder and hand it to the Host page. */
+  const openLaunchWorkspace = async (path: string): Promise<void> => {
+    try {
+      if (!await runtime.admitWorkspacePath(path)) return
+      const delivery = await runtime.openWorkspacePath(path)
+      if (delivery === 'unavailable') {
+        electronLogger.error(`${BIN_NAME}: no renderer could accept the launch workspace: ${path}`)
+      }
+    } catch (cause) {
+      electronLogger.error(
+        `${BIN_NAME}: failed to open the launch workspace: ${cause instanceof Error ? cause.message : String(cause)}`,
+      )
+    }
+  }
+
+  /** Take one launch folder, deferring it until the Host page can accept it. */
+  const acceptLaunchWorkspace = (request: DesktopLaunchWorkspaceRequest | undefined): void => {
+    if (request === undefined) return
+    if (!launchWorkspaceReady) {
+      pendingLaunchWorkspacePath = request.path
+      return
+    }
+    void openLaunchWorkspace(request.path)
+  }
+
   app.on('activate', () => { showPreHostSurface() })
   if (process.platform === 'darwin') app.on('did-become-active', () => { showPreHostSurface() })
   app.on('second-instance', (_event, argv) => {
@@ -645,10 +680,15 @@ async function start(): Promise<void> {
       requestQuit(0)
       return
     }
+    const launchWorkspace = desktopLaunchWorkspaceRequest(argv)
     if (isDesktopBackgroundNodeRequest(argv)) {
-      return
+      // A descendant Node command re-entered as a GUI process. Only the
+      // launcher's own flag tells a workspace hand-off apart from whatever
+      // paths that command happens to carry on its own command line.
+      if (launchWorkspace?.explicit !== true) return
     }
     if (!showPreHostSurface()) runtime.show()
+    acceptLaunchWorkspace(launchWorkspace)
   })
   try {
     await app.whenReady()
@@ -1791,6 +1831,13 @@ async function start(): Promise<void> {
       )
     }
     lifecycleRecorder.completeStartup(startupStage, rendererReport)
+    // Only a renderer that reached a healthy boot can take a workspace, so the
+    // hand-off is released here rather than beside the mount: a startup that
+    // ended in the recovery route must not also try to open a folder.
+    launchWorkspaceReady = true
+    const requestedWorkspacePath = pendingLaunchWorkspacePath
+    pendingLaunchWorkspacePath = undefined
+    if (requestedWorkspacePath !== undefined) void openLaunchWorkspace(requestedWorkspacePath)
     notifySkippedOptionalEntries(runtime, electronLogger, prepared.skippedOptionalEntries)
     notifyWindowsVolumeConcerns(runtime, electronLogger, windowsVolumeConcerns)
     if (safeModePaths !== undefined && DESKTOP_SAFE_MODE_DEFAULTS.settings.notifications.enabled) {
