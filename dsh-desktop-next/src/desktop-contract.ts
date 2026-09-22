@@ -15,6 +15,8 @@ export interface DesktopPreferences {
   closeToTray: boolean
   macosMaterial: 'off' | 'transparent'
   windowsMaterial: 'off' | 'mica'
+  /** Accepted for the shared settings surface; Linux still renders an opaque frame. */
+  linuxMaterial: 'off' | 'transparent'
   browserAccess: boolean
   networkExposure: 'loopback' | 'lan'
   port: number
@@ -29,7 +31,7 @@ export interface DesktopPreferences {
 }
 
 export const DEFAULT_PREFERENCES: Readonly<DesktopPreferences> = Object.freeze({
-  closeToTray: true, macosMaterial: 'transparent', windowsMaterial: 'off',
+  closeToTray: true, macosMaterial: 'transparent', windowsMaterial: 'off', linuxMaterial: 'off',
   browserAccess: false, networkExposure: 'loopback', port: 0, lanPort: 0, logLevel: 'info',
   notifications: true, turnCompleted: true, turnFailed: true, jobCompleted: false, jobFailed: false,
 })
@@ -58,7 +60,7 @@ export interface DesktopState {
   browserUrl: string | null
   lan: DesktopLanHttpsRuntimeSnapshot | null
   recovery?: {
-    bundles: { bundleId: string; packageName: string; status: 'active' | 'disabled'; owner: 'core' | 'profile'; action: 'uninstall' | null }[]
+    bundles: { bundleId: string; packageName: string; status: 'active' | 'disabled'; owner: 'core' | 'profile'; action: 'uninstall' | null; toggle: 'disable' | 'enable' | null }[]
     checkpoints: { id: string; created: string; fileCount: number; totalBytes: number }[]
     error?: string
     profileDirectory: string

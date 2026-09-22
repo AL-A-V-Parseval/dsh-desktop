@@ -507,6 +507,26 @@ async function recoveryAction(input: Record<string, unknown>): Promise<void> {
     await restoreCheckpoint(checkpoint.id)
     return
   }
+  if (action === 'preview-disable' || action === 'preview-enable') {
+    const enable = action === 'preview-enable'
+    const bundle = runtime.recovery.bundles(runtime.selected).find(item => item.bundleId === input.id)
+    if (!bundle || bundle.toggle !== (enable ? 'enable' : 'disable')
+      || !/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/u.test(bundle.packageName)) throw new Error('This plugin cannot be changed')
+    if (!await confirmed(
+      enable ? t(`启用插件「${bundle.packageName}」？`, `Enable “${bundle.packageName}”?`)
+        : t(`禁用插件「${bundle.packageName}」？`, `Disable “${bundle.packageName}”?`),
+      enable ? t('下次启动时会重新加载此插件。', 'The plugin will load again on the next start.')
+        : t('不会删除任何内容：插件、版本声明和配置都会保留，只是下次启动时不再加载。随时可以重新启用。',
+          'Nothing is deleted: the plugin, its version declaration and its configuration all stay. It simply will not load on the next start, and you can enable it again at any time.'))) return
+    await recoveryStopping
+    if (!runtime.safeMode) await runtime.backend.stop()
+    await runtime.recovery.setBundleSelected(runtime.selected, bundle.packageName, enable)
+    recoveryNotice = { tone: 'success', title: bundle.packageName, body: enable
+      ? t('插件已重新启用。请点击“退出并重启”使其生效。', 'The plugin is enabled again. Choose “Quit and restart” to apply it.')
+      : t('插件已禁用，安装内容仍然保留。请点击“退出并重启”使其生效。', 'The plugin is disabled and still installed. Choose “Quit and restart” to apply it.') }
+    runtime.diagnostics.append(`${enable ? 'Enabled' : 'Disabled'} bundle for ${runtime.selected}`)
+    return
+  }
   if (action === 'preview-uninstall') {
     const bundle = runtime.recovery.bundles(runtime.selected).find(item => item.bundleId === input.id)
     if (!bundle || bundle.action !== 'uninstall' || !/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/u.test(bundle.packageName)) throw new Error('This bundle cannot be uninstalled')

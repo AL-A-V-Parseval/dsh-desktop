@@ -18,6 +18,7 @@ import { desktopTerminalStateDirectory, openDesktopTerminal } from './desktop-te
 import { showDesktopMessageBox } from './desktop-dialog-window.ts'
 import { packagedDependencyPath } from './packaged-runtime-path.ts'
 import { ElectronShellGeneration } from './electron-shell-generation.ts'
+import type { DesktopOpenWorkspaceDelivery } from './launch-workspace-contract.ts'
 import { electronPlatformStrategy, type ElectronPlatformStrategy } from './electron-platform.ts'
 import type {
   DesktopNotification,
@@ -394,6 +395,31 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
   /** @inheritdoc */
   async validateDirectory(path: string): Promise<boolean> {
     return await this.workspaceAdmission.validateDirectory(path)
+  }
+
+  /**
+   * Apply native policy to a folder named by a launch.
+   *
+   * Launch hand-offs stay off the Host runtime contract: the path is native
+   * input that the main process already owns, and nothing in the Host needs to
+   * be able to ask for it.
+   * @param path - absolute folder the launch asked Desktop to open.
+   * @returns whether the folder may be registered as a workspace.
+   */
+  async admitWorkspacePath(path: string): Promise<boolean> {
+    return await this.workspaceAdmission.admitWorkspacePath(path)
+  }
+
+  /**
+   * Hand one admitted launch folder to the mounted Host page.
+   * @param path - absolute folder already admitted by native policy.
+   * @returns how the page took the folder, or `'unavailable'` before a shell
+   *   generation is mounted.
+   */
+  async openWorkspacePath(path: string): Promise<DesktopOpenWorkspaceDelivery | 'unavailable'> {
+    const generation = this.generation
+    if (generation === undefined) return 'unavailable'
+    return await generation.openWorkspacePath(path)
   }
 
   /** @inheritdoc */
