@@ -4,7 +4,14 @@ import {
   DESKTOP_PENDING_WORKSPACE_GLOBAL,
 } from '../launch-workspace-contract.ts'
 
-/** Page seam the main process evaluates against to deliver a launch folder. */
+/*
+ * Wording constraint for this file: it is bundled into the browser client, and
+ * `tests/package.spec.ts` asserts that bundle never matches the Node global
+ * token followed by a dot or a bracket. Comments are kept in the bundle, so a
+ * sentence ending on that token trips the assertion. Phrase around it.
+ */
+
+/** Page seam the main side evaluates against to deliver a launch folder. */
 export interface DesktopLaunchWorkspaceWindow {
   __DSH_DESKTOP_OPEN_WORKSPACE__?: (path: string) => void
   __DSH_DESKTOP_PENDING_WORKSPACE__?: string
@@ -16,7 +23,7 @@ export interface DesktopLaunchWorkspaceTarget {
   ready(): Promise<void>
   /**
    * Register one folder, reusing the existing Workspace when the path is known.
-   * @param path - absolute folder admitted by the main process.
+   * @param path - absolute folder the main side already admitted.
    * @returns the registered Workspace.
    */
   create(path: string): Promise<WorkspaceId>
@@ -33,7 +40,7 @@ export interface DesktopLaunchWorkspaceTarget {
  * first Host baseline lands is wholesale-replaced when that baseline installs,
  * and the subsequent open then fails against an id the list no longer holds.
  * @param target - client-context seam.
- * @param path - absolute folder admitted by the main process.
+ * @param path - absolute folder the main side already admitted.
  */
 export async function openDesktopLaunchWorkspace(
   target: DesktopLaunchWorkspaceTarget,
@@ -53,7 +60,7 @@ export async function openDesktopLaunchWorkspace(
 /**
  * Publish the launch-folder seam and drain anything delivered before it existed.
  *
- * The main process never waits for this plugin to install, so a folder that
+ * The main side never waits for this plugin to install, so a folder that
  * arrives first is parked on the page and collected here. That removes the
  * timing dependency in both directions.
  * @param target - client-context seam.
