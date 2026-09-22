@@ -99,9 +99,9 @@ describe('electronPlatformStrategy', () => {
     expect(strategy.updateDownloadPlatform).toBeUndefined()
     expect(strategy.canPickDirectory).toBe(false)
     expect(strategy.canToggleShellMode).toBe(true)
-    // No Linux desktop guarantees a status area, so a hidden window would have
-    // no way back. Linux generations minimize on close instead.
-    expect(strategy.hidesWindowOnClose).toBe(false)
+    // Wayland compositors may not implement minimize, so Linux hides on close;
+    // the tray restores the window or quits the application.
+    expect(strategy.hidesWindowOnClose).toBe(true)
 
     strategy.configureApplication({} as never, 'DSH Desktop')
     strategy.configureWindow(window as never)

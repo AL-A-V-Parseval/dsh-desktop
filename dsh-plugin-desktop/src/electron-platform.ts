@@ -95,7 +95,10 @@ class LinuxPlatformStrategy implements ElectronPlatformStrategy {
   readonly updateDownloadPlatform = undefined
   readonly canPickDirectory = false
   readonly canToggleShellMode = true
-  readonly hidesWindowOnClose = false
+  // Hide rather than minimize on Linux: several Wayland compositors do not
+  // implement minimize, so the close button would otherwise do nothing and the
+  // window could not be dismissed. The tray restores or quits.
+  readonly hidesWindowOnClose = true
 
   configureApplication(
     _icon: NativeImage,

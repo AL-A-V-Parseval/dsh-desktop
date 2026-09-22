@@ -1578,9 +1578,10 @@ describe('Electron desktop runtime', () => {
     await release()
   })
 
-  // `new Tray()` succeeds on Linux desktops that render no status area at all,
-  // so hiding the window there can strand a running Host with no way back.
-  it('minimizes instead of hiding when a Linux window is closed', async () => {
+  // Several Wayland compositors do not implement minimize, so a minimizing
+  // close would leave the window stuck on screen; Linux hides instead and the
+  // tray restores the window or quits the application.
+  it('hides when a Linux window is closed', async () => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('linux')
     const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
     const runtime = new ElectronDesktopRuntime(async () => {})
@@ -1595,15 +1596,15 @@ describe('Electron desktop runtime', () => {
     const closeEvent = { preventDefault: vi.fn() }
     close(closeEvent)
     expect(closeEvent.preventDefault).toHaveBeenCalledOnce()
-    expect(window?.minimize).toHaveBeenCalledOnce()
-    expect(window?.hide).not.toHaveBeenCalled()
+    expect(window?.hide).toHaveBeenCalledOnce()
+    expect(window?.minimize).not.toHaveBeenCalled()
 
-    // Quitting still tears the window down instead of leaving it minimized.
+    // Quitting still tears the window down instead of leaving it hidden.
     runtime.prepareToQuit()
     const quittingCloseEvent = { preventDefault: vi.fn() }
     close(quittingCloseEvent)
     expect(quittingCloseEvent.preventDefault).not.toHaveBeenCalled()
-    expect(window?.minimize).toHaveBeenCalledOnce()
+    expect(window?.minimize).not.toHaveBeenCalled()
 
     await release()
   })
