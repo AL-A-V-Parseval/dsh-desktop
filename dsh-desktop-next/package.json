@@ -190,7 +190,7 @@
     "@deepseek-ai/dsh-workspace": "0.1.7-alpha.2",
     "@deepseek-ai/schemastery": "^3.18.4",
     "dsh-community-market": "0.1.0-dev.0",
-    "dshmarket": "1.38.1",
+    "dshmarket": "1.58.0",
     "pnpm": "11.8.0",
     "react": "18.3.1",
     "selfsigned": "5.5.0",

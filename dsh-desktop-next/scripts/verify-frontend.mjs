@@ -17,6 +17,20 @@ assert.equal(local.status, 200)
 assert.equal(html.replace('<script>globalThis.__DSH_BOOT_READY__ = Promise.withResolvers()</script>', ''), official)
 assert.ok(html.includes('/assets/'), 'Official production frontend must carry built assets')
 
+// Market client bundles resolve primitives from the official Web at runtime. A
+// removed export can blank the entire settings section without breaking build.
+const marketClient = readFileSync(require.resolve('dshmarket/client'), 'utf8')
+const primitivesSource = readFileSync(require.resolve('@deepseek-ai/dsh-client-ui-primitives'), 'utf8')
+const exported = new Set(primitivesSource.match(/export \{([^}]+)\};/s)?.[1]?.split(',').map(name => name.trim()) ?? [])
+assert.ok(exported.size > 0, 'Cannot inspect official UI primitive exports')
+const directReferences = [...marketClient.matchAll(/_deepseek_ai_dsh_client_ui_primitives\.(\w+)/g)].map(match => match[1])
+const iconAliases = [...marketClient.matchAll(/pickIcon\("(\w+)", "(\w+)"\)/g)]
+assert.ok(directReferences.length > 0 && iconAliases.length > 0, 'Market bundle must resolve host primitives and icon aliases')
+for (const name of directReferences) assert.ok(exported.has(name), `Market references missing UI primitive ${name}`)
+for (const [, newer, older] of iconAliases) {
+  assert.ok(exported.has(newer) || exported.has(older), `Market icon ${newer}/${older} is unavailable`)
+}
+
 for (const platform of ['darwin', 'win32', 'linux']) {
   const exposed = new Map()
   const dataset = {}
