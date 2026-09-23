@@ -11,12 +11,12 @@ export function DesktopPermissionsSection({ service, language }: { service: Desk
   </section>
 }
 
-export function DesktopPermissionsButton({ service, language, iconOnly = false, disabled = false }: { service?: DesktopPermissions; language: string; iconOnly?: boolean; disabled?: boolean }) {
+export function DesktopPermissionsButton({ service, language, iconOnly = false, disabled = false, label: customLabel }: { service?: DesktopPermissions; language: string; iconOnly?: boolean; disabled?: boolean; label?: string }) {
   const [open, setOpen] = useState(false)
   const zh = language.startsWith('zh')
-  const label = zh ? '授权设置' : 'Permissions'
+  const label = customLabel ?? (zh ? '授权设置' : 'Permissions')
   return <>
-    <Button variant={iconOnly ? 'ghost' : 'outline'} size="sm" aria-label={label} title={label} disabled={disabled}
+    <Button variant={iconOnly ? 'ghost' : 'outline'} size="sm" aria-label={label} disabled={disabled}
       className={iconOnly ? 'dshNextSettingsGear' : undefined} icon={iconOnly ? <IconSettingsOutlineRegular /> : undefined}
       onClick={() => { setOpen(true) }}>{iconOnly ? null : label}</Button>
     <DesktopPermissionsDialog open={open} onClose={() => { setOpen(false) }} service={service} language={language} />
