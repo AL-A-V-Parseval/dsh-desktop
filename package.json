@@ -1238,7 +1238,7 @@
     "aa:check": "node scripts/prepare-agents-anywhere-release.mjs --check",
     "aa:prepare-release": "node scripts/prepare-agents-anywhere-release.mjs",
     "test:aa-release": "node --test scripts/agents-anywhere-release-policy.test.mjs",
-    "dev:next": "yarn workspace dsh-community-market build && yarn workspace dsh-desktop-next dev",
+    "dev:next": "yarn aa:prepare-release && yarn workspace dsh-community-market build && yarn workspace dsh-desktop-next dev",
     "start:next": "yarn workspace dsh-desktop-next start",
     "check:next": "yarn workspace dsh-community-market build && yarn workspace dsh-desktop-next check",
     "icons:export": "node scripts/export-app-icons.mjs",
