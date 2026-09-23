@@ -24,17 +24,6 @@ const STYLES = `
 .dshNextPluginDetail, .dshNextComputerUse { display: grid; gap: 12px; }
 .dshNextPluginActions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .dshNextPluginCardActions [role="status"], .dshNextPluginCardActions [role="alert"] { display: block; max-width: 220px; white-space: normal; }
-/* A local detail replaces only the overview view; no official package or manager source is changed. */
-[data-plugin-panel]:has([data-next-plugin-detail]) [data-plugin-page-header="list"],
-[data-plugin-panel]:has([data-next-plugin-detail]) [data-plugin-group] { display: none; }
-.dshNextPluginPage { display: grid; gap: 16px; padding-top: var(--dsh-frame-top-clearance, 0px); }
-.dshNextPluginBack { display: inline-flex; width: max-content; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: var(--dsw-alias-label-tertiary); font: inherit; font-size: 12.5px; cursor: pointer; }
-.dshNextPluginBack:hover { color: var(--dsw-alias-label-primary); }
-.dshNextPluginBack:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 2px; }
-.dshNextPluginBack svg { transform: rotate(90deg); }
-.dshNextPluginPageHead { display: flex; align-items: center; margin-top: 16px; }
-.dshNextPluginPage h2 { margin: 0; font-size: 20px; line-height: 28px; font-weight: 500; }
-.dshNextPluginPageDescription { color: var(--dsw-alias-label-secondary); font-size: 14px; line-height: 22px; }
 button.dshNextSettingsGear { width: 28px; padding: 0; }
 .dshNextPluginSettingsNotice { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; border: 1px solid var(--dsw-alias-border-l1); }
 .dshNextPluginSettingsNotice > span { flex: 1 1 220px; }

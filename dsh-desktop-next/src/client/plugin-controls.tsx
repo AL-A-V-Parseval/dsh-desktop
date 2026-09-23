@@ -2,9 +2,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
 import type { BundleInfo } from '@deepseek-ai/dsh-api-remotes/client'
-import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
-import { Button, IconChevronDownOutlineRegular, PluginArtworkDefault, PluginArtworkLoop, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, PluginArtworkDefault, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
 import { Choice, MARKET_OPTIONS, marketBody, marketTitle } from '../../../dsh-plugin-desktop-beta/src/client/DesktopSettingsSection.tsx'
 import { en as desktopEn, zh as desktopZh, type DesktopSettingsLocaleKey } from '../../../dsh-plugin-desktop-beta/src/client/desktop-settings-locales.ts'
 import { ComputerUseSettings } from './computer-use.tsx'
@@ -12,11 +12,9 @@ import { ComputerUseSettings } from './computer-use.tsx'
 const COMMUNITY = 'dsh-community-market'
 const MARKET = 'dshmarket'
 const REMOTE = '@agents-anywhere/dsh-bridge-next'
+const COMPUTER_ITEM = 'desktop-next-computer-use'
 
-function localize(translate: PropsLocale<'desktop-next'>['t']) {
-  const zh = translate('language') === 'zh'
-  return (cn: string, en: string): string => zh ? cn : en
-}
+type Translate = (cn: string, en: string) => string
 
 export function registerPluginControls(ctx: Context): void {
   ctx.inject(['remote', 'remote.pluginManager'], inner => {
@@ -25,12 +23,19 @@ export function registerPluginControls(ctx: Context): void {
         locale: 'desktop-next', inject: () => ({ context: inner }),
       }, PluginControls)
       const hidden = [COMMUNITY, MARKET, REMOTE].map(key => inner.slots.register({ name: 'plugins.bundle.hidden', key }, () => null))
-      return () => { for (const off of hidden) off(); dispose() }
+      const item = inner.slots.register({ name: 'plugins.item', id: COMPUTER_ITEM, label: 'Computer Use',
+        locale: 'desktop-next', inject: () => ({ context: inner }),
+      }, ComputerUseItem)
+      const hiddenItem = inner.slots.register({ name: 'plugins.item.hidden', key: COMPUTER_ITEM }, () => null)
+      const actions = inner.slots.register({ name: 'plugins.detail.actions', id: COMPUTER_ITEM,
+        locale: 'desktop-next', inject: () => ({ context: inner }),
+      }, ComputerUseActions)
+      return () => { actions(); hiddenItem(); item(); for (const off of hidden) off(); dispose() }
     })
   })
 }
 
-function PluginControls({ context, t: translate }: PropsLocale<'desktop-next'> & { context: Context }) {
+function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: PropsLocale<'desktop-next'> & PropsRuntime<'plugins.overview'> & { context: Context }) {
   const zh = translate('language') === 'zh'
   const t = (cn: string, en: string): string => zh ? cn : en
   const desktopCopy = zh ? desktopZh : desktopEn
@@ -42,7 +47,6 @@ function PluginControls({ context, t: translate }: PropsLocale<'desktop-next'> &
   const pending = useRef(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [detail, setDetail] = useState<'remote' | 'computer' | null>(null)
   useEffect(() => {
     const reload = (): void => { refresh(value => value + 1) }
     const off = context.remote.$on('plugin-manager/changed', reload)
@@ -81,17 +85,6 @@ function PluginControls({ context, t: translate }: PropsLocale<'desktop-next'> &
   const bothMarkets = community?.enabled === true && market?.enabled === true
   const locked = (row?: BundleInfo): boolean => loading || busy || !row || row.readOnlyReason !== undefined || row.error !== undefined
   return <div className="dshNextPluginControls" data-next-plugin-controls>
-    {detail !== null ? <div className="dshNextPluginPage" data-next-plugin-detail={detail}>
-      <button type="button" className="dshNextPluginBack" onClick={() => { setDetail(null) }}>
-        <IconChevronDownOutlineRegular aria-hidden="true" />{t('插件列表', 'Plugin list')}
-      </button>
-      <div className="dshNextPluginPageHead">
-        <span className="dshNextPluginIcon" aria-hidden="true">{detail === 'remote' ? <PluginArtworkDefault size={36} /> : <PluginArtworkLoop size={36} />}</span>
-      </div>
-      <h2>{detail === 'remote' ? t('远程控制', 'Remote control') : 'Computer Use'}</h2>
-      <p className="dshNextPluginPageDescription">{detail === 'remote' ? remoteDescription(t) : computerDescription(t)}</p>
-      {detail === 'remote' ? <RemoteControlSettings context={context} t={t} /> : <ComputerUseSettings context={context} zh={zh} />}
-    </div> : <>
     <section className="dshDesktopSettingsGroup" data-next-markets aria-labelledby="next-market-title">
       <div><h3 id="next-market-title">{desktopText('marketTitle')}</h3>
         <p className="dshDesktopSettingsGroupIntro">{desktopText('marketIntro')}</p></div>
@@ -108,29 +101,39 @@ function PluginControls({ context, t: translate }: PropsLocale<'desktop-next'> &
     </section>
     <div className="dshNextPluginSections">
       <PluginCard title={t('远程控制', 'Remote control')} description={remoteDescription(t)}
-        icon={<PluginArtworkDefault size={36} />} onOpen={() => { setDetail('remote') }}>
+        icon={<PluginArtworkDefault size={36} />} onOpen={() => { onOpenBundle(REMOTE) }}>
         <RemoteControlSettings context={context} t={t} />
       </PluginCard>
       <PluginCard title="Computer Use" description={computerDescription(t)}
-        icon={<PluginArtworkLoop size={36} />} onOpen={() => { setDetail('computer') }}>
-        <ComputerUseSettings context={context} zh={zh} compact />
+        icon={<PluginArtworkDefault size={36} />} onOpen={() => { onOpenItem(COMPUTER_ITEM) }}>
+        <ComputerUseSettings context={context} zh={zh} />
       </PluginCard>
     </div>
     {notice && <p role="status" className="dshDesktopSettingsHint">{notice}</p>}
     {error && <div role="alert" className="dshDesktopSettingsError">{error} <Button variant="outline" size="sm" disabled={loading || busy} onClick={() => { setError(''); refresh(value => value + 1) }}>{t('重试', 'Retry')}</Button></div>}
-    </>}
   </div>
 }
 
-const remoteDescription = (t: ReturnType<typeof localize>): string => t(
+const remoteDescription = (t: Translate): string => t(
   '通过 Agents Anywhere 从手机或其他设备连接。启用后，在侧边栏的“手机连接”中完成配对。',
   'Connect from your phone or another device with Agents Anywhere. After enabling, pair it from Phone connection in the sidebar.',
 )
 
-const computerDescription = (t: ReturnType<typeof localize>): string => t(
+const computerDescription = (t: Translate): string => t(
   '让 AI 查看屏幕、操作鼠标和键盘。截图理解需要支持图片输入的模型。',
   'Let AI view the screen and control the mouse and keyboard. Understanding screenshots requires a model with image input.',
 )
+
+function ComputerUseItem({ context, t, view }: PropsLocale<'desktop-next'> & PropsRuntime<'plugins.item'> & { context: Context }) {
+  const zh = t('language') === 'zh'
+  if (view === 'summary') return computerDescription((cn, en) => zh ? cn : en)
+  return <ComputerUseSettings context={context} zh={zh} mode="page" />
+}
+
+function ComputerUseActions({ context, t, subject }: PropsLocale<'desktop-next'> & PropsRuntime<'plugins.detail.actions'> & { context: Context }) {
+  if (subject.kind !== 'item' || subject.id !== COMPUTER_ITEM) return null
+  return <ComputerUseSettings context={context} zh={t('language') === 'zh'} mode="actions" />
+}
 
 function PluginCard({ title, description, icon, onOpen, children }: {
   title: string; description: string; icon: ReactNode; onOpen(): void; children: ReactNode
@@ -145,7 +148,7 @@ function PluginCard({ title, description, icon, onOpen, children }: {
   </div>
 }
 
-function RemoteControlSettings({ context, t }: { context: Context; t: ReturnType<typeof localize> }) {
+function RemoteControlSettings({ context, t }: { context: Context; t: Translate }) {
   const [row, setRow] = useState<BundleInfo>()
   const [revision, refresh] = useState(0)
   const [loading, setLoading] = useState(true)

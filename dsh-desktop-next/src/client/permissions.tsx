@@ -52,7 +52,7 @@ export function DesktopPermissionsDialog({ open, onClose, service, language }: {
     </Modal>
 }
 
-function PermissionDetails({ service, language }: { service: DesktopPermissions; language: string }) {
+export function PermissionDetails({ service, language }: { service: DesktopPermissions; language: string }) {
   const t = (zh: string, en: string): string => language.startsWith('zh') ? zh : en
   const [snapshots, setSnapshots] = useState<DesktopPermissionSnapshot[]>([])
   const [busy, setBusy] = useState(false)
