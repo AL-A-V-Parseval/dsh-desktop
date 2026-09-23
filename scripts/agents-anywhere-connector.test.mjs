@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { EventEmitter } from 'node:events'
 import { readFileSync } from 'node:fs'
@@ -25,6 +26,28 @@ function loadConnector(workspace, environment) {
 }
 
 for (const workspace of AA_WORKSPACES) {
+  test(`${workspace}: incomplete tool results retain the same hash after JSON transport`, () => {
+    const source = readFileSync(new URL(`../${workspace}/node_modules/@agents-anywhere/dsh-bridge-next/lib/index.js`, import.meta.url), 'utf8')
+    const region = name => {
+      const start = source.indexOf(`//#region src/host/dsh-runtime/${name}.ts`)
+      const end = source.indexOf('//#endregion', start)
+      assert.ok(start >= 0 && end > start)
+      return source.slice(start, end)
+    }
+    const createProjection = runInNewContext(
+      ['identity', 'tools', 'history'].map(region).join('\n') + ';createProjection',
+      { createHash, Buffer, json: value => JSON.parse(JSON.stringify(value)), record: value => value ?? {} },
+    )
+    const projection = createProjection('native-session', 'platform-session')
+    projection.apply({ type: 'tool/result', seq: 0, time: '2026-09-24T00:00:00Z',
+      data: { message: { content: [{}] }, meta: {} } })
+    const item = JSON.parse(JSON.stringify(projection.snapshot()[0]))
+    // Python json.dumps(..., sort_keys=True, separators=(',', ':')) for this payload.
+    const canonical = '{"content":{"dshResultMeta":{},"input":{},"isError":false,"kind":"tool_call","output":"","result":[],"title":"tool","toolName":"tool"},"role":"assistant","status":"done","type":"tool"}'
+    assert.equal(item.contentHash, `sha256:${createHash('sha256').update(canonical).digest('hex')}`)
+    assert.equal(Object.hasOwn(item.content, 'callId'), false)
+  })
+
   test(`${workspace}: Python gets a compatible bypass list without changing the parent`, async () => {
     const env = {
       NO_PROXY: 'localhost,127.0.0.1,::1,[::1],.example.com',
