@@ -7,7 +7,7 @@
 // before it could launch. The dsh-subprocess-local patch scopes the flag to the
 // runner child alone.
 
-import { startIsolatedDesktopHost } from './host-process.ts'
+import { formatUnexpectedHostExit, startIsolatedDesktopHost } from './host-process.ts'
 import { app, crashReporter, safeStorage, session, shell } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
@@ -1651,7 +1651,7 @@ async function start(): Promise<void> {
         prepareCertificate: prepareHostCertificate,
         bindHost: host => generation.bindHost(host), requestQuit,
         onFailure: (error, exit) => {
-          electronLogger.error(error.message)
+          electronLogger.error(formatUnexpectedHostExit(error, exit))
           lifecycleRecorder.recordHostExit({
             exitCode: exit.exitCode,
             expected: false,
