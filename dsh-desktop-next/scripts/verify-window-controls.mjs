@@ -20,7 +20,7 @@ mkdirSync(workspace)
 const screenshots = join(root, '.desktop-next', 'verification')
 const manager = new NextProfiles(home)
 manager.ensure('desktop')
-manager.setFeatures('desktop', { market: false, remoteControl: false })
+manager.setFeatures('desktop', { market: true, remoteControl: false })
 // The renderer below simulates darwin, so the Host must mount the matching
 // `native` directory flow for the preload-backed picker to be the surface under
 // test. Upstream's chooser resolves `browse` on a Linux host with no
@@ -64,7 +64,7 @@ try {
   const loginToken = 'L'.repeat(43)
   let rejectPreference = false
   const controlState = {
-    selected: 'desktop', profiles: ['desktop', 'work', 'broken'], unavailableProfiles: ['broken'], features: { market: false, remoteControl: false },
+    selected: 'desktop', profiles: ['desktop', 'work', 'broken'], unavailableProfiles: ['broken'], features: { market: true, remoteControl: false },
     preferences: { closeToTray: true, macosMaterial: 'transparent', windowsMaterial: 'off', browserAccess: false,
       networkExposure: 'loopback', port: 0, lanPort: 0, logLevel: 'info', notifications: true,
       turnCompleted: true, turnFailed: true, jobCompleted: false, jobFailed: false },
@@ -256,14 +256,39 @@ try {
   assert.equal(await markets.getByRole('radio').count(), 2)
   const communityChoice = markets.getByRole('radio', { name: /dsh-community-market/ })
   const dshChoice = markets.getByRole('radio', { name: /dsh-market/ })
+  const assertMarketStyles = async stage => {
+    assert.equal(await page.locator('#dsh-desktop-settings-styles').getAttribute('data-plugin'), 'dsh-desktop-next',
+      `Shared settings CSS belongs to Next ${stage}, never to whichever optional plugin loads next`)
+    const styles = await markets.getByRole('radio').evaluateAll(choices => choices.map(choice => ({
+      display: getComputedStyle(choice).display,
+      padding: getComputedStyle(choice).padding,
+      borderRadius: getComputedStyle(choice).borderRadius,
+    })))
+    assert.deepEqual(styles, Array(2).fill({ display: 'flex', padding: '13px 14px', borderRadius: '10px' }),
+      `Market choices retain their stylesheet ${stage}`)
+  }
+  await assertMarketStyles('on initial load')
   await communityChoice.getByText('DSH Desktop 内置的开放插件市场，支持添加和选择自定义插件数据源。').waitFor()
   assert.equal(await dshChoice.getByRole('link', { name: 'awesome-dsh-plugin', exact: true }).count(), 1)
   const waitSelected = async choice => {
-    await page.waitForFunction(selector => document.querySelector(selector)?.getAttribute('aria-checked') === 'true', choice)
+    await page.waitForFunction(selector => {
+      const choice = document.querySelector(selector)
+      return choice?.getAttribute('aria-checked') === 'true' && choice.getAttribute('aria-disabled') !== 'true'
+    }, choice)
   }
   await communityChoice.click({ position: { x: 10, y: 10 } })
   await waitSelected('[data-next-markets] [role="radio"]:first-child')
+  await assertMarketStyles('after enabling Community Market')
   const marketFooter = footer.getByRole('button', { name: /插件市场|Plugin market/ })
+  await marketFooter.waitFor()
+  // Exercise pointer selection and optional-plugin teardown before AA can load
+  // and accidentally claim an untagged settings sheet for its own lifetime.
+  await dshChoice.click({ position: { x: 10, y: 10 } })
+  await waitSelected('[data-next-markets] [role="radio"]:last-child')
+  await assertMarketStyles('after the first pointer switch')
+  await communityChoice.click({ position: { x: 10, y: 10 } })
+  await waitSelected('[data-next-markets] [role="radio"]:first-child')
+  await assertMarketStyles('after unloading the first dsh-market instance')
   await marketFooter.waitFor()
   const remote = controls.getByRole('switch', { name: /启用远程控制|Enable remote control/ })
   const remoteGear = controls.locator('[data-next-remote-control]').getByRole('button', { name: /^(打开面板|Open panel)$/ })
@@ -281,6 +306,7 @@ try {
   await dshChoice.focus()
   await dshChoice.press('Space')
   await waitSelected('[data-next-markets] [role="radio"]:last-child')
+  await assertMarketStyles('after switching to dsh-market')
   assert.equal(await communityChoice.getAttribute('aria-checked'), 'false')
   assert.equal(await remote.isChecked(), true)
   await marketFooter.waitFor({ state: 'hidden' })
@@ -292,8 +318,10 @@ try {
   assert.ok(await page.locator('[data-dsh-market-root] svg').count() > 0)
   assert.deepEqual(errors, [])
   await page.getByRole('button', { name: /^(关闭|Close)$/ }).click()
+  await assertMarketStyles('after opening and closing dsh-market')
   await communityChoice.click({ position: { x: 10, y: 10 } })
   await waitSelected('[data-next-markets] [role="radio"]:first-child')
+  await assertMarketStyles('after switching back to Community Market')
   assert.equal(await dshChoice.getAttribute('aria-checked'), 'false')
   assert.equal(await remote.isChecked(), true)
   await marketFooter.waitFor()
