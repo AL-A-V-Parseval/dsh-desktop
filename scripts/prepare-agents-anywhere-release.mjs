@@ -4,7 +4,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, 
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { AA_REPOSITORY, AA_WORKSPACES, assertPreparedAaRelease, runtimePeerRanges as readRuntimePeerRanges } from './agents-anywhere-release-policy.mjs'
+import { AA_PACKAGE, AA_REPOSITORY, AA_WORKSPACES, aaConnectorResolution, assertPreparedAaRelease, runtimePeerRanges as readRuntimePeerRanges } from './agents-anywhere-release-policy.mjs'
 import { prepareInstalledAaRuntime } from './prepare-agents-anywhere-runtime.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -179,7 +179,7 @@ function prepare() {
     console.log(`Reusing verified AA artifact ${currentProvenance.artifact}`)
     return
   }
-  const snapshotPaths = [...packagePaths, 'yarn.lock', 'vendor/agents-anywhere/provenance.json']
+  const snapshotPaths = ['package.json', ...packagePaths, 'yarn.lock', 'vendor/agents-anywhere/provenance.json']
   const snapshots = new Map(snapshotPaths.map(path => [path, readFileSync(join(root, path))]))
   let targetArtifact
   let published = false
@@ -243,6 +243,9 @@ function prepare() {
       manifest.dependencies['@agents-anywhere/dsh-bridge-next'] = `file:../vendor/agents-anywhere/${artifactName}`
       writeFileSync(join(root, path), `${JSON.stringify(manifest, null, 2)}\n`)
     }
+    const rootManifest = readJson(join(root, 'package.json'))
+    rootManifest.resolutions[AA_PACKAGE] = aaConnectorResolution(artifactName)
+    writeFileSync(join(root, 'package.json'), `${JSON.stringify(rootManifest, null, 2)}\n`)
     run('corepack', ['yarn', 'install', '--mode=skip-build'], root)
     prepareInstalledAaRuntime(root)
     assertPreparedAaRelease(root, commit)

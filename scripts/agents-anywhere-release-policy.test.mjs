@@ -4,7 +4,7 @@ import { accessSync, chmodSync, constants, mkdirSync, mkdtempSync, readFileSync,
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
-import { AA_PACKAGE, AA_PEERS, AA_REPOSITORY, AA_WORKSPACES, assertPreparedAaRelease } from './agents-anywhere-release-policy.mjs'
+import { AA_PACKAGE, AA_PEERS, AA_REPOSITORY, AA_WORKSPACES, aaConnectorResolution, assertPreparedAaRelease } from './agents-anywhere-release-policy.mjs'
 import { patchManifest } from './prepare-agents-anywhere-release.mjs'
 import { prepareInstalledAaRuntime } from './prepare-agents-anywhere-runtime.mjs'
 
@@ -25,6 +25,7 @@ function fixture(t) {
     write(path, data)
   }
   const runtimePeers = Object.fromEntries(AA_PEERS.map(name => [name, '0.1.5-rc.2 || 0.1.6-alpha.2']))
+  write('package.json', { resolutions: { [AA_PACKAGE]: aaConnectorResolution(artifact) } })
   for (const [index, workspace] of AA_WORKSPACES.entries()) {
     write(`${workspace}/package.json`, {
       dependencies: {
@@ -45,6 +46,12 @@ function fixture(t) {
 test('accepts the latest AA across Stable, Beta and Next runtime peers', t => {
   const { root } = fixture(t)
   assert.equal(assertPreparedAaRelease(root, commit).commit, commit)
+})
+
+test('rejects a compatibility patch pinned to a previous AA artifact', t => {
+  const { root, patch } = fixture(t)
+  patch('package.json', data => { data.resolutions[AA_PACKAGE] = aaConnectorResolution('old.tgz') })
+  assert.throws(() => assertPreparedAaRelease(root, commit), /compatibility patch references a different AA artifact/)
 })
 
 test('pins the AA staging type graph while keeping both Desktop runtime peer ranges', t => {

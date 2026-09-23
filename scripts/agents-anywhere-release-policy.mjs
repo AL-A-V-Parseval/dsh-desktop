@@ -8,6 +8,10 @@ export const AA_PACKAGE = '@agents-anywhere/dsh-bridge-next'
 export const AA_WORKSPACES = ['dsh-plugin-desktop', 'dsh-plugin-desktop-beta', 'dsh-desktop-next']
 export const AA_PEERS = ['@deepseek-ai/dsh-typert-protocol', '@deepseek-ai/dsh-llm', '@deepseek-ai/dsh-session']
 
+export function aaConnectorResolution(artifact) {
+  return `patch:${AA_PACKAGE}@file%3Avendor/agents-anywhere/${artifact}#./patches/agents-anywhere-connector-httpx.patch`
+}
+
 const json = path => JSON.parse(readFileSync(path, 'utf8'))
 
 export function runtimePeerRanges(root) {
@@ -27,6 +31,7 @@ export function assertPreparedAaRelease(root, expectedCommit, { installed = true
   if (provenance.repository !== AA_REPOSITORY) fail('unexpected source repository')
   const artifact = provenance.artifact
   if (typeof artifact !== 'string' || basename(artifact) !== artifact || !artifact.endsWith('.tgz')) fail('invalid artifact path')
+  if (json(join(root, 'package.json')).resolutions?.[AA_PACKAGE] !== aaConnectorResolution(artifact)) fail('Connector compatibility patch references a different AA artifact')
   if (JSON.stringify(provenance.runtimePeers) !== JSON.stringify(runtimePeerRanges(root))) fail('runtime peers have changed')
   if (!provenance.desktopVersion?.includes(`.desktop.c${expectedCommit.slice(0, 12)}.`)) fail('artifact version does not identify the selected commit')
   const bytes = readFileSync(join(root, 'vendor/agents-anywhere', artifact))
