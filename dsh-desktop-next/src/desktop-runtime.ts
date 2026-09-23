@@ -4,7 +4,7 @@ import { mkdtempSync } from 'node:fs'
 import { cleanupDisposableTree } from '../../dsh-plugin-desktop-beta/src/disposable-tree.ts'
 import { join } from 'node:path'
 import { DesktopBackendController } from './backend-controller.ts'
-import { DesktopHostFatalError, DesktopHostProcess } from './host-process.ts'
+import { DesktopHostFatalError, DesktopHostProcess, type DesktopPlatformLoginRequest } from './host-process.ts'
 import { DesktopPreferenceStore, parsePreferences } from './desktop-preferences.ts'
 import { DEFAULT_FEATURES, NextProfiles } from './profiles.ts'
 import { DEFAULT_PREFERENCES, DEFAULT_PROFILE, type DesktopBrowserLinks, type DesktopPreferences, type DesktopState, type DesktopNotification } from './desktop-contract.ts'
@@ -32,6 +32,7 @@ interface RuntimeOptions {
   onTerminal(): void
   onNotification(notification: DesktopNotification): void
   onPermission?(action: DesktopPermissionAction, permission: DesktopPermission): Promise<DesktopPermissionSnapshot>
+  onPlatformLogin?(request: DesktopPlatformLoginRequest): void
 }
 
 export class NextDesktopRuntime {
@@ -260,7 +261,7 @@ export class NextDesktopRuntime {
         [SYSTEM_PROXY_ENV]: JSON.stringify(options.systemProxy?.() ?? {}),
         ...(this.safeMode ? { DSH_TELEMETRY_DISABLED: '1' } : {}) },
       onFailure, undefined, undefined, join(options.root, 'lib', 'host.js'), options.onRestart, options.onNotification,
-      chunk => this.diagnostics.hostChunk(chunk), options.onTerminal, options.onPermission)
+      chunk => this.diagnostics.hostChunk(chunk), options.onTerminal, options.onPermission, undefined, options.onPlatformLogin)
     this.hostProcess = host
     return {
       start: async (): Promise<void> => {

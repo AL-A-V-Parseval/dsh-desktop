@@ -28,6 +28,7 @@ import { createNativePermissions, installMediaPermissions } from './electron-per
 import { readDataDirectory, validateDataDirectory } from './data-directory.ts'
 import { maskSecrets } from './mask-secrets.ts'
 import { DesktopBrowserGuests } from './browser-guests.ts'
+import { PlatformLoginWindow } from './platform-login-window.ts'
 import { NextUpdates } from './updates.ts'
 import { NextUpdateInstaller } from './update-installer.ts'
 import { updateLabel } from './update-state.ts'
@@ -80,6 +81,20 @@ const runtime = new NextDesktopRuntime({
   onRestart: () => run({ type: 'restart' }),
   onTerminal: () => run({ type: 'terminal' }),
   onNotification: notification => native.notify(notification),
+  onPlatformLogin: (request) => {
+    if (quitting || !app.isReady()) return
+    if (request.action === 'close') {
+      platformLogin.close()
+      if (request.focus) openMain()
+      return
+    }
+    const url = platformLoginUrl(request.url)
+    // A system browser reaches the Host's loopback callback only while browser access is on;
+    // otherwise the built-in window replays the callback with the native credentials.
+    if (runtime.state().browserUrl !== null) {
+      void shell.openExternal(url).catch(error => runtime.diagnostics.append(String(error), 'warn'))
+    } else platformLogin.open(url)
+  },
   onPermission: async (action, permission) => {
     if (quitting) throw new Error('Desktop is shutting down')
     const snapshot = permissions.query(permission)
@@ -91,6 +106,11 @@ const runtime = new NextDesktopRuntime({
     }
     return snapshot
   },
+})
+const platformLogin = new PlatformLoginWindow({
+  BrowserWindow, session: partition => session.fromPartition(partition), host: () => runtime.auth,
+  parent: () => mainWindow, title: () => t('登录 DeepSeek', 'Sign in to DeepSeek'), dark: () => nativeTheme.shouldUseDarkColors,
+  warn: error => runtime.diagnostics.append(String(error), 'warn'),
 })
 const native = new NativeDesktop({ root, language: () => windowsLanguage, state, window: () => mainWindow,
   show: openMain, run, warn: error => runtime.diagnostics.append(String(error), 'warn') })
@@ -133,6 +153,18 @@ function assertSender(event: Pick<IpcMainInvokeEvent, 'sender' | 'senderFrame'>,
 function assertDesktopSender(event: Pick<IpcMainInvokeEvent, 'sender' | 'senderFrame'>): void {
   if (event.sender === mainWindow?.webContents) assertSender(event, mainWindow, APP_URL)
   else assertSender(event, shellWindow, 'dsh-app://shell/')
+}
+/**
+ * Carry the effective palette into the Platform login page, as upstream Desktop does.
+ * `system` resolves through `nativeTheme.shouldUseDarkColors`, which follows the theme
+ * source preload-theme.ts publishes.
+ * @param authorizeUrl - authorization URL already validated by host-process.ts.
+ * @returns the URL carrying `theme=light` or `theme=dark`.
+ */
+function platformLoginUrl(authorizeUrl: string): string {
+  const url = new URL(authorizeUrl)
+  url.searchParams.set('theme', nativeTheme.shouldUseDarkColors ? 'dark' : 'light')
+  return url.href
 }
 function show(window: BrowserWindow): void {
   if (quitting || window.isDestroyed()) return
@@ -770,6 +802,7 @@ app.on('before-quit', event => {
     if (window && !window.isDestroyed()) window.hide()
   }
   native.close()
+  platformLogin.close()
   void Promise.all([updates.dispose(installingUpdate), (async () => { await recoveryRunner?.dispose(); await runtime.close() })()]).then(async () => {
     if (installingUpdate) {
       try { await updateInstaller.launch() }

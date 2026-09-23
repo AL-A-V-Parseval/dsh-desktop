@@ -16,6 +16,7 @@ import type NextWebServer from '../webserver.ts'
 import { disableAsarArchiveView } from '../asar-archive-policy.ts'
 import { maskSecrets } from '../mask-secrets.ts'
 import { parseSystemProxyProbe, SYSTEM_PROXY_ENV, withSystemProxy } from '../system-proxy.ts'
+import { watchPlatformLogin, type PlatformLoginAccount } from './platform-login.ts'
 
 export async function main(): Promise<void> {
   // The Host lists and reads user workspaces; see asar-archive-policy.ts.
@@ -61,7 +62,9 @@ export async function main(): Promise<void> {
     process.send(value, error => error ? reject(error) : resolveSend())
   })
   let stopping: Promise<void> | undefined
+  const accountWatch = new AbortController()
   const stop = (): Promise<void> => stopping ??= (async () => {
+    accountWatch.abort()
     const running = await application.catch(() => undefined)
     await running?.shutdown.shutdown(0)
     await send({ type: 'shutdown-complete' })
@@ -95,6 +98,12 @@ export async function main(): Promise<void> {
   const { ctx } = await application
   await send({ type: 'ready', url: ctx.connection.authenticatedUrl(`http://127.0.0.1:${ctx.webServer.port}`),
     injections: ctx.webServer.collectIndexInjections() })
+  const account = ctx.get('deepseekAccount') as PlatformLoginAccount | undefined
+  if (account !== undefined && !stopping) {
+    // A broken watcher only loses the automatic browser hand-off; the dialog still offers the link.
+    void watchPlatformLogin(account, (request) => { void send({ type: 'platform-login', ...request }).catch(() => {}) }, accountWatch.signal)
+      .catch((error: unknown) => { if (!accountWatch.signal.aborted) console.error('[dsh-desktop-next] platform login watcher stopped', error) })
+  }
 }
 
 /** Upper bound of the startup diagnostic carried over IPC; the head holds the message and stack. */
