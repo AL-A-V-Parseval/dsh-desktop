@@ -180,6 +180,7 @@ describe('published package surface', () => {
         '@deepseek-ai/dsh-client-ui-renderer',
         '@deepseek-ai/dsh-client-ui-settings',
         '@deepseek-ai/dsh-client-ui-theme',
+        '@deepseek-ai/dsh-client-ui-workspace',
       ],
     })
     expect(readFileSync(new URL('cordis.patch.yml', packageRoot), 'utf8')).toContain('name: dsh-plugin-desktop')
@@ -476,6 +477,44 @@ describe('published package surface', () => {
     expect(main).not.toContain('disposeDshRuntime')
   })
 
+  it('installs the outbound proxy policy in both processes before anything can request', () => {
+    const main = readFileSync(new URL('src/main.ts', packageRoot), 'utf8')
+    const launchEnv = main.indexOf('const desktopLaunchEnvironment = withDesktopDshHome')
+    const probe = main.indexOf('probe: await probeSystemProxy()')
+    const overlay = main.indexOf('const proxyResolution = buildDesktopProxyOverlay(')
+    const install = main.indexOf('await installProxyFromEnvironment(')
+    const own = main.indexOf('generation.own(() => { void releaseProxy() })')
+    const host = main.indexOf('await startIsolatedDesktopHost({')
+
+    // The overlay is built from the launch environment, so it cannot precede it; the installation
+    // has to beat the Host, which starts requesting as soon as its plugins mount.
+    expect(launchEnv).toBeGreaterThanOrEqual(0)
+    expect(overlay).toBeGreaterThan(launchEnv)
+    expect(probe).toBeGreaterThan(launchEnv)
+    expect(install).toBeGreaterThan(overlay)
+    expect(own).toBeGreaterThan(install)
+    expect(host).toBeGreaterThan(install)
+    // A summary is written on every start, including the direct one: a report that the application
+    // cannot reach the network is unanswerable without knowing which route it took.
+    expect(main).toContain('electronLogger.info(`${BIN_NAME}: ${proxyResolution.summary}`)')
+    expect(main).toContain('desktopProxyOverlay: proxyResolution.overlay')
+
+    const entry = readFileSync(new URL('src/host-process-entry.ts', packageRoot), 'utf8')
+    const hostInstall = entry.indexOf('releaseProxy = await installProxyFromEnvironment(')
+    const hostBoot = entry.indexOf('await bootDesktopHost(')
+    const hostRelease = entry.indexOf('await releaseProxy?.()')
+
+    // The Host installs its own: the global dispatcher, `proxyRouteFor`'s state, and the child
+    // environment are module-private per process, so the supervisor's installation never arrives.
+    expect(hostInstall).toBeGreaterThanOrEqual(0)
+    expect(hostBoot).toBeGreaterThan(hostInstall)
+    expect(hostRelease).toBeGreaterThanOrEqual(0)
+    // The supervisor already logged the route; a second copy of the URL only adds another place a
+    // user's pasted log can disagree with itself.
+    expect(entry).not.toContain('proxyResolution')
+    expect(entry).toContain('host outbound proxy policy installed')
+  })
+
   it('keeps the release-age override in the shared process-local pnpm policy', () => {
     const policy = readFileSync(new URL('src/pnpm-policy.ts', packageRoot), 'utf8')
     const main = readFileSync(new URL('src/main.ts', packageRoot), 'utf8')
@@ -635,9 +674,11 @@ describe('published package surface', () => {
     const marketLegacyMirror = main.indexOf('await selectDesktopMarketProvider(marketUserDataDir, provider)', marketStateWrite)
     const deleteProfile = main.indexOf('await deleteDesktopProfile({')
     const clearPreferences = main.indexOf('await clearDesktopProfilePreferences(', deleteProfile)
-    const captureDesktop = main.indexOf('namespace !== DESKTOP_SETTINGS_NAMESPACE', marketLegacyMirror)
-    const captureNotifications = main.indexOf('namespace !== DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE', captureDesktop)
-    const captureFailure = main.indexOf('failed to capture active Profile settings', captureNotifications)
+    const captureObserver = main.indexOf('observeDesktopPreferenceSettings(ctx, fileExporter, enqueueProfilePreferencesWrite)', marketLegacyMirror)
+    const settingsBridge = readFileSync(new URL('src/settings-bridge.ts', packageRoot), 'utf8')
+    const captureDesktop = settingsBridge.indexOf('namespace !== DESKTOP_SETTINGS_ENTRY_ID')
+    const captureNotifications = settingsBridge.indexOf('namespace !== DESKTOP_NOTIFICATIONS_SETTINGS_ENTRY_ID', captureDesktop)
+    const captureFailure = settingsBridge.indexOf('failed to capture active Profile settings', captureNotifications)
 
     const aaController = main.indexOf('selectAa: async enabled => {')
     const aaWrite = main.slice(aaController, main.indexOf('readWeb:', aaController))
@@ -666,10 +707,12 @@ describe('published package surface', () => {
     expect(marketStateWrite).toBeGreaterThan(marketController)
     expect(marketLegacyMirror).toBeGreaterThan(marketStateWrite)
     expect(clearPreferences).toBeGreaterThan(deleteProfile)
+    expect(captureObserver).toBeGreaterThan(marketLegacyMirror)
+    expect(captureDesktop).toBeGreaterThanOrEqual(0)
     expect(captureNotifications).toBeGreaterThan(captureDesktop)
     expect(captureFailure).toBeGreaterThan(captureNotifications)
     expect(main.slice(deleteProfile, clearPreferences)).toContain('}, name)')
-    expect(main.slice(clearPreferences, captureDesktop)).toContain('deleted Profile left stale preference state')
+    expect(main.slice(clearPreferences, captureObserver)).toContain('deleted Profile left stale preference state')
   })
 
   it('wires lifecycle evidence through key startup stages and terminal outcomes', () => {
@@ -865,25 +908,29 @@ describe('published package surface', () => {
     expect(manifest.scripts?.['dist:mac-smoke']).toBe('node scripts/package-mac.ts')
     expect(manifest.scripts?.['dist:win']).toBe('node scripts/package-win.ts')
     expect(manifest.scripts?.['dist:win-portable']).toBe('node scripts/package-win-portable.ts')
-    expect(manifest.scripts?.['check:win-package']).toContain('yarn workspace dsh-community-market build')
-    expect(manifest.scripts?.['check:win-package']).toContain('yarn run build')
-    expect(manifest.scripts?.['check:win-package']).toContain('yarn run typecheck')
-    expect(manifest.scripts?.['check:win-package']).toContain('tests/package-win.spec.ts')
-    expect(manifest.scripts?.['check:win-package']).toContain('tests/desktop-installer-quit.spec.ts')
-    expect(manifest.scripts?.['check:win-package']).toContain('tests/installer-nsh.spec.ts')
-    expect(manifest.scripts?.['check:win-package']).toContain('tests/verify-win-portable.spec.ts')
-    expect(manifest.scripts?.['check:win-package']).toContain('tests/update-checker.spec.ts')
-    expect(manifest.scripts?.['check:win-package']).toContain('tests/update-download.spec.ts')
-    expect(manifest.scripts?.['check:win-package']).toContain('tests/windows-volume-diagnostics.spec.ts')
-    expect(manifest.scripts?.['check:win-package']).not.toContain('verify:win-minimal-pty')
-    expect(manifest.scripts?.['check:win-package']).toContain('yarn run verify:closure')
-    expect(manifest.scripts?.['check:mac-package']).toContain('yarn workspace dsh-community-market build')
-    expect(manifest.scripts?.['check:mac-package']).toContain('yarn run build')
-    expect(manifest.scripts?.['check:mac-package']).toContain('yarn run typecheck')
-    expect(manifest.scripts?.['check:mac-package']).toContain('tests/package-mac.spec.ts')
-    expect(manifest.scripts?.['check:mac-package']).toContain('tests/verify-mac-smoke.spec.ts')
-    expect(manifest.scripts?.['check:mac-package']).toContain('tests/mac-universal.spec.ts')
-    expect(manifest.scripts?.['check:mac-package']).toContain('yarn run verify:closure')
+    expect(manifest.scripts?.['check:win-package:platform']).toContain('yarn workspace dsh-community-market build')
+    expect(manifest.scripts?.['check:win-package:platform']).toContain('yarn run build')
+    expect(manifest.scripts?.['check:win-package']).toBe('yarn run check:win-package:platform && yarn run typecheck')
+    expect(manifest.scripts?.['check:win-package:platform']).not.toContain('typecheck')
+    expect(manifest.scripts?.['check:win-package:platform']).toContain('tests/package-win.spec.ts')
+    expect(manifest.scripts?.['check:win-package:platform']).toContain('tests/desktop-installer-quit.spec.ts')
+    expect(manifest.scripts?.['check:win-package:platform']).toContain('tests/installer-nsh.spec.ts')
+    expect(manifest.scripts?.['check:win-package:platform']).toContain('tests/verify-win-portable.spec.ts')
+    expect(manifest.scripts?.['check:win-package:platform']).toContain('tests/update-checker.spec.ts')
+    expect(manifest.scripts?.['check:win-package:platform']).toContain('tests/update-download.spec.ts')
+    expect(manifest.scripts?.['check:win-package:platform']).toContain('tests/windows-volume-diagnostics.spec.ts')
+    expect(manifest.scripts?.['check:win-package:platform']).not.toContain('verify:win-minimal-pty')
+    expect(manifest.scripts?.['check:win-package:platform']).toContain('yarn run verify:closure')
+    expect(manifest.scripts?.['check:mac-package:platform']).toContain('yarn workspace dsh-community-market build')
+    expect(manifest.scripts?.['check:mac-package:platform']).toContain('yarn run build')
+    expect(manifest.scripts?.['check:mac-package']).toBe('yarn run check:mac-package:platform && yarn run typecheck')
+    expect(manifest.scripts?.['check:mac-package:platform']).not.toContain('typecheck')
+    expect(manifest.scripts?.['check:mac-package:platform']).toContain('tests/package-mac.spec.ts')
+    expect(manifest.scripts?.['check:mac-package:platform']).toContain('tests/verify-mac-smoke.spec.ts')
+    expect(manifest.scripts?.['check:mac-package:platform']).toContain('tests/mac-universal.spec.ts')
+    expect(manifest.scripts?.['check:mac-package:platform']).toContain('yarn run verify:closure')
+    expect(manifest.scripts?.['check:linux-package']).toBe('yarn run check:linux-package:platform && yarn run typecheck')
+    expect(manifest.scripts?.['check:linux-package:platform']).not.toContain('typecheck')
     expect(manifest.scripts?.['verify:cli']).toBe('node scripts/verify-cli-runtime.mjs')
     expect(manifest.scripts?.check).toContain('yarn run verify:cli')
     expect(workspaceManifest.scripts?.['dist:mac'])
@@ -926,16 +973,20 @@ describe('published package surface', () => {
 
     expect(windowsJob).not.toContain('- run: yarn check')
     expect(windowsJob).toContain('workspace: [dsh-plugin-desktop, dsh-plugin-desktop-beta]')
-    expect(windowsJob).toContain('- run: yarn workspace ${{ matrix.workspace }} check:win-package')
+    expect(windowsJob).toContain('- run: yarn workspace ${{ matrix.workspace }} check:win-package:platform')
     expect(windowsJob).toContain('run: yarn workspace ${{ matrix.workspace }} dist:win')
     expect(windowsJob).toContain('run: yarn workspace ${{ matrix.workspace }} dist:win-portable')
     expect(windowsJob).toContain('DSH_PACKAGE_CHECK_ALREADY_RAN: \'1\'')
+    // Smoke artifacts are never published, so CI skips their compression.
+    expect(windowsJob.match(/DSH_WINDOWS_PACKAGE_COMPRESSION: store/g)).toHaveLength(2)
     expect(macosJob).not.toContain('- run: yarn check')
     expect(macosJob).toContain('workspace: [dsh-plugin-desktop, dsh-plugin-desktop-beta]')
-    expect(macosJob).toContain('- run: yarn workspace ${{ matrix.workspace }} check:mac-package')
+    expect(macosJob).toContain('- run: yarn workspace ${{ matrix.workspace }} check:mac-package:platform')
     expect(macosJob).toContain('run: yarn workspace ${{ matrix.workspace }} dist:mac-smoke')
     expect(macosJob).toContain('DSH_PACKAGE_CHECK_ALREADY_RAN: \'1\'')
     expect(macosJob).not.toContain('- run: yarn dist:mac-smoke')
+    // Pull requests skip the universal merge; master pushes still package it.
+    expect(macosJob).toContain("DSH_MAC_SMOKE_ARCH: ${{ github.event_name == 'pull_request' && 'arm64' || 'universal' }}")
   })
 
   it('skips product packaging only for documentation-only changes', () => {
@@ -1294,5 +1345,31 @@ describe('published package surface', () => {
     expect(installedRuntime.match(/wShowWindow: 0,/gu)).toHaveLength(2)
     expect(installedRuntime).toContain('createRestrictedProcess(api, options, buildCommandLine(options.command, options.args), 0')
     expect(installedRuntime).toContain('createRestrictedProcess(api, options, commandLine, 4')
+  })
+})
+
+describe('recovery bundle selection stays out of profile composition', () => {
+  it('never lets profile composition read the recovery deselection ledger', () => {
+    const profile = readFileSync(new URL('src/profile.ts', packageRoot), 'utf8')
+    expect(profile).not.toContain('desktopDeselectedBundles')
+    expect(profile).not.toContain('readDesktopRecoveryBundleInventory')
+  })
+
+  it('keeps the recovery controller off the community-market disable state writers', () => {
+    const controller = readFileSync(new URL('src/startup-recovery-controller.ts', packageRoot), 'utf8')
+    expect(controller).not.toMatch(
+      /readDesktopDisabledBundles|disableDesktopProfileBundle|enableDesktopProfileBundle/u,
+    )
+    expect(controller).toContain('setDesktopProfileBundleSelected')
+  })
+
+  it('applies a selection change without a package manager run', () => {
+    const controller = readFileSync(new URL('src/startup-recovery-controller.ts', packageRoot), 'utf8')
+    const execute = controller.indexOf('private async executeSelection(')
+    const nextMember = controller.indexOf('\n  private ', execute + 1)
+    const body = controller.slice(execute, nextMember)
+    expect(execute).toBeGreaterThanOrEqual(0)
+    expect(body).toContain('setDesktopProfileBundleSelected')
+    expect(body).not.toContain('uninstallPlugin')
   })
 })

@@ -39,6 +39,7 @@ describe('desktop client environment', () => {
     const inject = vi.fn()
     const ctx = {
       effect,
+      inject: vi.fn(),
       slots: { inject },
       locale: { bind: () => (key: string) => key },
       settingsScope: { bind: () => ({}) },
@@ -694,6 +695,7 @@ describe('sidebar footer stacking', () => {
     const effect = vi.fn()
     const ctx = {
       effect,
+      inject: vi.fn(),
       on: vi.fn(() => () => {}),
       reflect: { get: vi.fn(() => undefined), provide: vi.fn(() => () => {}) },
       theme: { getTheme: vi.fn(() => ({ active: { colorScheme: 'dark', tokens: {} } })) },
