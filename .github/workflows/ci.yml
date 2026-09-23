@@ -156,10 +156,13 @@ jobs:
       - name: Build Windows installer
         env:
           DSH_PACKAGE_CHECK_ALREADY_RAN: '1'
+          # CI artifacts are never published; skipping compression saves minutes.
+          DSH_WINDOWS_PACKAGE_COMPRESSION: store
         run: yarn workspace ${{ matrix.workspace }} dist:win
       - name: Build Windows portable archive
         env:
           DSH_PACKAGE_CHECK_ALREADY_RAN: '1'
+          DSH_WINDOWS_PACKAGE_COMPRESSION: store
         run: yarn workspace ${{ matrix.workspace }} dist:win-portable
 
   # macOS-only universal packaging smoke on a real macOS runner: the signed

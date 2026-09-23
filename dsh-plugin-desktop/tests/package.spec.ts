@@ -935,6 +935,8 @@ describe('published package surface', () => {
     expect(windowsJob).toContain('run: yarn workspace ${{ matrix.workspace }} dist:win')
     expect(windowsJob).toContain('run: yarn workspace ${{ matrix.workspace }} dist:win-portable')
     expect(windowsJob).toContain('DSH_PACKAGE_CHECK_ALREADY_RAN: \'1\'')
+    // Smoke artifacts are never published, so CI skips their compression.
+    expect(windowsJob.match(/DSH_WINDOWS_PACKAGE_COMPRESSION: store/g)).toHaveLength(2)
     expect(macosJob).not.toContain('- run: yarn check')
     expect(macosJob).toContain('workspace: [dsh-plugin-desktop, dsh-plugin-desktop-beta]')
     expect(macosJob).toContain('- run: yarn workspace ${{ matrix.workspace }} check:mac-package')
