@@ -1009,6 +1009,8 @@ describe('published package surface', () => {
     expect(macosJob).toContain('run: yarn workspace ${{ matrix.workspace }} dist:mac-smoke')
     expect(macosJob).toContain('DSH_PACKAGE_CHECK_ALREADY_RAN: \'1\'')
     expect(macosJob).not.toContain('- run: yarn dist:mac-smoke')
+    // Pull requests skip the universal merge; master pushes still package it.
+    expect(macosJob).toContain("DSH_MAC_SMOKE_ARCH: ${{ github.event_name == 'pull_request' && 'arm64' || 'universal' }}")
   })
 
   it('skips product packaging only for documentation-only changes', () => {

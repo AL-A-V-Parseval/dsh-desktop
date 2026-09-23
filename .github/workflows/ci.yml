@@ -232,6 +232,10 @@ jobs:
       - name: Build macOS smoke artifact
         env:
           DSH_PACKAGE_CHECK_ALREADY_RAN: '1'
+          # The universal merge alone takes 9-17 minutes, so pull requests
+          # package only the runner's native arm64 app. Pushes to master and
+          # manual runs keep the full universal DMG.
+          DSH_MAC_SMOKE_ARCH: ${{ github.event_name == 'pull_request' && 'arm64' || 'universal' }}
         run: yarn workspace ${{ matrix.workspace }} dist:mac-smoke
 
   # Upstream toolchain smoke: the portable-shell scripts must resolve the
