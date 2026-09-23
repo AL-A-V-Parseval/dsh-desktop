@@ -31,6 +31,7 @@ import {
   validateDshMarketBundlePatches,
 } from '../src/profile.ts'
 import { setDesktopProfileBundleSelected } from '../src/desktop-plugins.ts'
+import { migrateLegacyAgentPresetSettings } from '../src/setup-wizard-settings.ts'
 import { DESKTOP_MARKET_IDENTITIES } from '../src/desktop-market.ts'
 
 const homes: string[] = []
@@ -856,6 +857,51 @@ virtualStoreDirMaxLength: 60
 
     // Idempotent: a document already keyed by entry id has nothing left to rename.
     expect(migrateDesktopSettingsDocumentSections(spec)).toEqual([])
+  })
+
+  it('moves the legacy preset choice to the field 0.1.7 can persist', () => {
+    const home = temporaryHome()
+    // 0.1.6 stored the user's chosen preset in `agent-presets.default`. 0.1.7
+    // renamed the row and kept `default` as the bundle-authored fallback, which is
+    // not `.volatile()`: importing the old key under its old name throws
+    // `Config field "default" is not volatile` and the choice is lost either way.
+    writeFileSync(join(home, 'settings.yaml'), [
+      'agent-presets:',
+      '  default: minimal',
+      '',
+    ].join('\n'))
+    const spec = resolveDesktopSettingsDocument({ dshHome: home })
+
+    expect(migrateDesktopSettingsDocumentSections(spec)).toEqual(['agent-preset-registry'])
+    expect(readFileSync(spec.filename, 'utf8'))
+      .toBe(['agent-preset-registry:', '  selectedDefault: minimal', ''].join('\n'))
+    expect(migrateDesktopSettingsDocumentSections(spec)).toEqual([])
+
+    // The field alone still moves under a section 0.1.7 already keys correctly.
+    writeFileSync(spec.filename, ['agent-preset-registry:', '  default: minimal', ''].join('\n'))
+    expect(migrateDesktopSettingsDocumentSections(spec)).toEqual(['agent-preset-registry'])
+    expect(readFileSync(spec.filename, 'utf8'))
+      .toBe(['agent-preset-registry:', '  selectedDefault: minimal', ''].join('\n'))
+
+    // Both fields present: keep the one 0.1.7 writes and leave the fallback alone.
+    const both = ['agent-preset-registry:', '  selectedDefault: minimal', '  default: standard', ''].join('\n')
+    writeFileSync(spec.filename, both)
+    expect(migrateDesktopSettingsDocumentSections(spec)).toEqual([])
+    expect(readFileSync(spec.filename, 'utf8')).toBe(both)
+  })
+
+  it('still maps the released code preset to ptc after the 0.1.7 section rename', async () => {
+    // Launch order in main.ts: prepareDesktopProfile (section + field rename)
+    // runs before migrateLegacyAgentPresetSettings, so the latter must find the
+    // legacy id under its new key or the user lands on a preset that no longer exists.
+    const home = temporaryHome()
+    writeFileSync(join(home, 'settings.yaml'), ['agent-presets:', '  default: code', ''].join('\n'))
+    const spec = resolveDesktopSettingsDocument({ dshHome: home })
+
+    expect(migrateDesktopSettingsDocumentSections(spec)).toEqual(['agent-preset-registry'])
+    await expect(migrateLegacyAgentPresetSettings(spec.filename)).resolves.toBe(true)
+    expect(readFileSync(spec.filename, 'utf8'))
+      .toBe(['agent-preset-registry:', '  selectedDefault: ptc', ''].join('\n'))
   })
 
   it('leaves the settings document alone when there is nothing safe to migrate', () => {

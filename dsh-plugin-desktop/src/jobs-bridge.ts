@@ -4,7 +4,7 @@
  *
  * Stable rides dsh 0.1.5-rc.2, whose registry exposes a dedicated
  * `onJobDone(listener)` seam handing out a terminal `JobSnapshot`. The Beta
- * channel's 0.1.7-alpha.1 core replaced both with one filtered event stream,
+ * channel's 0.1.7 core replaced both with one filtered event stream,
  * so the seam is edition-local while the narrowed outcome Desktop notifies on
  * stays identical.
  */
