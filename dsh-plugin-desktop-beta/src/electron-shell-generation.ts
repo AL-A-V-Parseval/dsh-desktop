@@ -7,6 +7,7 @@ import {
   nativeTheme,
   Notification,
   screen,
+  session,
   shell,
   Tray,
   type WebContents,
@@ -28,6 +29,7 @@ import { desktopWindowOptions } from './window-options.ts'
 import type { DesktopRestartConfirmationCopy } from './tray-locale.ts'
 import type { RendererBootReport } from './renderer-boot-contract.ts'
 import { DesktopRendererRecovery } from './renderer-recovery.ts'
+import { PlatformLoginWindow } from './platform-login-window.ts'
 import { RENDERER_SURFACE_PROBE, RendererSurfaceWatchdog } from './renderer-surface-watchdog.ts'
 import type { DesktopRendererAccessHeader } from './desktop-browser-access.ts'
 import {
@@ -201,6 +203,8 @@ export interface ElectronShellGenerationOptions {
   readonly logError: (message: string) => void
   readonly mainWindowState: MainWindowStateStore
   readonly chromeActions: CompatibilityShellActions
+  /** Localized caption of the built-in DeepSeek Platform sign-in window. */
+  readonly platformLoginTitle: () => string
 }
 
 /** Own one BrowserWindow and Tray generation, including every native listener. */
@@ -223,8 +227,29 @@ export class ElectronShellGeneration {
   private replacementExit: ReturnType<typeof setTimeout> | undefined
   private recoveryContentLoaded = false
   private recoveryChromeLoaded = false
+  private readonly platformLogin: PlatformLoginWindow
 
   constructor(private readonly options: ElectronShellGenerationOptions) {
+    this.platformLogin = new PlatformLoginWindow({
+      BrowserWindow,
+      session: partition => session.fromPartition(partition),
+      hostOrigin: () => this.renderer === undefined ? undefined : new URL(this.options.spec.url).origin,
+      host: async () => {
+        const renderer = this.renderer
+        if (renderer === undefined || renderer.isDestroyed()) return undefined
+        const origin = new URL(this.options.spec.url).origin
+        const cookies = await renderer.session.cookies.get({ url: origin })
+        return {
+          origin,
+          cookie: cookies.map(cookie => `${cookie.name}=${cookie.value}`).join('; '),
+          header: this.options.spec.rendererAccessHeader,
+        }
+      },
+      parent: () => this.window,
+      title: () => this.options.platformLoginTitle(),
+      dark: () => nativeTheme.shouldUseDarkColors,
+      warn: message => { this.options.logError(message) },
+    })
     this.rendererRecovery = new DesktopRendererRecovery({
       available: () => !this.released && !this.options.isQuitting()
         && this.window !== undefined && !this.window.isDestroyed(),
@@ -635,6 +660,20 @@ export class ElectronShellGeneration {
     if (this.rendererRecovery.exhausted) void this.offerRendererRecovery()
   }
 
+  /**
+   * Show a DeepSeek Platform authorization page in the built-in sign-in window.
+   * @param url - authorization URL validated at the Host/native boundary.
+   */
+  openPlatformLogin(url: string): void {
+    if (this.released || this.renderer === undefined) return
+    this.platformLogin.open(url)
+  }
+
+  /** Close the built-in sign-in window after its attempt ended. */
+  closePlatformLogin(): void {
+    this.platformLogin.close()
+  }
+
   reportRendererRecovery(report: RendererBootReport): void {
     this.rendererRecovery.report(report)
   }
@@ -826,6 +865,7 @@ export class ElectronShellGeneration {
     this.surfaceWatchdog.stop()
     this.rendererRecovery.stop()
     this.options.stopRendererBootMonitoring()
+    this.platformLogin.close()
 
     const window = this.window
     const tray = this.tray

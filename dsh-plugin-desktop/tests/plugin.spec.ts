@@ -148,6 +148,7 @@ function createHarness(
     requestRestart: restart,
     requestRecoveryRestart: restart,
     prepareToQuit: () => {},
+    platformLogin: () => {},
   }
   const settings = {
     get: vi.fn((namespace: unknown) => {
@@ -192,6 +193,9 @@ function createHarness(
       if (String(key) === 'desktopLanHttps') return lanHttps
       return () => {}
     }),
+    // 0.1.5-rc.2 provides no optional service this plugin waits for (such as
+    // 0.1.7's `deepseekAccount`), so an injected row never activates here.
+    inject: vi.fn(),
     effect: vi.fn((register: () => unknown) => register()),
     on: vi.fn((event: string, listener: (namespace: unknown, next: unknown) => void) => {
       if (event === 'settings/updated') settingsUpdated.add(listener)

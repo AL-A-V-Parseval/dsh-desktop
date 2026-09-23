@@ -64,6 +64,7 @@ import {
   windowsSupportsMica,
 } from './window-material.ts'
 import { DESKTOP_PRODUCT_NAME } from './product-identity.ts'
+import { watchPlatformLogin, type PlatformLoginAccount } from './platform-login.ts'
 import {
   createDesktopSettingsPort,
   readUiLocalePreference,
@@ -374,6 +375,26 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
   }
   watchUiLocalePreference(ctx, (preference) => {
     runtime.setLocalePreference(desktopLocalePreference(preference))
+  })
+  // Cores with the DeepSeek account service (0.1.7+) leave opening the Platform
+  // sign-in page to a native subscriber; older cores never activate this row.
+  ctx.inject(['deepseekAccount'], (accountCtx) => {
+    accountCtx.effect(() => {
+      const account = accountCtx.get('deepseekAccount') as PlatformLoginAccount
+      const lifetime = new AbortController()
+      // A broken watcher only loses the automatic hand-off; the sign-in dialog still offers the link.
+      void watchPlatformLogin(
+        account,
+        (request) => { runtime.platformLogin(request) },
+        () => browserAccess.ordinaryBrowserEnabled,
+        lifetime.signal,
+      ).catch((cause: unknown) => {
+        if (!lifetime.signal.aborted) {
+          accountCtx.logger.error(`dsh-plugin-desktop: platform sign-in watcher stopped: ${cause instanceof Error ? cause.message : String(cause)}`)
+        }
+      })
+      return () => { lifetime.abort() }
+    }, 'dsh-plugin-desktop: platform sign-in hand-off')
   })
   ctx.effect(
     () => {
