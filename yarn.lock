@@ -3741,6 +3741,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@deepseek-ai/dsh-sandbox-windows-acl@patch:@deepseek-ai/dsh-sandbox-windows-acl@file%3Avendor/dsh-runtime/0.1.7-rc.1/deepseek-ai-dsh-sandbox-windows-acl-0.1.7-rc.1.tgz#./patches/dsh-sandbox-windows-acl@0.1.7-rc.1.patch::locator=deepseek-harness-desktop%40workspace%3A.":
+  version: 0.1.7-rc.1
+  resolution: "@deepseek-ai/dsh-sandbox-windows-acl@patch:@deepseek-ai/dsh-sandbox-windows-acl@file%3Avendor/dsh-runtime/0.1.7-rc.1/deepseek-ai-dsh-sandbox-windows-acl-0.1.7-rc.1.tgz%23vendor/dsh-runtime/0.1.7-rc.1/deepseek-ai-dsh-sandbox-windows-acl-0.1.7-rc.1.tgz%3A%3Ahash=15bd1b&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/dsh-sandbox-windows-acl@0.1.7-rc.1.patch::version=0.1.7-rc.1&hash=482942&locator=deepseek-harness-desktop%40workspace%3A."
+  dependencies:
+    "@deepseek-ai/dsh-lazy-require": "npm:0.1.7-rc.1"
+    "@deepseek-ai/dsh-win32-process": "npm:0.1.7-rc.1"
+    koffi: "npm:^3.1.0"
+  peerDependencies:
+    "@deepseek-ai/cordis": ~4.0.4
+    "@deepseek-ai/dsh-subprocess": 0.1.7-rc.1
+  checksum: 10c0/4a7b3b65a8fd12c7c27e2ac3cb0fa34ca641f73d8b37bf03a56cb500a75c390125c769b1ec659972eb64cc2eec674e3ec749748e4771043d7d3ac002be043d07
+  languageName: node
+  linkType: hard
+
 "@deepseek-ai/dsh-sandbox@file:vendor/dsh-runtime/0.1.7-rc.1/deepseek-ai-dsh-sandbox-0.1.7-rc.1.tgz::locator=deepseek-harness-desktop%40workspace%3A.":
   version: 0.1.7-rc.1
   resolution: "@deepseek-ai/dsh-sandbox@file:vendor/dsh-runtime/0.1.7-rc.1/deepseek-ai-dsh-sandbox-0.1.7-rc.1.tgz#vendor/dsh-runtime/0.1.7-rc.1/deepseek-ai-dsh-sandbox-0.1.7-rc.1.tgz::hash=c340bd&locator=deepseek-harness-desktop%40workspace%3A."

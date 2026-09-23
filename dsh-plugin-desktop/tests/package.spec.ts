@@ -5,6 +5,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -1331,6 +1332,30 @@ describe('published package surface', () => {
     expect(installedRuntime.match(/wShowWindow: 0,/gu)).toHaveLength(2)
     expect(installedRuntime).toContain('createRestrictedProcess(api, options, buildCommandLine(options.command, options.args), 0')
     expect(installedRuntime).toContain('createRestrictedProcess(api, options, commandLine, 4')
+  })
+
+  // Upstream 0.1.7 applies the Low label on every workspace grant, which needs
+  // WRITE_OWNER. A non-system drive's default ACL gives the owner only Modify,
+  // so the patch lets the owner grant itself WRITE_OWNER and retry once.
+  it('lets the Windows ACL sandbox grant a workspace whose owner lacks WRITE_OWNER', () => {
+    const patchPath = `./patches/dsh-sandbox-windows-acl@${runtimeVersion}.patch`
+    expect(dshResolution('@deepseek-ai/dsh-sandbox-windows-acl')).toContain(patchPath)
+    const patch = readFileSync(new URL(patchPath, workspaceRoot), 'utf8')
+    const workspaceRequire = createRequire(new URL('package.json', packageRoot))
+    const sandboxManifest = workspaceRequire.resolve('@deepseek-ai/dsh-sandbox-windows-acl/package.json')
+    const installedChunks = readdirSync(join(dirname(sandboxManifest), 'lib'))
+      .filter(name => name.endsWith('.js'))
+      .map(name => readFileSync(join(dirname(sandboxManifest), 'lib', name), 'utf8'))
+      .join('\n')
+    for (const marker of [
+      'error.api !== "SetNamedSecurityInfoW" || error.win32Code !== 5) throw error;',
+      'grantOwnerWriteOwner(api, path);',
+      'buildExplicitAccess(owner, 1, 524288)',
+      'function grantWriteOnce(api, path, sidPtr, lowLabelSidPtr, worldSidPtr) {',
+    ]) {
+      expect(patch).toContain(marker)
+      expect(installedChunks).toContain(marker)
+    }
   })
 })
 
