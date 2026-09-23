@@ -20,6 +20,7 @@ import { desktopLanAddresses } from './lan-addresses.ts'
 import { createLanHttpsCertificate, lanHttpsCertificateDiagnostic } from './lan-https-certificate.ts'
 import { desktopTerminalStateDirectory, openDesktopTerminal } from './desktop-terminal.ts'
 import { bundledPnpmEntry, createPackageRunner } from './extensions.ts'
+import { applyDesktopPackageAgePolicy } from './pnpm-policy.ts'
 import { auxiliaryWindowChromeOptions, auxiliaryWindowHasCustomFrame } from '../../dsh-plugin-desktop-beta/src/auxiliary-window-options.ts'
 import { atomicJson, privateDirectory } from './private-files.ts'
 import { supportsMica, windowMaterial } from './window-material.ts'
@@ -32,6 +33,9 @@ import { PlatformLoginWindow } from './platform-login-window.ts'
 import { NextUpdates } from './updates.ts'
 import { NextUpdateInstaller } from './update-installer.ts'
 import { updateLabel } from './update-state.ts'
+
+// Inherit the package policy across the Host and every runtime child process.
+applyDesktopPackageAgePolicy(process.env)
 
 const root = dirname(NEXT_PACKAGE)
 const defaultHome = resolve(process.env.DSH_DESKTOP_NEXT_HOME ?? (app.isPackaged
