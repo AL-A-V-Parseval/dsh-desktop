@@ -91,6 +91,8 @@ On macOS the enhanced window uses its original hidden-inset geometry: traffic li
 
 ## Development
 
+Root build, development/start, and packaging commands run `corepack yarn market:prepare` to query npm `latest` and synchronize the bundled `dshmarket` across Stable, Beta, and Next. The resolved exact versions and lockfile remain reproducible and should be committed together. Desktop self-update/rollback compatibility patches are retained; a failed lookup, install, or patch application stops preparation instead of silently using an old version. `corepack yarn market:check` checks freshness without changes. Installed apps do not download or hot-replace plugins on startup; the existing package overlay chooses the newer installed copy between the application and the active Profile without deleting either.
+
 This package is managed by the Yarn workspace at the repository root. The sibling `deepseek-harness/` checkout remains an independent upstream pnpm project and is not part of the Yarn workspace. Install and verify DSH Desktop from the repository root:
 
 ```sh

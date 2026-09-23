@@ -285,7 +285,12 @@ try {
   assert.equal(await remote.isChecked(), true)
   await marketFooter.waitFor({ state: 'hidden' })
   await openSettingsPanel()
-  await page.getByRole('dialog').getByRole('button', { name: /^(插件市场|Plugin Market)$/ }).waitFor()
+  await page.getByRole('dialog').getByRole('button', { name: /^(插件市场|Plugin Market)$/ }).click()
+  // Exercise the real third-party page, not just its registration or toggle. Older
+  // dshmarket bundles reference removed icon exports and crash only when rendered.
+  await page.locator('[data-dsh-market-root]').waitFor({ state: 'visible' })
+  assert.ok(await page.locator('[data-dsh-market-root] svg').count() > 0)
+  assert.deepEqual(errors, [])
   await page.getByRole('button', { name: /^(关闭|Close)$/ }).click()
   await communityChoice.click({ position: { x: 10, y: 10 } })
   await waitSelected('[data-next-markets] [role="radio"]:first-child')

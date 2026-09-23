@@ -430,7 +430,7 @@ the package names, versions, and licenses for transparency.
 | diff | 9.0.0 | BSD-3-Clause |
 | dijkstrajs | 1.0.3 | MIT |
 | dsh-community-market | 0.1.0-dev.0 | MIT |
-| dshmarket | 1.38.1 | MIT |
+| dshmarket | 1.59.0 | MIT |
 | ecdsa-sig-formatter | 1.0.11 | Apache-2.0 |
 | emoji-regex | 8.0.0 | MIT |
 | eventsource | 3.0.7 | MIT |
