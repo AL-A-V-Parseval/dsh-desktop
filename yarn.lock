@@ -2726,10 +2726,10 @@ __metadata:
 
 "@deepseek-ai/dsh-client-ui-directory-picker-browse@patch:@deepseek-ai/dsh-client-ui-directory-picker-browse@file%3Avendor/dsh-runtime/0.1.7-alpha.2/deepseek-ai-dsh-client-ui-directory-picker-browse-0.1.7-alpha.2.tgz#./patches/dsh-client-ui-directory-picker-browse@0.1.7-alpha.2.patch::locator=deepseek-harness-desktop%40workspace%3A.":
   version: 0.1.7-alpha.2
-  resolution: "@deepseek-ai/dsh-client-ui-directory-picker-browse@patch:@deepseek-ai/dsh-client-ui-directory-picker-browse@file%3Avendor/dsh-runtime/0.1.7-alpha.2/deepseek-ai-dsh-client-ui-directory-picker-browse-0.1.7-alpha.2.tgz%23vendor/dsh-runtime/0.1.7-alpha.2/deepseek-ai-dsh-client-ui-directory-picker-browse-0.1.7-alpha.2.tgz%3A%3Ahash=6fd27a&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/dsh-client-ui-directory-picker-browse@0.1.7-alpha.2.patch::version=0.1.7-alpha.2&hash=18dda4&locator=deepseek-harness-desktop%40workspace%3A."
+  resolution: "@deepseek-ai/dsh-client-ui-directory-picker-browse@patch:@deepseek-ai/dsh-client-ui-directory-picker-browse@file%3Avendor/dsh-runtime/0.1.7-alpha.2/deepseek-ai-dsh-client-ui-directory-picker-browse-0.1.7-alpha.2.tgz%23vendor/dsh-runtime/0.1.7-alpha.2/deepseek-ai-dsh-client-ui-directory-picker-browse-0.1.7-alpha.2.tgz%3A%3Ahash=6fd27a&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/dsh-client-ui-directory-picker-browse@0.1.7-alpha.2.patch::version=0.1.7-alpha.2&hash=d137f2&locator=deepseek-harness-desktop%40workspace%3A."
   peerDependencies:
     "@deepseek-ai/cordis": ~4.0.4
-  checksum: 10c0/b913e77f0b2f50384d9dc8f4a8c7aee7ab06f1c7b81d7469a68eb5bff8856205885450592c26ebfb1e5f1cb55320ef4c78792a9d62f38471d997498f7ec10fb2
+  checksum: 10c0/e510b59dd418d6cade11df0471f06564aded0134007ad79366a5dc41cfd3b3fe86409580fda5fa95dbf1b2c7b70d30bf0bb78f9d933ef65acc871369f2b96c6a
   languageName: node
   linkType: hard
 
