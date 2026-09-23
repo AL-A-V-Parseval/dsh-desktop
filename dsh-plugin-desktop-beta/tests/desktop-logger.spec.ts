@@ -3,7 +3,9 @@ import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
+import { installFailLoud } from '@deepseek-ai/dsh-app-boot'
 import {
+  createDesktopFailLoudProcess,
   describeDesktopChildProcess,
   ElectronStderrLogger,
   formatDesktopErrorDetails,
@@ -167,6 +169,53 @@ describe('ElectronStderrLogger', () => {
     expect(proc.listenerCount('uncaughtException')).toBe(0)
     remove()
     stderrSpy.mockRestore()
+  })
+
+  it('reports one uncaught exception once when the runtime fail-loud is installed too', () => {
+    // Launch order in main.ts: Desktop's handler first, then the runtime's
+    // installFailLoud through the adapter. dsh 0.1.7's fail-loud also takes
+    // uncaughtException and must retire Desktop's handler; 0.1.5's does not, and
+    // Desktop's handler keeps the event. Either way the crash is logged once.
+    const { s, dir } = sink()
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+    const logger = new ElectronStderrLogger(s)
+    const proc = new EventEmitter()
+    const requestQuit = vi.fn()
+    const exit = vi.fn()
+
+    const removeDesktop = installDesktopUncaughtExceptionLogging(proc, logger, requestQuit)
+    const uninstall = installFailLoud(
+      'dsh-plugin-desktop',
+      createDesktopFailLoudProcess(proc, logger, exit, removeDesktop),
+    )
+    proc.emit('uncaughtException', new Error('single crash'))
+    proc.emit('uncaughtException', new Error('follow-up crash'))
+
+    const day = todaySuffix()
+    const text = readFileSync(join(dir, `dsh-${day}.log`), 'utf8')
+    expect(text.match(/single crash/gu)).toHaveLength(1)
+    expect(text).not.toContain('follow-up crash')
+    expect(requestQuit.mock.calls.length + exit.mock.calls.length).toBe(1)
+    uninstall()
+    removeDesktop()
+    stderrSpy.mockRestore()
+  })
+
+  it('claims the uncaught-exception event only when fail-loud subscribes to it', () => {
+    const proc = new EventEmitter()
+    const claim = vi.fn()
+    const adapter = createDesktopFailLoudProcess(proc, { write: () => true }, vi.fn(), claim)
+    const handler = vi.fn()
+
+    adapter.on('unhandledRejection', handler)
+    expect(claim).not.toHaveBeenCalled()
+    expect(proc.listenerCount('unhandledRejection')).toBe(1)
+    adapter.on('uncaughtException', handler)
+    expect(claim).toHaveBeenCalledOnce()
+    adapter.off('unhandledRejection', handler)
+    adapter.off('uncaughtException', handler)
+    expect(proc.listenerCount('unhandledRejection')).toBe(0)
+    expect(proc.listenerCount('uncaughtException')).toBe(0)
   })
 
   it('falls back to masked stderr when the file sink fails', () => {

@@ -40,6 +40,7 @@ import {
 import { desktopProductVersion, ElectronDesktopRuntime } from './electron-runtime.ts'
 import { getOrCreateDesktopInstallationId } from './desktop-installation-id.ts'
 import {
+  createDesktopFailLoudProcess,
   describeDesktopChildProcess,
   ElectronStderrLogger,
   installDesktopChildProcessLogging,
@@ -716,12 +717,12 @@ async function start(): Promise<void> {
           }
         }
       : undefined
-    const failLoudProcess: FailLoudProcess = {
-      on: (event, handler) => process.on(event, handler),
-      off: (event, handler) => process.off(event, handler),
-      stderr: electronLogger,
-      exit: finalExit,
-    }
+    const failLoudProcess: FailLoudProcess = createDesktopFailLoudProcess(
+      process,
+      electronLogger,
+      finalExit,
+      () => { removeUncaughtExceptionLogging?.() },
+    )
     installFailLoud(BIN_NAME, failLoudProcess, async () => { await generation.release() })
 
     startupStage = 'runtime-bootstrap'
