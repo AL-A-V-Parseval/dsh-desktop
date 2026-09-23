@@ -13,8 +13,11 @@ import { configureNextBrowserAccess } from '../desktop-browser-access.ts'
 import { parsePreferences } from '../desktop-preferences.ts'
 import { atomicJson } from '../private-files.ts'
 import type NextWebServer from '../webserver.ts'
+import { disableAsarArchiveView } from '../asar-archive-policy.ts'
 
 export async function main(): Promise<void> {
+  // The Host lists and reads user workspaces; see asar-archive-policy.ts.
+  disableAsarArchiveView(import.meta.url)
   const runtimeDir = process.argv[2]
   const projectDir = process.argv[3]
   const home = process.env.DSH_HOME
