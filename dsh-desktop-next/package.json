@@ -99,6 +99,7 @@
     "@deepseek-ai/dsh-experimental-agent-team": "0.1.7-alpha.2",
     "@deepseek-ai/dsh-experimental-agent-team-profile": "0.1.7-alpha.2",
     "@deepseek-ai/dsh-experimental-computer-use-cua-driver-native": "0.1.7-alpha.2",
+    "@deepseek-ai/dsh-experimental-voice-input-bundle": "0.1.7-alpha.2",
     "@deepseek-ai/dsh-file-reference": "0.1.7-alpha.2",
     "@deepseek-ai/dsh-fs": "0.1.7-alpha.2",
     "@deepseek-ai/dsh-fs-local": "0.1.7-alpha.2",
