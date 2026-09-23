@@ -152,7 +152,8 @@ jobs:
           path: ${{ steps.yarn-cache.outputs.dir }}
           key: yarn-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('yarn.lock', '.yarnrc.yml') }}
       - run: yarn install --immutable
-      - run: yarn workspace ${{ matrix.workspace }} check:win-package
+      # Typecheck is platform-neutral and already gated by `check`.
+      - run: yarn workspace ${{ matrix.workspace }} check:win-package:platform
       - name: Build Windows installer
         env:
           DSH_PACKAGE_CHECK_ALREADY_RAN: '1'
@@ -195,7 +196,7 @@ jobs:
           path: ${{ steps.yarn-cache.outputs.dir }}
           key: yarn-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('yarn.lock', '.yarnrc.yml') }}
       - run: yarn install --immutable
-      - run: yarn workspace ${{ matrix.workspace }} check:linux-package
+      - run: yarn workspace ${{ matrix.workspace }} check:linux-package:platform
       - name: Build Linux AppImage and Debian package
         env:
           DSH_PACKAGE_CHECK_ALREADY_RAN: '1'
@@ -228,7 +229,7 @@ jobs:
           path: ${{ steps.yarn-cache.outputs.dir }}
           key: yarn-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('yarn.lock', '.yarnrc.yml') }}
       - run: yarn install --immutable
-      - run: yarn workspace ${{ matrix.workspace }} check:mac-package
+      - run: yarn workspace ${{ matrix.workspace }} check:mac-package:platform
       - name: Build macOS smoke artifact
         env:
           DSH_PACKAGE_CHECK_ALREADY_RAN: '1'
