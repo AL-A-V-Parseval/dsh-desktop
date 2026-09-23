@@ -8,6 +8,7 @@ import { Button, PluginArtworkDefault, Switch } from '@deepseek-ai/dsh-client-ui
 import { Choice, MARKET_OPTIONS, marketBody, marketTitle } from '../../../dsh-plugin-desktop-beta/src/client/DesktopSettingsSection.tsx'
 import { en as desktopEn, zh as desktopZh, type DesktopSettingsLocaleKey } from '../../../dsh-plugin-desktop-beta/src/client/desktop-settings-locales.ts'
 import { ComputerUseSettings } from './computer-use.tsx'
+import { registerVoicePermissions } from './voice-permissions.tsx'
 
 const COMMUNITY = 'dsh-community-market'
 const MARKET = 'dshmarket'
@@ -17,6 +18,7 @@ const COMPUTER_ITEM = 'desktop-next-computer-use'
 type Translate = (cn: string, en: string) => string
 
 export function registerPluginControls(ctx: Context): void {
+  registerVoicePermissions(ctx)
   ctx.inject(['remote', 'remote.pluginManager'], inner => {
     inner.slots.inject('plugins.overview', () => {
       const dispose = inner.slots.register({ name: 'plugins.overview', id: 'desktop-next', order: 0,

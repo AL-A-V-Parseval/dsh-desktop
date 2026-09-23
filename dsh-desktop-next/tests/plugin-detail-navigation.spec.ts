@@ -118,3 +118,20 @@ it('preserves ordinary official cards and their navigation when no overview entr
   card.props.onOpen()
   expect(component(app.page(), 'PackageDetail')?.props.pkg.name).toBe('official-team')
 })
+
+it('places keyed bundle actions before the native switch without sharing the card navigation target', () => {
+  const app = fixture()
+  const card = component(app.page(), 'PackageCard')!
+  const head = component(render(card), 'CardHead')!
+  const controls = nodes(head.props.end)
+  const actionIndex = controls.findIndex(node => node.props.name === 'plugins.bundle.actions')
+  const toggleIndex = controls.findIndex(node => typeof node.type === 'function' && node.type.name === 'EnableSwitch')
+  expect(actionIndex).toBeGreaterThan(-1)
+  expect(toggleIndex).toBeGreaterThan(actionIndex)
+  expect(controls[actionIndex]!.props.options).toEqual({ entryKey: card.props.pkg.name })
+  expect(controls[actionIndex]!.props.owner.subject.pkg.name).toBe(card.props.pkg.name)
+  const rendered = render(head)
+  const openButton = nodes(rendered).find(node => node.props.onClick === head.props.onOpen)!
+  expect(openButton).toBeDefined()
+  expect(nodes(openButton).some(node => node.props.name === 'plugins.bundle.actions')).toBe(false)
+})

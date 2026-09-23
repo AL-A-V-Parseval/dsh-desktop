@@ -1,5 +1,5 @@
 diff --git a/lib/client.js b/lib/client.js
-index 8f6538d..6bf536c 100644
+index 8f6538d..867bb93 100644
 --- a/lib/client.js
 +++ b/lib/client.js
 @@ -28,6 +28,8 @@ window.__ModuleLoader__.load({
@@ -45,7 +45,34 @@ index 8f6538d..6bf536c 100644
  				type: "button",
  				className: PluginManagerPage_module_css_default.crumb,
  				"aria-label": crumbLabel,
-@@ -2594,11 +2606,12 @@ window.__ModuleLoader__.load({
+@@ -1570,7 +1582,7 @@ window.__ModuleLoader__.load({
+ 			})] });
+ 		}
+ 		/** One package as a card that opens its page: its name, its one-liner, its tags, and its bundle switch. */
+-		function PackageCard({ pkg, t, resolveText, busy, highlighted, onOpen, onSetEnabled }) {
++		function PackageCard({ pkg, t, resolveText, busy, highlighted, onOpen, onSetEnabled, renderSlot }) {
+ 			const { title, description, beta } = packageText(pkg, resolveText);
+ 			const status = packageStatus(pkg);
+ 			return (0, react_jsx_runtime.jsxs)("li", {
+@@ -1593,13 +1605,15 @@ window.__ModuleLoader__.load({
+ 						children: t("statusProblem")
+ 					}) : null] }),
+ 					description,
+-					end: (0, react_jsx_runtime.jsx)(EnableSwitch, {
++					end: (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
++						renderSlot("plugins.bundle.actions", { subject: { kind: "bundle", pkg: packageRef(pkg) } }, { entryKey: pkg.name }),
++						(0, react_jsx_runtime.jsx)(EnableSwitch, {
+ 						pkg,
+ 						title,
+ 						t,
+ 						busy,
+ 						onSetEnabled
+-					})
++					})] })
+ 				}), (0, react_jsx_runtime.jsx)(MetadataError, {
+ 					error: pkg.meta?.error,
+ 					t
+@@ -2594,11 +2608,12 @@ window.__ModuleLoader__.load({
  				};
  			}, [highlight, clearHighlight]);
  			const noticeLine = state.notice === null ? null : noticeText(state.notice, t);
@@ -60,7 +87,15 @@ index 8f6538d..6bf536c 100644
  			const openItem = view.kind === "item" ? ledger.items.find((item) => item.id === view.id) : void 0;
  			const openRow = view.kind === "row" && openPkg !== void 0 ? openPkg.rows.find((row) => row.rowId === view.rowId) : void 0;
  			const showsCards = openPkg === void 0 && openItem === void 0;
-@@ -2635,7 +2648,7 @@ window.__ModuleLoader__.load({
+@@ -2619,6 +2634,7 @@ window.__ModuleLoader__.load({
+ 			});
+ 			const packageCard = (pkg) => (0, react_jsx_runtime.jsx)(PackageCard, {
+ 				pkg,
++				renderSlot,
+ 				t,
+ 				resolveText,
+ 				busy: state.busy.includes(pkg.name),
+@@ -2635,7 +2651,7 @@ window.__ModuleLoader__.load({
  					props.setEnabled(pkg.name, enabled);
  				}
  			}, pkg.name);
@@ -69,7 +104,7 @@ index 8f6538d..6bf536c 100644
  				item,
  				t,
  				renderSlot,
-@@ -2670,8 +2683,10 @@ window.__ModuleLoader__.load({
+@@ -2670,8 +2686,10 @@ window.__ModuleLoader__.load({
  				"data-plugin-panel": true,
  				"aria-busy": state.status === "loading",
  				children: [
@@ -80,7 +115,7 @@ index 8f6538d..6bf536c 100644
  						children: [(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("h1", {
  							className: PluginManagerPage_module_css_default.pageTitle,
  							children: t("title")
-@@ -2703,6 +2718,18 @@ window.__ModuleLoader__.load({
+@@ -2703,6 +2721,18 @@ window.__ModuleLoader__.load({
  							})]
  						})]
  					}) : null,
@@ -99,7 +134,7 @@ index 8f6538d..6bf536c 100644
  					showsCards && state.status === "loading" ? (0, react_jsx_runtime.jsxs)("p", {
  						className: `${PluginManagerPage_module_css_default.status} ${PluginManagerPage_module_css_default.statusWithDot}`,
  						role: "status",
-@@ -3272,6 +3299,10 @@ window.__ModuleLoader__.load({
+@@ -3272,6 +3302,11 @@ window.__ModuleLoader__.load({
  				locale: NS,
  				inject: () => controller.inject(configLedger, (text) => ctx.locale.resolveText(text)),
  				children: {
@@ -107,10 +142,11 @@ index 8f6538d..6bf536c 100644
 +					"plugins.overview": { kind: "list", scope: "root" },
 +					"plugins.bundle.hidden": { kind: "keyed", scope: "root" },
 +					"plugins.item.hidden": { kind: "keyed", scope: "root" },
++					"plugins.bundle.actions": { kind: "keyed", scope: "root" },
  					"plugins.item": {
  						kind: "list",
  						scope: "root"
-@@ -3319,4 +3350,4 @@ window.__ModuleLoader__.load({
+@@ -3319,4 +3354,4 @@ window.__ModuleLoader__.load({
  	}
  });
  
@@ -118,7 +154,7 @@ index 8f6538d..6bf536c 100644
 \ No newline at end of file
 +//# sourceMappingURL=client.js.map
 diff --git a/lib/types/client/PluginManagerPage.d.ts b/lib/types/client/PluginManagerPage.d.ts
-index d9e8e74..aea819b 100644
+index d9e8e74..08042a4 100644
 --- a/lib/types/client/PluginManagerPage.d.ts
 +++ b/lib/types/client/PluginManagerPage.d.ts
 @@ -12,7 +12,7 @@ import { type ReactNode } from 'react';
@@ -126,11 +162,12 @@ index d9e8e74..aea819b 100644
  import { type PluginManagerFace } from './manager-store.ts';
  /** Full component props assembled by the main slot renderer. */
 -export type PluginManagerPageProps = PropsRuntime<'main'> & PropsLocale<'pluginManager'> & PropsRenderSlots<'plugins.item' | 'plugins.bundle.config' | 'plugins.row.config' | 'plugins.bundle.activation' | 'plugins.detail.actions' | 'plugins.detail.badge' | 'plugins.detail.section'> & InjectFace<PluginManagerFace>;
-+export type PluginManagerPageProps = PropsRuntime<'main'> & PropsLocale<'pluginManager'> & PropsRenderSlots<'plugins.header.leading' | 'plugins.overview' | 'plugins.item' | 'plugins.bundle.config' | 'plugins.row.config' | 'plugins.bundle.activation' | 'plugins.detail.actions' | 'plugins.detail.badge' | 'plugins.detail.section'> & InjectFace<PluginManagerFace>;
++export type PluginManagerPageProps = PropsRuntime<'main'> & PropsLocale<'pluginManager'> & PropsRenderSlots<'plugins.header.leading' | 'plugins.overview' | 'plugins.item' | 'plugins.bundle.actions' | 'plugins.bundle.config' | 'plugins.row.config' | 'plugins.bundle.activation' | 'plugins.detail.actions' | 'plugins.detail.badge' | 'plugins.detail.section'> & InjectFace<PluginManagerFace>;
  /** Render the plugin manager: the official plugins and installed bundles, their pages, the install dialog, and the confirmation. */
  export declare function PluginManagerPage(props: PluginManagerPageProps): ReactNode;
- //# sourceMappingURL=PluginManagerPage.d.ts.map
+-//# sourceMappingURL=PluginManagerPage.d.ts.map
 \ No newline at end of file
++//# sourceMappingURL=PluginManagerPage.d.ts.map
 diff --git a/lib/types/client/config-ledger.d.ts b/lib/types/client/config-ledger.d.ts
 index 3abc24e..8f49351 100644
 --- a/lib/types/client/config-ledger.d.ts
@@ -152,10 +189,10 @@ index 3abc24e..8f49351 100644
 \ No newline at end of file
 +//# sourceMappingURL=config-ledger.d.ts.map
 diff --git a/lib/types/client/slot-contract.d.ts b/lib/types/client/slot-contract.d.ts
-index f7ba8cc..8a445d7 100644
+index f7ba8cc..de2bd3d 100644
 --- a/lib/types/client/slot-contract.d.ts
 +++ b/lib/types/client/slot-contract.d.ts
-@@ -72,6 +72,19 @@ export interface PluginActivationOwnerProps {
+@@ -72,6 +72,21 @@ export interface PluginActivationOwnerProps {
  }
  declare module '@deepseek-ai/dsh-client-ui-slots' {
      interface SlotMap {
@@ -172,10 +209,12 @@ index f7ba8cc..8a445d7 100644
 +        'plugins.bundle.hidden': { kind: 'keyed'; scope: 'root'; };
 +        /** Item ids presented by overview controls, omitted only from ordinary cards and counts. */
 +        'plugins.item.hidden': { kind: 'keyed'; scope: 'root'; };
++        /** Desktop-owned actions before a bundle card's switch, keyed by package name. */
++        'plugins.bundle.actions': { kind: 'keyed'; scope: 'root'; owner: PluginDetailProps; };
          /** Optional guidance after the user enables a bundle from the list, keyed by npm package name. */
          'plugins.bundle.activation': {
              kind: 'keyed';
-@@ -153,4 +166,4 @@ export interface ConfigPageForm {
+@@ -153,4 +168,4 @@ export interface ConfigPageForm {
      /** Submit all field edits together with the revision the editor read. */
      readonly mutate: ConfigForm<Record<string, unknown>>['mutate'];
  }
