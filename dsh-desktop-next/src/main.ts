@@ -11,6 +11,7 @@ import { NEXT_PACKAGE, parseFeatures, profileName } from './profiles.ts'
 import { APP_URL, IPC, SHELL_URL } from './ipc.ts'
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
 import { preferredDesktopLocale, resolveDesktopLocale } from './menu-locale.ts'
+import { NativeLocaleStore } from './native-locale.ts'
 import { NextDesktopRuntime } from './desktop-runtime.ts'
 import { probeSystemProxy, type DesktopSystemProxyProbe } from './system-proxy.ts'
 import { DEFAULT_PROFILE, NATIVE_ACCESS_HEADER, type DesktopCommand, type DesktopState, type DesktopSettingsPage } from './desktop-contract.ts'
@@ -43,6 +44,7 @@ const defaultHome = resolve(process.env.DSH_DESKTOP_NEXT_HOME ?? (app.isPackaged
 const locationFile = join(defaultHome, 'desktop-next-location.json')
 const dataLocation = readDataDirectory(defaultHome)
 const home = dataLocation.home
+const nativeLocale = new NativeLocaleStore(home)
 const electronData = join(home, 'electron-user-data')
 privateDirectory(electronData)
 app.setName('DSH NEXT')
@@ -248,7 +250,9 @@ function openControls(page: 'general' | 'profiles' | 'create-profile' | 'tools' 
     void recoveryStopping.catch(error => runtime.diagnostics.append(String(error), 'error'))
     native.refresh()
   }
-  const url = `${SHELL_URL}?locale=${windowsLanguage.toLowerCase().startsWith('zh') ? 'zh' : 'en'}&platform=${process.platform}&frame=${auxiliaryWindowHasCustomFrame()}#${page}`
+  const locale = nativeLocale.resolve(runtime.selected, windowsLanguage)
+  windowsLanguage = locale
+  const url = `${SHELL_URL}?locale=${locale}&platform=${process.platform}&frame=${auxiliaryWindowHasCustomFrame()}#${page}`
   const resize = (window: BrowserWindow): void => {
     const creating = page === 'create-profile'
     window.setResizable(!creating)
@@ -753,9 +757,17 @@ async function main(): Promise<void> {
   })
   ipcMain.on(IPC.locale, (event, language: unknown) => {
     try { assertSender(event, mainWindow, APP_URL) } catch { return }
-    if (typeof language !== 'string' || !/^[a-zA-Z]+(?:-[a-zA-Z0-9]+)*$/u.test(language) || language === windowsLanguage) return
+    if (typeof language !== 'string' || !/^[a-zA-Z]+(?:-[a-zA-Z0-9]+)*$/u.test(language)) return
+    if (!runtime.safeMode) {
+      try { nativeLocale.remember(runtime.selected, language) } catch (error) { runtime.diagnostics.append(String(error), 'warn') }
+    }
+    if (language === windowsLanguage) return
     windowsLanguage = language
     native.refresh()
+  })
+  ipcMain.handle(IPC.localeRead, event => {
+    assertSender(event, mainWindow, APP_URL)
+    return { languages: [...app.getPreferredSystemLanguages(), app.getLocale()], preference: null }
   })
   nativeTheme.on('updated', () => { if (mainWindow && !mainWindow.isDestroyed()) applyWindowMaterial(mainWindow, runtime.preferences) })
   runtime.safeMode = process.argv.includes(SAFE_ARGUMENT)
@@ -803,7 +815,8 @@ async function main(): Promise<void> {
     })
     ipcMain.on(IPC.windowsAppearance, (event, language: unknown, color: unknown, symbolColor: unknown) => {
       try { assertSender(event, mainWindow, APP_URL) } catch { return }
-      if (typeof language === 'string' && /^[a-zA-Z]+(?:-[a-zA-Z0-9]+)*$/u.test(language)) windowsLanguage = language
+      // Caption paint can run before the official locale service initializes;
+      // IPC.locale is the only renderer authority for the application language.
       const validColor = (value: unknown): value is string => typeof value === 'string' && /^(?:#[\da-f]{3,8}|rgba?\([\d.,%\s]+\))$/iu.test(value)
       if (validColor(color) && validColor(symbolColor)) mainWindow!.setTitleBarOverlay({ color, symbolColor })
     })
