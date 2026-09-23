@@ -14360,7 +14360,7 @@ __metadata:
     clsx: "npm:^2.1.1"
     diff: "npm:^9.0.0"
     dsh-community-market: "npm:0.1.0-dev.0"
-    dshmarket: "npm:1.38.1"
+    dshmarket: "npm:1.58.0"
     electron: "npm:44.0.0"
     electron-builder: "npm:26.15.7"
     immer: "npm:^10.1.1"
@@ -14819,6 +14819,25 @@ __metadata:
     "@deepseek-ai/schemastery":
       optional: true
   checksum: 10c0/3020092f429164c4512e7368709d137cce1eaddf4c04f17038c5babef087c20193e9fc89f53939b85507973ad999c3d05801ff484830ef17d223fd83a0d112e9
+  languageName: node
+  linkType: hard
+
+"dshmarket@npm:1.58.0":
+  version: 1.58.0
+  resolution: "dshmarket@npm:1.58.0"
+  dependencies:
+    js-yaml: "npm:^4.1.0"
+    undici: "npm:^7.29.0"
+  peerDependencies:
+    "@deepseek-ai/cordis": ^4.0.1
+    "@deepseek-ai/dsh-settings": ^0.1.0-rc.7 || ^0.1.1-rc.2 || ^0.1.2-alpha.2
+    "@deepseek-ai/schemastery": ^3.18.1
+  peerDependenciesMeta:
+    "@deepseek-ai/dsh-settings":
+      optional: true
+    "@deepseek-ai/schemastery":
+      optional: true
+  checksum: 10c0/d412b18a308cfac415c4b65a77f0a625f6f39917f8a8d9133573e8dcf613947a2ada45bb0e4306cda6d75d6a0fbc6c86c9333e84e3fabe78b7cb553fa42728bf
   languageName: node
   linkType: hard
 
