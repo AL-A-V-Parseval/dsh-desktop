@@ -17,7 +17,7 @@ import { DEFAULT_PROFILE, NATIVE_ACCESS_HEADER, type DesktopCommand, type Deskto
 import { portsChanged, parsePreferences } from './desktop-preferences.ts'
 import { NativeDesktop, applyWindowMaterial } from './native-desktop.ts'
 import { desktopLanAddresses } from './lan-addresses.ts'
-import { createLanHttpsCertificate } from './lan-https-certificate.ts'
+import { createLanHttpsCertificate, lanHttpsCertificateDiagnostic } from './lan-https-certificate.ts'
 import { desktopTerminalStateDirectory, openDesktopTerminal } from './desktop-terminal.ts'
 import { bundledPnpmEntry, createPackageRunner } from './extensions.ts'
 import { auxiliaryWindowChromeOptions, auxiliaryWindowHasCustomFrame } from '../../dsh-plugin-desktop-beta/src/auxiliary-window-options.ts'
@@ -71,11 +71,18 @@ const version = (JSON.parse(readFileSync(NEXT_PACKAGE, 'utf8')) as { version: st
 const t = (zh: string, en: string): string => windowsLanguage.toLowerCase().startsWith('zh') ? zh : en
 const runtime = new NextDesktopRuntime({
   home, root, executable: process.execPath, addresses: () => [...desktopLanAddresses()], systemProxy: () => systemProxy,
-  certificate: addresses => createLanHttpsCertificate(electronData, addresses, {
-    available: () => safeStorage.isEncryptionAvailable() && (process.platform !== 'linux' || safeStorage.getSelectedStorageBackend() !== 'basic_text'),
-    seal: bytes => safeStorage.encryptString(Buffer.from(bytes).toString('utf8')),
-    open: bytes => Buffer.from(safeStorage.decryptString(Buffer.from(bytes)), 'utf8'),
-  }),
+  certificate: async addresses => {
+    try {
+      return await createLanHttpsCertificate(electronData, addresses, {
+        available: () => safeStorage.isEncryptionAvailable() && (process.platform !== 'linux' || safeStorage.getSelectedStorageBackend() !== 'basic_text'),
+        seal: bytes => safeStorage.encryptString(Buffer.from(bytes).toString('utf8')),
+        open: bytes => Buffer.from(safeStorage.decryptString(Buffer.from(bytes)), 'utf8'),
+      })
+    } catch (error) {
+      runtime.diagnostics.append(lanHttpsCertificateDiagnostic(error), 'warn')
+      throw error
+    }
+  },
   onFailure: () => { if (app.isReady()) openControls('recovery') },
   onChange: () => { if (app.isReady()) native.refresh() },
   onRestart: () => run({ type: 'restart' }),
