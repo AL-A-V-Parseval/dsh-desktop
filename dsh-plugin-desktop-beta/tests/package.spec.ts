@@ -246,13 +246,27 @@ describe('published package surface', () => {
       'const openDirectory = (path) => {',
       'if (path !== null) openDirectory(path);',
       'if (targetPath !== null) openDirectory(targetPath);',
-      'IconFolderOpen16',
+      'IconFolderOpenRegular, { size: 16 }',
       'browser.nativePicker',
       'const parentInert = busy || folderDraft !== null || nativePicking || validatingDirectory;',
     ]) {
       expect(patch).toContain(marker)
       expect(installedClient).toContain(marker)
     }
+    // A patched reference to a primitive the pinned core no longer exports reads as
+    // undefined and crashes the dialog on render, so check the export, not just the text.
+    const primitivesEntry = readFileSync(new URL(
+      'node_modules/@deepseek-ai/dsh-client-ui-primitives/lib/index.js',
+      packageRoot,
+    ), 'utf8')
+    const exportList = /^export \{([^}]*)\};$/m.exec(primitivesEntry)?.[1] ?? ''
+    const exported = new Set(exportList.split(',').map((name) => name.trim()))
+    expect(exported.has('Button')).toBe(true)
+    const referenced = new Set(
+      [...installedClient.matchAll(/_deepseek_ai_dsh_client_ui_primitives\.(\w+)/g)].map((match) => String(match[1])),
+    )
+    expect(referenced.size).toBeGreaterThan(0)
+    expect([...referenced].filter((name) => !exported.has(name))).toEqual([])
   })
 
   it('patches the browse backend to skip unreadable directory-looking entries', () => {
