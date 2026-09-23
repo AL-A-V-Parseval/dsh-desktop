@@ -16,6 +16,7 @@ describe('Recovery native terminal action', () => {
     expect(markup.indexOf('联系我们')).toBeLessThan(markup.indexOf('打开 DSH 终端'))
     const source = readFileSync(new URL('../src/native-ui/recovery/App.tsx', import.meta.url), 'utf8')
     expect(source.indexOf('data-recovery-support')).toBeLessThan(source.indexOf('<Reason copy={copy}'))
+    expect(source).toMatch(/className="[^"]*bg-amber-500\/10[^"]*text-amber-800 dark:text-amber-200" data-recovery-support/u)
   })
 
   it('orders Quick recovery guidance and adds data management before diagnostics', () => {
