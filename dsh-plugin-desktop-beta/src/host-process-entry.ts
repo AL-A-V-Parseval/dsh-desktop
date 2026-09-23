@@ -1,4 +1,5 @@
 /** Utility-process entrypoint. No BrowserWindow or Electron main APIs are imported here. */
+import { installFailLoud } from '@deepseek-ai/dsh-app-boot'
 import { installProxyFromEnvironment } from '@deepseek-ai/dsh-http-proxy'
 import { createLaunchEnvironmentSnapshot, type LaunchEnvironmentLayerInput } from '@deepseek-ai/dsh-launch-environment'
 import { desktopProxyEnvLookup } from './system-proxy.ts'
@@ -9,6 +10,7 @@ import { createDesktopBrowserAccess } from './desktop-browser-access.ts'
 import { DesktopLanHttpsRuntime } from './lan-https-runtime.ts'
 import type { DesktopStartupGenerationHost } from './startup-generation.ts'
 import { disableAsarArchiveView } from './asar-archive-policy.ts'
+import { DESKTOP_PACKAGE_NAME } from './product-identity.ts'
 
 // The Host lists and reads user workspaces; see asar-archive-policy.ts.
 disableAsarArchiveView(import.meta.url)
@@ -30,13 +32,21 @@ let starting = false
 let stopping = false
 let lan: DesktopLanHttpsRuntime | undefined
 let releaseProxy: (() => Promise<void>) | undefined
-rpc.handle('stop', async () => {
+let releaseTask: Promise<void> | undefined
+/** Tear this generation down once, whether the supervisor asked or a fatal error forces it. */
+const release = (): Promise<void> => releaseTask ??= (async () => {
   stopping = true
   await host?.fiber.dispose()
   await lan?.stop()
   await releaseProxy?.()
   releaseProxy = undefined
-})
+})()
+rpc.handle('stop', release)
+// A utility process only warns on an unhandled rejection and keeps serving from whatever state
+// the failure left, so adopt the same fail-loud contract as the Desktop main process and the
+// upstream CLI: report, release what this generation holds, exit 1. The supervisor then sees an
+// unexpected exit and keeps this stderr diagnostic in the Desktop log.
+installFailLoud(DESKTOP_PACKAGE_NAME, process, release)
 rpc.handle('boot', async args => {
   const [wire, snapshot, token] = args as [Omit<DesktopHostOptions, 'desktopLaunchEnvironment'> & { launchEnvironmentLayers: LaunchEnvironmentLayerInput[] }, RuntimeSnapshot, string]
   const options: DesktopHostOptions = { ...wire, desktopLaunchEnvironment: createLaunchEnvironmentSnapshot(wire.launchEnvironmentLayers) }
@@ -66,7 +76,7 @@ rpc.handle('boot', async args => {
     return { pid: process.pid }
   } catch (cause) {
     // A generation that never booted gets no `stop`, so release here or the policy outlives it.
-    await releaseProxy()
+    await releaseProxy?.()
     releaseProxy = undefined
     throw cause
   }
