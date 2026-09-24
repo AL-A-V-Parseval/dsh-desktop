@@ -15,6 +15,7 @@
     "dsh-community-market"
   ],
   "resolutions": {
+    "@agents-anywhere/dsh-bridge-next": "patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.c216ac3ddda3b.r7b32a9b2.tgz#./patches/agents-anywhere-connector-httpx.patch",
     "app-builder-lib@npm:26.15.7": "patch:app-builder-lib@npm%3A26.15.7#./patches/app-builder-lib@26.15.7.patch",
     "open@npm:11.0.1": "patch:open@npm%3A11.0.1#./patches/open@11.0.1.patch",
     "open@npm:^11.0.0": "patch:open@npm%3A11.0.1#./patches/open@11.0.1.patch",
@@ -707,7 +708,7 @@
     "dist:win-portable:beta": "yarn market:prepare && yarn aa:prepare-release && yarn aa:prepare-release --verify-release && yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop-beta dist:win-portable",
     "aa:check": "node scripts/prepare-agents-anywhere-release.mjs --check",
     "aa:prepare-release": "node scripts/prepare-agents-anywhere-release.mjs",
-    "test:aa-release": "node --test scripts/agents-anywhere-release-policy.test.mjs",
+    "test:aa-release": "node --test scripts/agents-anywhere-release-policy.test.mjs scripts/agents-anywhere-connector.test.mjs",
     "dev:next": "yarn market:prepare && yarn aa:prepare-release && yarn workspace dsh-community-market build && yarn workspace dsh-desktop-next dev",
     "start:next": "yarn market:prepare && yarn workspace dsh-desktop-next start",
     "check:next": "yarn workspace dsh-community-market build && yarn workspace dsh-desktop-next check",
