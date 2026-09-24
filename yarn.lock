@@ -10844,7 +10844,7 @@ __metadata:
     clsx: "npm:^2.1.1"
     dsh-community-market: "npm:0.1.0-dev.0"
     dshmarket: "npm:1.59.0"
-    electron: "npm:43.3.0"
+    electron: "npm:44.0.0"
     electron-builder: "npm:26.15.7"
     fs-ext: "npm:2.1.1"
     jsdom: "npm:29.1.1"
@@ -10870,7 +10870,7 @@ __metadata:
     vitest: "npm:4.1.8"
     yaml: "npm:^2.9.0"
   peerDependencies:
-    electron: 43.3.0
+    electron: 44.0.0
   bin:
     dsh-desktop: lib/bin.js
     dsh-plugin-desktop: lib/bin.js
@@ -11016,20 +11016,6 @@ __metadata:
   version: 1.5.411
   resolution: "electron-to-chromium@npm:1.5.411"
   checksum: 10c0/3106a5ccfc036d125a096ab86e314c6fee4af60ef931f19d94304b4a859ffc1036709ffee923823aa35bff4c1e37694e9f6afa9e54ea7da54feb00f8ff8d69e7
-  languageName: node
-  linkType: hard
-
-"electron@npm:43.3.0":
-  version: 43.3.0
-  resolution: "electron@npm:43.3.0"
-  dependencies:
-    "@electron-internal/extract-zip": "npm:^1.0.1"
-    "@electron/get": "npm:^5.0.0"
-    "@types/node": "npm:^24.9.0"
-  bin:
-    electron: cli.js
-    install-electron: install.js
-  checksum: 10c0/1fb3aeee44e23a55e3e25a7fef0bdc177d209a0fe73af9e8dab478c9953db16f4274125b9054fbc2a7b8f2e6c9ab1eefe90967bc9d56754db5b0f2b97d854c70
   languageName: node
   linkType: hard
 
