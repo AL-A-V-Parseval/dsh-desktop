@@ -4,6 +4,7 @@ import {
   mkdtempSync,
   readFileSync,
   realpathSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from 'node:fs'
@@ -939,6 +940,49 @@ virtualStoreDirMaxLength: 60
     // The Loader has not started yet, so upstream's import still finds the section.
     expect(readFileSync(join(home, 'settings.yaml'), 'utf8'))
       .toBe(['desktop-shell:', '  mode: advanced', ''].join('\n'))
+  })
+
+  it('starts in the mode the not-yet-imported settings document is about to apply', () => {
+    // The setup wizard (and every 0.1.6 install) leaves the chosen mode in the
+    // harness-home document, which 0.1.7 only merges into the profile after the
+    // Loader is up. Reading the composed row alone opened the first window in
+    // compatibility mode while the reloaded generation dropped `ui-layout`, so
+    // nothing provided a layout and the renderer landed in recovery.
+    const home = temporaryHome()
+    writeDesktopShellPreferences(home, ['mode: compatibility', 'port: 43189'])
+    writeFileSync(join(home, 'settings.yaml'), ['dsh-desktop:', '  mode: extended', ''].join('\n'))
+
+    const pending = prepareDesktopProfile(undefined, home, 'win32')
+    const rows = composeEntries([pending.patches])
+
+    // Merged field by field, like the import: the document's mode, the row's port.
+    expect(pending).toMatchObject({ mode: 'extended', port: 43_189 })
+    expect(rows.find(row => row.id === 'ui-layout')?.disabled).toBe(true)
+    expect(rows.find(row => row.id === 'ui-sidebar')?.disabled).toBe(false)
+    // The shell plugin boots on the same values, so its renderer installs the layout.
+    expect(rows.find(row => row.id === 'desktop-shell')?.config)
+      .toEqual(expect.objectContaining({ mode: 'extended', port: 43_189 }))
+
+    // A section the import would reject leaves the row's values in charge.
+    const rejected = (platform: NodeJS.Platform, lines: string[]) => {
+      writeFileSync(join(home, 'settings.yaml'), ['desktop-shell:', ...lines.map(line => `  ${line}`), ''].join('\n'))
+      const prepared = prepareDesktopProfile(undefined, home, platform)
+      expect(prepared.mode).toBe('compatibility')
+      expect(prepared.patches.findLast(patch => patch.id === 'desktop-shell')).toEqual({ id: 'desktop-shell', disabled: false })
+    }
+    rejected('win32', ['mode: fullscreen'])
+    // Only volatile fields are importable; one stray key drops the whole section.
+    rejected('win32', ['mode: extended', 'width: 1600'])
+    rejected('win32', ['mode: extended', 'logLevel: verbose'])
+    rejected('win32', ['mode: extended', 'openBrowser: true'])
+    rejected('linux', ['mode: extended'])
+
+    // Once the import has renamed the document away, the row is the only source.
+    renameSync(join(home, 'settings.yaml'), join(home, 'settings.yaml.imported'))
+    const imported = prepareDesktopProfile(undefined, home, 'win32')
+    expect(imported.mode).toBe('compatibility')
+    // Nothing is pinned then, so the import's own write and later edits are not shadowed.
+    expect(imported.patches.findLast(patch => patch.id === 'desktop-shell')).toEqual({ id: 'desktop-shell', disabled: false })
   })
 
   it('keeps legacy browser intent but clamps LAN exposure when compatibility mode is selected', () => {
