@@ -59,21 +59,21 @@ See `.yarn/patches/`, `patches/`, and the commit history for details.
 
 ## Download and run
 
-Grab the Linux x64 build from [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases). Two forms are provided.
+Grab the Linux x64 build from [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases). Two forms are provided. Replace `<version>` in the commands below with the actual version on the Release page (shaped like `X.Y.Z-linux.N`).
 
 ### Portable archive (tar.gz)
 
 ```sh
-tar -xzf DSH-Desktop-2.0.13-linux.1-x64-portable.tar.gz
-cd DSH-Desktop-2.0.13-linux.1-x64
-./dsh-plugin-desktop
+tar -xzf DSH-Desktop-<version>-x64-portable.tar.gz
+cd DSH-Desktop-<version>-x64
+./dsh-desktop        # 2.0.13-linux.* archives still ship ./dsh-plugin-desktop
 ```
 
 ### Debian / Ubuntu package (.deb)
 
 ```sh
-sudo apt install ./dsh-desktop_2.0.13-linux.1_amd64.deb
-# or: sudo dpkg -i dsh-desktop_2.0.13-linux.1_amd64.deb && sudo apt -f install
+sudo apt install ./dsh-desktop_<version>_amd64.deb
+# or: sudo dpkg -i dsh-desktop_<version>_amd64.deb && sudo apt -f install
 ```
 
 After installing, launch it from the application menu or run `dsh-desktop`. The `.deb`:
@@ -101,7 +101,7 @@ gpg --import Jic2007-release-key.asc
 gpg --verify SHA256SUMS.asc SHA256SUMS
 sha256sum -c SHA256SUMS
 # optional: internal .deb signature (requires debsigs)
-debsigs --verify dsh-desktop_2.0.13-linux.1_amd64.deb
+debsigs --verify dsh-desktop_<version>_amd64.deb
 ```
 
 ## Build from source

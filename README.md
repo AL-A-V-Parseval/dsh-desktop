@@ -59,21 +59,21 @@ Linux 版 Electron 会向进程空间泄漏 glib 符号，与 sharp/libvips 的 
 
 ## 下载与运行
 
-从 [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases) 获取 Linux x64 安装包，提供两种形式。
+从 [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases) 获取 Linux x64 安装包，提供两种形式。下面命令中的 `<version>` 请替换为 Release 页面上的实际版本号（形如 `X.Y.Z-linux.N`）。
 
 ### 便携包（tar.gz）
 
 ```sh
-tar -xzf DSH-Desktop-2.0.13-linux.1-x64-portable.tar.gz
-cd DSH-Desktop-2.0.13-linux.1-x64
-./dsh-plugin-desktop
+tar -xzf DSH-Desktop-<version>-x64-portable.tar.gz
+cd DSH-Desktop-<version>-x64
+./dsh-desktop        # 2.0.13-linux.* 的包内二进制名为 ./dsh-plugin-desktop
 ```
 
 ### Debian / Ubuntu 安装包（.deb）
 
 ```sh
-sudo apt install ./dsh-desktop_2.0.13-linux.1_amd64.deb
-# 或：sudo dpkg -i dsh-desktop_2.0.13-linux.1_amd64.deb && sudo apt -f install
+sudo apt install ./dsh-desktop_<version>_amd64.deb
+# 或：sudo dpkg -i dsh-desktop_<version>_amd64.deb && sudo apt -f install
 ```
 
 安装后可从应用菜单启动，或在终端运行 `dsh-desktop`。`.deb` 会：
@@ -101,7 +101,7 @@ gpg --import Jic2007-release-key.asc
 gpg --verify SHA256SUMS.asc SHA256SUMS
 sha256sum -c SHA256SUMS
 # 可选：校验 .deb 内部签名（需要 debsigs）
-debsigs --verify dsh-desktop_2.0.13-linux.1_amd64.deb
+debsigs --verify dsh-desktop_<version>_amd64.deb
 ```
 
 ## 从源码构建
