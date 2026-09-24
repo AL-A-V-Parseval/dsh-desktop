@@ -693,7 +693,6 @@ describe('Desktop settings Slot registration', () => {
       mode: 'compatibility',
       platform: 'darwin',
       material: 'off',
-      micaSupported: false,
     })
 
     expect(get).toHaveBeenNthCalledWith(1, DESKTOP_SHELL_SETTINGS_NAMESPACE)
@@ -714,7 +713,6 @@ describe('Desktop settings Slot registration', () => {
     expect(options.inject()).toMatchObject({
       platform: 'darwin',
       initialMode: 'compatibility',
-      micaSupported: false,
       setMode: expect.any(Function),
     })
     expect(component).toBe(DesktopSettingsSection)

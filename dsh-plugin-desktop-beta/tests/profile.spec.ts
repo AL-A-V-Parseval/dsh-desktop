@@ -767,6 +767,7 @@ virtualStoreDirMaxLength: 60
     const edited = {
       mode: 'advanced',
       macosMaterial: 'transparent',
+      // A legacy value the schema still accepts; it resolves to 'off' at runtime.
       windowsMaterial: 'mica',
       linuxMaterial: 'transparent',
       port: 43_189,
@@ -976,10 +977,11 @@ virtualStoreDirMaxLength: 60
     const prepared = prepareDesktopProfile(undefined, home, 'win32')
     const rows = composeEntries([prepared.patches])
 
+    // A removed Windows Mica preference still boots and renders opaque.
     expect(prepared).toEqual(expect.objectContaining({
       mode: 'extended',
       macosMaterial: 'off',
-      windowsMaterial: 'mica',
+      windowsMaterial: 'off',
     }))
     expect(rows.find(row => row.id === 'ui-layout')?.disabled).toBe(true)
     expect(rows.find(row => row.id === 'ui-sidebar')?.disabled).toBe(false)
@@ -988,6 +990,7 @@ virtualStoreDirMaxLength: 60
       config: expect.objectContaining({
         mode: 'extended',
         macosMaterial: 'off',
+        // The user's legacy leaf is carried through unchanged, never rewritten.
         windowsMaterial: 'mica',
       }),
     }))

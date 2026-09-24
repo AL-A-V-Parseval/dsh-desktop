@@ -260,8 +260,8 @@ function normalizedUpdate(
   if (value.macosMaterial !== 'off' && value.macosMaterial !== 'transparent') {
     throw new TypeError(`${BIN_NAME}: macOS Setup Wizard material must be off or transparent`)
   }
-  if (value.windowsMaterial !== 'off' && value.windowsMaterial !== 'mica') {
-    throw new TypeError(`${BIN_NAME}: Windows Setup Wizard material must be off or mica`)
+  if (value.windowsMaterial !== 'off') {
+    throw new TypeError(`${BIN_NAME}: Windows Setup Wizard material must be off`)
   }
   if (typeof value.openBrowser !== 'boolean') {
     throw new TypeError(`${BIN_NAME}: Setup Wizard openBrowser must be a boolean`)
