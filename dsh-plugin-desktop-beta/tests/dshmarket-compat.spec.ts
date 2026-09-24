@@ -124,8 +124,8 @@ async function mountUpdateRoute(
   return { route, dispose }
 }
 
-async function invokeUpdate(route: MarketRoute): Promise<{ status: number; body: Record<string, unknown> }> {
-  const request = Object.assign(Readable.from([JSON.stringify({ name: 'dshmarket', force: true })]), {
+async function invokeUpdate(route: MarketRoute, compatVersion?: string, name = 'dshmarket'): Promise<{ status: number; body: Record<string, unknown> }> {
+  const request = Object.assign(Readable.from([JSON.stringify({ name, force: true, compatVersion })]), {
     method: 'POST',
     url: '/dsh-market/update',
     headers: { origin: 'http://localhost', host: 'localhost' },
@@ -289,7 +289,7 @@ describe('dsh-market Desktop install compatibility', () => {
     await runtime.dispose()
   })
 
-  it('does not reject a host-provided market update for a pre-existing missing bundle', async () => {
+  it.each([undefined, '9999.0.0'])('does not reject a host-provided market update for a pre-existing missing bundle (compatVersion=%s)', async (compatVersion) => {
     globalThis.fetch = vi.fn(async () => new Response(
       JSON.stringify({ version: '9999.0.0' }),
       { status: 200, headers: { 'content-type': 'application/json' } },
@@ -322,16 +322,84 @@ describe('dsh-market Desktop install compatibility', () => {
       cancelActive: () => false,
     })
 
-    const result = await invokeUpdate(route)
+    const result = await invokeUpdate(route, compatVersion)
     dispose()
 
     expect(result.status).toBe(200)
     expect(result.body).toMatchObject({ ok: true })
     expect(runPlugin).toHaveBeenCalledOnce()
+    expect(runPlugin.mock.calls[0]?.[1]).toContain('dshmarket@9999.0.0')
     expect(JSON.parse(readFileSync(join(profileDir, 'package.json'), 'utf8'))).toMatchObject({
       dependencies: { dshmarket: '^9999.0.0' },
       dsh: { profile: { bundles: ['orphan', 'dshmarket'] } },
     })
+  })
+
+  it('uses the bundled market version to skip an already installed compatible release', async () => {
+    const profileDir = mkdtempSync(join(tmpdir(), 'dshmarket-compat-current-'))
+    temporaryProfiles.push(profileDir)
+    writeProfileManifest(profileDir, { name: 'dsh-profile-desktop', private: true, dependencies: {} })
+    const require = createRequire(import.meta.url)
+    const version = (require('dshmarket/package.json') as { version: string }).version
+    const runPlugin = vi.fn(async (): Promise<RouteRuntimeResult> => ({
+      exitCode: 0, timedOut: false, cancelled: false, stdout: '', stderr: '',
+    }))
+    const { route, dispose } = await mountUpdateRoute(profileDir, {
+      runPlugin,
+      probePnpm: async () => true,
+      provisionPnpm: async () => ({ ok: true }),
+      cancelActive: () => false,
+    })
+
+    const result = await invokeUpdate(route, version)
+    dispose()
+
+    expect(result).toMatchObject({ status: 200, body: { ok: true, skipped: 'current', name: 'dshmarket', version } })
+    expect(runPlugin).not.toHaveBeenCalled()
+  })
+
+  it('uses the bundled market version to reject a compatible release that would downgrade it', async () => {
+    const profileDir = mkdtempSync(join(tmpdir(), 'dshmarket-compat-downgrade-'))
+    temporaryProfiles.push(profileDir)
+    writeProfileManifest(profileDir, { name: 'dsh-profile-desktop', private: true, dependencies: {} })
+    const runPlugin = vi.fn(async (): Promise<RouteRuntimeResult> => ({
+      exitCode: 0, timedOut: false, cancelled: false, stdout: '', stderr: '',
+    }))
+    const { route, dispose } = await mountUpdateRoute(profileDir, {
+      runPlugin,
+      probePnpm: async () => true,
+      provisionPnpm: async () => ({ ok: true }),
+      cancelActive: () => false,
+    })
+
+    const result = await invokeUpdate(route, '0.0.1')
+    dispose()
+
+    expect(result.status).toBe(400)
+    expect(result.body.error).toContain('would be a downgrade')
+    expect(runPlugin).not.toHaveBeenCalled()
+    expect(JSON.parse(readFileSync(join(profileDir, 'package.json'), 'utf8')).dependencies).toEqual({})
+  })
+
+  it('does not treat an unrelated missing plugin as a bundled market update', async () => {
+    const profileDir = mkdtempSync(join(tmpdir(), 'dshmarket-compat-unrelated-'))
+    temporaryProfiles.push(profileDir)
+    writeProfileManifest(profileDir, { name: 'dsh-profile-desktop', private: true, dependencies: {} })
+    const runPlugin = vi.fn(async (): Promise<RouteRuntimeResult> => ({
+      exitCode: 0, timedOut: false, cancelled: false, stdout: '', stderr: '',
+    }))
+    const { route, dispose } = await mountUpdateRoute(profileDir, {
+      runPlugin,
+      probePnpm: async () => true,
+      provisionPnpm: async () => ({ ok: true }),
+      cancelActive: () => false,
+    })
+
+    const result = await invokeUpdate(route, '9999.0.0', 'unrelated-plugin')
+    dispose()
+
+    expect(result).toMatchObject({ status: 400, body: { error: 'plugin is not installed' } })
+    expect(runPlugin).not.toHaveBeenCalled()
   })
 
   it('restores dependencies and the bundle stack when an update introduces a trial failure', async () => {

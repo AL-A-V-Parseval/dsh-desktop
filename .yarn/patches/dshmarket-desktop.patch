@@ -70,16 +70,16 @@ index 6209913..bb756d8 100644
                          if (spec === undefined || INBOX_BUNDLES.has(name)) {
                              sendJson(response, 400, { error: 'plugin is not installed' });
                              return;
-@@ -3098,7 +3099,8 @@ export function mountMarketRoutes(host, config, commandRuntime, agentsLookup) {
+@@ -3272,7 +3273,8 @@ export function mountMarketRoutes(host, config, commandRuntime, agentsLookup) {
                          // Desktop boundary; it is what turns a silent skip into a
                          // failure with a name.
                          if (usesNpmUpdateTarget) {
 -                            const installedVersion = readInstalledVersion(config.profile, name, activeProfileDir);
 +                            const installedVersion = readInstalledVersion(config.profile, name, activeProfileDir)
 +                                ?? (name === 'dshmarket' ? marketVersion() : null);
-                             const registryLatest = selfChannel === null
-                                 ? await fetchNpmLatest(name)
-                                 : await versionOnChannel(name, selfChannel, await fetchNpmLatest(name));
+                             // The requested release replaces the resolved one, and with it
+                             // every check below that exists to judge `latest`: re-running
+                             // them would refuse the version the dialog just found, in a loop
 @@ -3223,7 +3225,8 @@ export function mountMarketRoutes(host, config, commandRuntime, agentsLookup) {
                          // one needs a refresh, not a restart.
                          const wasLive = verifyActivation(config.profile, name, liveNames(), activeProfileDir, disabled.has(name)).state === 'live'
