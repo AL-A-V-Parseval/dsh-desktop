@@ -426,6 +426,8 @@ try {
   for (const id of [
     'dsh-plugin-desktop-beta',
     '@deepseek-ai/dsh-client-file-upload',
+    '@deepseek-ai/dsh-client-shortcuts',
+    '@deepseek-ai/dsh-client-ui-shortcuts',
     '@deepseek-ai/dsh-client-ui-conversation',
     '@deepseek-ai/dsh-client-ui-sidebar',
     '@deepseek-ai/dsh-client-ui-directory-picker-browse',

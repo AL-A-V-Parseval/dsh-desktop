@@ -58,7 +58,7 @@ vi.mock('../src/desktop-terminal.ts', async importOriginal => ({ ...await import
 vi.mock('electron', async () => {
   const { EventEmitter } = await import('node:events')
   const app = Object.assign(new EventEmitter(), {
-    setName() {}, setPath() {}, getLocale: () => 'en-US', getPreferredSystemLanguages: () => ['zh-Hans-CN', 'en-US'], isReady: () => true, whenReady: async () => {},
+    setName() {}, setPath() {}, getPath: () => process.env.DSH_DESKTOP_NEXT_HOME, getLocale: () => 'en-US', getPreferredSystemLanguages: () => ['zh-Hans-CN', 'en-US'], isReady: () => true, whenReady: async () => {},
     requestSingleInstanceLock: () => true, exit: vi.fn(), relaunch: vi.fn(), quit: vi.fn(() => app.emit('before-quit', { preventDefault() {} })),
   })
   class BrowserWindow extends EventEmitter {
@@ -66,7 +66,7 @@ vi.mock('electron', async () => {
     loadedUrls: string[] = []
     webContents = Object.assign(new EventEmitter(), { id: fixture.windows.length + 1,
       mainFrame: { url: '' }, getURL: () => this.webContents.mainFrame.url, setWindowOpenHandler() {}, send: vi.fn(), isDestroyed: () => false,
-      isFocused: () => true, executeJavaScript: vi.fn(async () => true) })
+      setIgnoreMenuShortcuts() {}, isFocused: () => true, executeJavaScript: vi.fn(async () => true) })
     constructor(readonly options: any) { super(); fixture.windows.push(this) }
     destroyed = false
     isDestroyed() { return this.destroyed }
@@ -105,7 +105,7 @@ vi.mock('electron', async () => {
     session: { defaultSession: { webRequest: { onBeforeSendHeaders() {} }, setPermissionCheckHandler() {}, setPermissionRequestHandler() {}, setDisplayMediaRequestHandler() {} } },
     systemPreferences: { getMediaAccessStatus: () => 'not-determined', askForMediaAccess: vi.fn(async () => false), isTrustedAccessibilityClient: () => false },
     desktopCapturer: { getSources: vi.fn(async () => []) },
-    ipcMain: { handle: (name: string, action: (...args: any[]) => any) => fixture.handlers.set(name, action), on: (name: string, action: (...args: any[]) => any) => fixture.handlers.set(name, action) },
+    ipcMain: { removeHandler: (name: string) => fixture.handlers.delete(name), handle: (name: string, action: (...args: any[]) => any) => fixture.handlers.set(name, action), on: (name: string, action: (...args: any[]) => any) => fixture.handlers.set(name, action) },
   }
 })
 

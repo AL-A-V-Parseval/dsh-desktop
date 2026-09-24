@@ -1,4 +1,4 @@
-/** Exercise the actual 0.1.7-rc.1 Host, credentials, Market routes and AA manifest without Electron UI. */
+/** Exercise the actual 0.1.7-rc.2 Host, credentials, Market routes and AA manifest without Electron UI. */
 import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -78,6 +78,14 @@ try {
   }
   // The official overview discovers installation-owned bundles from direct
   // dependencies, even when their packages are already present transitively.
+  const officialRows = await rpc('listPlugins')
+  for (const name of ['@deepseek-ai/dsh-llm-deepseek-api-key', '@deepseek-ai/dsh-llm-deepseek-account',
+    '@deepseek-ai/dsh-client-shortcuts', '@deepseek-ai/dsh-client-ui-shortcuts']) {
+    assert.ok(officialRows.some(row => row.moduleName === name && row.enabled), `rc.2 composition is missing ${name}`)
+  }
+  for (const name of ['@deepseek-ai/dsh-schedule', '@deepseek-ai/dsh-time-context']) {
+    assert.ok(officialRows.some(row => row.moduleName === name && !row.enabled), `${name} must remain opt-in`)
+  }
   const availableBundles = await rpc('listBundles')
   // dsh 0.1.7 deleted `-web-profile` and merged its `ui-agent-team` row into `-profile`.
   for (const [name, rowIds] of [
@@ -97,6 +105,7 @@ try {
     assert.ok(bundle, JSON.stringify(bundle))
     assert.equal(bundle.optional, true)
     assert.equal(bundle.removable, false)
+    assert.equal(bundle.error, undefined, JSON.stringify(bundle))
     const result = await rpc('setBundleEnabled', { name, enabled: false })
     assert.equal(result.application, 'applied', JSON.stringify(result))
     assert.equal((await rpc('listBundles')).find(row => row.name === name)?.enabled, false)
@@ -289,7 +298,7 @@ try {
     await stop()
     console.log('Onboarding Cua native provider activation and teardown passed without capturing screens, sending input or prompting for OS permissions.')
   }
-  console.log(`Next Host smoke passed (${process.argv.includes('--electron') ? 'Electron Node mode' : 'Node'}): authenticated 0.1.7-rc.1 Web, exclusive market selection and independent AA persisted, official row toggles, dshmarket offline install and cross-market removal, official install/remove with a freshly published locked dependency, native dshmarket update origin gate, graceful shutdown, recovery boot and profile switch.`)
+  console.log(`Next Host smoke passed (${process.argv.includes('--electron') ? 'Electron Node mode' : 'Node'}): authenticated 0.1.7-rc.2 Web, exclusive market selection and independent AA persisted, official row toggles, dshmarket offline install and cross-market removal, official install/remove with a freshly published locked dependency, native dshmarket update origin gate, graceful shutdown, recovery boot and profile switch.`)
 } finally {
   await runner?.dispose()
   await host?.stop()

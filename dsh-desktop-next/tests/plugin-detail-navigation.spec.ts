@@ -16,6 +16,7 @@ function fixture() {
   const hookState: unknown[] = []
   let cursor = 0
   let Page: (props: Record<string, unknown>) => Node
+  let navigation: any
   let apply: (context: unknown) => void
   const source = readFileSync(createRequire(import.meta.url).resolve('@deepseek-ai/dsh-client-ui-plugin-manager/client'), 'utf8')
   const require = (id: string) => {
@@ -31,15 +32,26 @@ function fixture() {
     if (id === 'react-dom') return {}
     if (id === '@deepseek-ai/dsh-client-ui-primitives') return new Proxy({}, { get: (_, name) => (props: Node['props']) => jsx(String(name), props) })
     if (id === '@deepseek-ai/dsh-client-ui-slots') return { resolveSlotLabel: (label: unknown) => label }
-    if (id === '@deepseek-ai/dsh-client-store') return { createSnapshotStore: (state: unknown) => ({ getSnapshot: () => state }) }
+    if (id === '@deepseek-ai/dsh-client-store') return {
+      createSnapshotStore: (state: unknown) => ({ getSnapshot: () => state }),
+      defineStore: ({ init, actions }: any) => ({ create: () => {
+        const state = init()
+        return { getSnapshot: () => state, actions: Object.fromEntries(Object.entries(actions).map(([name, action]) =>
+          [name, (...args: unknown[]) => (action as any)(state, ...args)])) }
+      } }),
+    }
     throw new Error(`Unexpected browser dependency: ${id}`)
   }
   runInNewContext(source, { window: { __ModuleLoader__: { load: (entry: { factory: (require: unknown) => { apply: typeof apply } }) => { apply = entry.factory(require).apply } } } })
   const noop = () => () => {}
   apply!({ effect: (effect: () => void) => effect(), on: noop,
     locale: { register: noop, bind: () => (key: string) => key }, remote: { $on: noop },
-    slots: { inject: (_name: string, register: () => void) => register(), register: (options: { name: string }, view: typeof Page) => {
-      if (options.name === 'main') Page = view
+    layout: { panelInfo: { subscribe: noop }, selectPanel: vi.fn() }, reflect: { provide: noop },
+    slots: { inject: (_name: string, register: () => unknown) => {
+      const result = register()
+      if (result && typeof result === 'object' && Symbol.iterator in result) [...result as Iterable<unknown>]
+    }, register: (options: { name: string; store?: any }, view: typeof Page) => {
+      if (options.name === 'main') { Page = view; navigation = options.store.create() }
       return () => {}
     } },
   })
@@ -54,6 +66,7 @@ function fixture() {
   let overview: { onOpenBundle(name: string): void; onOpenItem(id: string): void }
   const setEnabled = vi.fn()
   const props = {
+    useStore: (select: (state: unknown) => unknown) => select(navigation.getSnapshot()), actions: navigation.actions,
     t: (key: string) => key, ensure: vi.fn(), resolveText: (text: string) => text,
     useConfigurations: () => [], usePluginManager: () => state, useConfigLedger: () => ledger, setEnabled,
     renderSlot: (name: string, owner: Record<string, unknown>, options?: unknown) => {

@@ -1,4 +1,5 @@
-/** Official alpha.2 Desktop transport with a Host-independent native shell. */
+/** Official Desktop transport with a Host-independent native shell. */
+import { installDesktopShortcuts } from './keyboard.ts'
 import { spawn } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
@@ -58,6 +59,7 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'dsh-app', privileges: {
 
 let mainWindow: BrowserWindow | undefined
 // Storage partitions outlive individual windows, so the guest owner is process-scoped.
+let desktopShortcuts: ReturnType<typeof installDesktopShortcuts> | undefined
 const browserGuests = new DesktopBrowserGuests(() => runtime.auth ? [new URL(runtime.auth.url).origin] : [])
 let shellWindow: BrowserWindow | undefined
 let recoveryRunner: ReturnType<typeof createPackageRunner> | undefined
@@ -282,7 +284,8 @@ function openMain(): void {
   mainWindow = createWindow('preload-app.cjs', true)
   const owner = mainWindow
   // The guest owner installs its own navigation, crash and destruction release paths.
-  browserGuests.bind(owner)
+  browserGuests.bind(owner, (guest, name) => desktopShortcuts!.attachGuest(owner, guest, name))
+  desktopShortcuts!.attach(owner)
   mainWindow.on('closed', () => { mainWindow = undefined })
   mainWindow.webContents.on('render-process-gone', (_event, details) => { if (!quitting) runtime.report(new Error(`Renderer: ${details.reason}`)) })
   mainWindow.webContents.on('preload-error', (_event, _path, error) => runtime.report(error))
@@ -664,6 +667,15 @@ async function recoveryAction(input: Record<string, unknown>): Promise<void> {
 async function main(): Promise<void> {
   await app.whenReady()
   if (quitting) return
+  let inputRevision = 0
+  let inputBlocked = false
+  desktopShortcuts = installDesktopShortcuts(() => mainWindow, app.getPath('userData'),
+    process.platform === 'darwin' ? 'macos' : process.platform === 'win32' ? 'windows' : 'linux', () => {}, () => {
+      const blocked = runtime.recoveryMode || onboarding
+      if (blocked !== inputBlocked) { inputBlocked = blocked; inputRevision++ }
+      return { revision: inputRevision, blocked }
+    })
+  app.once('will-quit', () => { desktopShortcuts?.dispose() })
   if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(join(root, 'build', 'app-icon-mac.png'))
   // Recovery can open without a Host; Chromium's app locale may differ from the OS language.
   windowsLanguage = preferredDesktopLocale([...app.getPreferredSystemLanguages(), app.getLocale()])
@@ -803,8 +815,7 @@ async function main(): Promise<void> {
       const editItem = (label: string, keyCode: string, modifiers: Array<'control'>, accelerator?: string): MenuItemConstructorOptions => ({
         label, accelerator, click: () => {
           window.webContents.focus()
-          window.webContents.sendInputEvent({ type: 'keyDown', keyCode, modifiers })
-          window.webContents.sendInputEvent({ type: 'keyUp', keyCode, modifiers })
+          desktopShortcuts!.sendEditingKey(keyCode, modifiers)
         },
       })
       const items: MenuItemConstructorOptions[] = name === 'application' ? native.items() : [
