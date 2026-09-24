@@ -32,7 +32,7 @@ export function apply(ctx: Context): void {
     zh: { settings: '桌面设置', language: 'zh', safeMode: '安全模式', safeModeDetail: '当前使用临时环境。退出安全模式并重启后返回原 Profile，临时数据不会保留。', dismiss: '关闭提示', recovery: '打开恢复助手' },
     en: { settings: 'Desktop settings', language: 'en', safeMode: 'Safe mode', safeModeDetail: 'You are using a temporary environment. Exiting Safe Mode and restarting returns to the original Profile and removes the temporary data.', dismiss: 'Dismiss notice', recovery: 'Open recovery assistant' },
   }), 'Next settings and recovery labels')
-  ctx.effect(installDesktopSettingsStyles, 'Shared Desktop settings styles')
+  ctx.effect(() => installDesktopSettingsStyles('dsh-desktop-next'), 'Shared Desktop settings styles')
   ctx.effect(installPluginControlsStyles, 'Plugin controls and permission dialog styles')
   registerPluginControls(ctx)
   if (window.desktopNext) {
@@ -64,14 +64,14 @@ export function apply(ctx: Context): void {
 
 /** Temporary, metadata-only trace for the AA dialog and its sibling Plugins UI. */
 function installUiDiagnostics(): () => void {
-  const aaButton = '[data-slot="sidebar.footer.action"] button[aria-label="手机连接"]'
+  const aaButton = '[data-slot="sidebar.footer.action"] button[aria-label="远程控制"], [data-slot="sidebar.footer.action"] button[aria-label="Remote Control"], [data-slot="sidebar.footer.action"] button[aria-label="Mobile connection"], [data-slot="sidebar.footer.action"] button[aria-label="手机连接"]'
   const read = () => {
     const button = document.querySelector(aaButton)
     return {
       button: button !== null,
       expanded: button?.getAttribute('aria-expanded') === 'true',
       dialog: [...document.querySelectorAll('[role="dialog"]')].some(element =>
-        ['手机连接', 'Agents Anywhere'].includes(element.getAttribute('aria-label') ?? '')),
+        ['远程控制', 'Remote Control', '手机连接', 'Mobile connection', 'Agents Anywhere'].includes(element.getAttribute('aria-label') ?? '')),
       plugins: document.querySelector('[data-next-plugin-controls]') !== null,
     }
   }
