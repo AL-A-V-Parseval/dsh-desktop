@@ -89,7 +89,7 @@ it('exports only bounded redacted diagnostics, including secrets split across ch
   log.append('debug information', 'debug')
   const data = log.export({ version: 'next-dev', platform: 'test', selected: 'desktop', profiles: [], unavailableProfiles: [], phase: 'error',
     safeMode: false, failure: 'token=private-token', features: { market: false, remoteControl: false }, preferences: { ...DEFAULT_PREFERENCES },
-    trayAvailable: true, browserUrl: null, lan: null, busy: false, home, notificationsAvailable: true, windowsMicaSupported: false, checkpoint: null, logs: '' } satisfies DesktopState)
+    trayAvailable: true, browserUrl: null, lan: null, busy: false, home, notificationsAvailable: true, checkpoint: null, logs: '' } satisfies DesktopState)
   expect(data).not.toContain('private-token')
   expect(data).not.toContain('secret-cookie')
   expect(data).not.toContain('debug information')
