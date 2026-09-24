@@ -27,7 +27,7 @@ import { atomicJson, privateDirectory } from './private-files.ts'
 import { windowMaterial } from './window-material.ts'
 import { ONBOARDING_ARGUMENT, RECOVERY_ARGUMENT, SAFE_ARGUMENT, relaunchArguments } from './relaunch.ts'
 import { createNativePermissions, installMediaPermissions } from './electron-permissions.ts'
-import { readDataDirectory, validateDataDirectory } from './data-directory.ts'
+import { defaultDataDirectory, readDataDirectory, validateDataDirectory } from './data-directory.ts'
 import { maskSecrets } from './mask-secrets.ts'
 import { DesktopBrowserGuests } from './browser-guests.ts'
 import { PlatformLoginWindow } from './platform-login-window.ts'
@@ -39,10 +39,13 @@ import { updateLabel } from './update-state.ts'
 applyDesktopPackageAgePolicy(process.env)
 
 const root = dirname(NEXT_PACKAGE)
-const defaultHome = resolve(process.env.DSH_DESKTOP_NEXT_HOME ?? (app.isPackaged
-  ? join(app.getPath('appData'), 'DSH NEXT', 'home') : join(root, '.desktop-next', 'home')))
-const locationFile = join(defaultHome, 'desktop-next-location.json')
-const dataLocation = readDataDirectory(defaultHome)
+const defaultHome = resolve(process.env.DSH_DESKTOP_NEXT_HOME ?? defaultDataDirectory())
+// The location preference stays at its former Next-owned anchor so previously
+// chosen custom directories survive a change to the default home.
+const locationRoot = process.env.DSH_DESKTOP_NEXT_HOME ? defaultHome
+  : app.isPackaged ? join(app.getPath('appData'), 'DSH NEXT', 'home') : join(root, '.desktop-next', 'home')
+const locationFile = join(locationRoot, 'desktop-next-location.json')
+const dataLocation = readDataDirectory(defaultHome, locationRoot)
 const home = dataLocation.home
 const nativeLocale = new NativeLocaleStore(home)
 const electronData = join(home, 'electron-user-data')

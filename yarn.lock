@@ -5698,7 +5698,7 @@ __metadata:
 
 "@deepseek-ai/dsh@patch:@deepseek-ai/dsh@file%3Avendor/dsh-runtime/0.1.7-rc.1/deepseek-ai-dsh-0.1.7-rc.1.tgz#./patches/dsh@0.1.7-rc.1.patch::locator=deepseek-harness-desktop%40workspace%3A.":
   version: 0.1.7-rc.1
-  resolution: "@deepseek-ai/dsh@patch:@deepseek-ai/dsh@file%3Avendor/dsh-runtime/0.1.7-rc.1/deepseek-ai-dsh-0.1.7-rc.1.tgz%23vendor/dsh-runtime/0.1.7-rc.1/deepseek-ai-dsh-0.1.7-rc.1.tgz%3A%3Ahash=61b062&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/dsh@0.1.7-rc.1.patch::version=0.1.7-rc.1&hash=7668c8&locator=deepseek-harness-desktop%40workspace%3A."
+  resolution: "@deepseek-ai/dsh@patch:@deepseek-ai/dsh@file%3Avendor/dsh-runtime/0.1.7-rc.1/deepseek-ai-dsh-0.1.7-rc.1.tgz%23vendor/dsh-runtime/0.1.7-rc.1/deepseek-ai-dsh-0.1.7-rc.1.tgz%3A%3Ahash=61b062&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/dsh@0.1.7-rc.1.patch::version=0.1.7-rc.1&hash=66f166&locator=deepseek-harness-desktop%40workspace%3A."
   dependencies:
     "@deepseek-ai/cordis": "npm:~4.0.4"
     "@deepseek-ai/cordis-plugin-include": "npm:~1.0.9"
@@ -5782,7 +5782,7 @@ __metadata:
     node-addon-require-builtin: "npm:^0.1.6"
   bin:
     dsh: lib/bin.js
-  checksum: 10c0/8cd07fb11ed9911645a238b73f81e7e3f492e82e4da89433bb3e02169fa5c4c2da8e5b9aec71d222be185468349102609ace74302aed733520940a66054b2789
+  checksum: 10c0/e7c71ab60c293905353a53abcc1799ae6c491c8a5a091b78afc0edf24d0db6744312f98ab4523f431e24c4943df169ccda4ceb51b1a50708335ec7347c08ac61
   languageName: node
   linkType: hard
 
