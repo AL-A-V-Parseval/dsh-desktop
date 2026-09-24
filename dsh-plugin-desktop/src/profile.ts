@@ -1,10 +1,14 @@
 /** Compatibility profile composition over the official Web bundle and user plugins. */
 
+import { randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
 import {
   existsSync,
+  lstatSync,
   readdirSync,
   readFileSync,
+  renameSync,
+  rmSync,
   writeFileSync,
 } from 'node:fs'
 import { isIP } from 'node:net'
@@ -29,7 +33,7 @@ import {
   type ProfileManifest,
 } from '@deepseek-ai/dsh-app-boot'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
-import { isMap, isPair, isScalar, parseAllDocuments, parseDocument, type Pair, type YAMLMap } from 'yaml'
+import { isMap, isPair, isScalar, isSeq, parseAllDocuments, parseDocument, type Pair, type YAMLMap } from 'yaml'
 import { findOverlayPackage, resolveOverlayPackage } from './package-overlay.ts'
 import { DESKTOP_DEFAULT_WEB_PORT } from './desktop-port.ts'
 import {
@@ -495,6 +499,91 @@ function pendingDesktopShellConfig(
   if (!desktopBrowserAccessAvailable(mode) && openBrowser) return undefined
   if (mode !== 'compatibility' && platform === 'linux') return undefined
   return merged
+}
+
+/**
+ * Merge the pending desktop-shell section into the profile patch layer and drop it
+ * from the settings document, the way the import would, but before the Loader starts.
+ *
+ * The row is written exactly as the config editor writes it (the last plain
+ * `desktop-shell` row, else a new one), so later edits find and update it. The
+ * profile is written first: if the process dies before the document is rewritten,
+ * the next launch merges the same values again, which changes nothing. Each file
+ * is replaced in one step, so a crash never leaves a half-written profile, and a
+ * symlinked document is left to the import rather than replaced by a copy.
+ * @param patchPath - the profile's own patch document.
+ * @param rowName - the composed desktop-shell row's package identity.
+ * @param spec - the resolved harness-home document.
+ * @param section - the validated pending section.
+ * @returns whether both documents were rewritten; on false the upstream import
+ *   still merges the section later, as it did before.
+ */
+function importPendingDesktopShellSection(
+  patchPath: string,
+  rowName: unknown,
+  spec: DesktopSettingsDocumentSpec,
+  section: Record<string, unknown>,
+): boolean {
+  try {
+    if ([patchPath, spec.filename].some(path => lstatSync(path, { throwIfNoEntry: false })?.isSymbolicLink())) {
+      return false
+    }
+    let before: string
+    try {
+      before = readFileSync(patchPath, 'utf8')
+    } catch (cause) {
+      if ((cause as NodeJS.ErrnoException).code !== 'ENOENT') throw cause
+      before = '[]\n'
+    }
+    // `!!js` expressions stay the scalars they were; only the target row is touched.
+    const patchDocument = parseDocument(before, {
+      customTags: [{ tag: 'tag:yaml.org,2002:js', resolve: (value: string) => value }],
+    })
+    if (patchDocument.errors.length > 0 || !isSeq(patchDocument.contents)) return false
+    const rows = patchDocument.contents
+    rows.flow = false
+    const index = rows.items.findLastIndex((item, index) => isMap(item)
+      && patchDocument.getIn([index, 'id']) === DESKTOP_SHELL_ENTRY_ID
+      && !item.has('insert')
+      && (!item.has('name') || patchDocument.getIn([index, 'name']) === rowName))
+    if (index < 0) {
+      patchDocument.addIn([], {
+        id: DESKTOP_SHELL_ENTRY_ID,
+        ...(typeof rowName === 'string' ? { name: rowName } : {}),
+        config: section,
+      })
+    } else {
+      const config = patchDocument.getIn([index, 'config'], true)
+      if (config === undefined) {
+        patchDocument.setIn([index, 'config'], patchDocument.createNode(section))
+      } else if (isMap(config)) {
+        for (const [key, value] of Object.entries(section)) config.set(key, value)
+      } else {
+        return false
+      }
+    }
+
+    const settingsDocument = parseDocument(readFileSync(spec.filename, 'utf8'), { prettyErrors: true })
+    if (settingsDocument.errors.length > 0 || !isMap(settingsDocument.contents)) return false
+    replaceDocument(patchPath, String(patchDocument))
+    settingsDocument.delete(DESKTOP_SHELL_ENTRY_ID)
+    replaceDocument(spec.filename, String(settingsDocument))
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Replace a document in one rename, so a crash leaves either its old or its new bytes. */
+function replaceDocument(path: string, text: string): void {
+  const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`
+  try {
+    writeFileSync(temporary, text, { flag: 'wx' })
+    renameSync(temporary, path)
+  } catch (cause) {
+    rmSync(temporary, { force: true })
+    throw cause
+  }
 }
 
 /** Resolve the public Web template once and reject an incompatible DSH release. */
@@ -1291,15 +1380,31 @@ export function prepareDesktopProfile(
     throw new Error(`${BIN_NAME}: desktop profile has no desktop-shell row`)
   }
   const desktopShellConfig = rowConfig(desktopShell)
-  const pendingShellConfig = pendingDesktopShellConfig(
-    desktopShellConfig,
-    pendingDesktopShellSection(settingsSpec),
-    platform,
-  )
+  const pendingSection = pendingDesktopShellSection(settingsSpec)
+  // Land the section the import would merge before anything boots on this row,
+  // then prepare again from the persisted profile. Merely supplying the pending
+  // values to this generation is not enough: the import renames the document
+  // before it writes, and any recomposition in between (profile HMR notices the
+  // rename) would see neither and flip the row back underneath the running shell.
+  // The config editor's validation pass (`profilePatches`) holds the patch file's
+  // lock and writes it next, so it never imports.
+  if (pendingSection !== undefined
+    && hooks.profilePatches === undefined
+    && pendingDesktopShellConfig(desktopShellConfig, pendingSection, platform) !== undefined
+    && importPendingDesktopShellSection(profile.patchPath, desktopShell.name, settingsSpec, pendingSection)) {
+    return prepareDesktopProfile(
+      telemetryDisabled,
+      home,
+      platform,
+      profileName,
+      pluginStatePath,
+      marketSelection,
+      hooks,
+    )
+  }
   // Startup preferences used to live in the global settings document. 0.1.7 made
   // persisted form values profile-specific, so the composed desktop-shell row — the
-  // bundle default overridden by the profile's own patch layer — is now the source,
-  // plus whatever the not-yet-imported document is about to merge into it.
+  // bundle default overridden by the profile's own patch layer — is now the source.
   const {
     mode,
     port,
@@ -1308,7 +1413,7 @@ export function prepareDesktopProfile(
     linuxMaterial,
     openBrowser,
     networkExposure,
-  } = desktopStartupSettingsFromSettings({ [DESKTOP_SETTINGS_NAMESPACE]: pendingShellConfig ?? desktopShellConfig })
+  } = desktopStartupSettingsFromSettings({ [DESKTOP_SETTINGS_NAMESPACE]: desktopShellConfig })
   const webRuntime = rows.get('web-runtime')
   if (webRuntime === undefined) {
     throw new Error(`${BIN_NAME}: desktop profile has no web-runtime row`)
@@ -1458,16 +1563,7 @@ export function prepareDesktopProfile(
   // parsed -- `networkExposure`, withdrawn to loopback when browser access is
   // off -- is now derived by `resolveDesktopConfig` in `settings-bridge.ts`,
   // which is where the plugin already owns that rule on the write path.
-  //
-  // The one exception is the generation that still has a settings document to
-  // import. The shell plugin boots on this row before the import merges the
-  // document into the profile, so without the pending values it would open the
-  // renderer in the old mode while the layout patches above follow the new one.
-  // The import renames the document before it writes, so every recomposition it
-  // triggers (and every later edit) sees no pending document and no pin.
-  patches.push(pendingShellConfig === undefined
-    ? { id: 'desktop-shell', disabled: false }
-    : { id: 'desktop-shell', disabled: false, config: pendingShellConfig })
+  patches.push({ id: 'desktop-shell', disabled: false })
   return {
     homeDir: home,
     reloadOptions: {
