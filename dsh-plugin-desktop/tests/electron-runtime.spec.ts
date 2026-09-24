@@ -2801,35 +2801,7 @@ describe('Electron desktop runtime', () => {
     expect(electron.nativeTheme.themeSource).toBe('light')
   })
 
-  it('refreshes the Windows Mica backdrop after a live advanced theme change', async () => {
-    vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
-    electron.nativeTheme.themeSource = 'light'
-    const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
-    const runtime = new ElectronDesktopRuntime(async () => {})
-    const release = runtime.schedule({
-      ...spec,
-      mode: 'advanced',
-      material: 'mica',
-      windowsBuild: 22_631,
-      readThemeSource: () => 'light',
-    })
-
-    runtime.setThemeSource('dark')
-    expect(electron.nativeTheme.themeSource).toBe('light')
-    await runtime.mountScheduled()
-
-    const window = electron.browserWindows[0]
-    window?.setBackgroundMaterial.mockClear()
-    runtime.setThemeSource('dark')
-
-    expect(electron.nativeTheme.themeSource).toBe('dark')
-    expect(window?.setBackgroundMaterial).toHaveBeenCalledOnce()
-    expect(window?.setBackgroundMaterial).toHaveBeenCalledWith('mica')
-
-    await release()
-  })
-
-  it('keeps an extended Windows 10 window opaque when material is off', async () => {
+  it('keeps an extended Windows window opaque', async () => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
     electron.nativeTheme.themeSource = 'light'
     const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
@@ -2838,7 +2810,6 @@ describe('Electron desktop runtime', () => {
       ...spec,
       mode: 'extended',
       material: 'off',
-      windowsBuild: 19_045,
       readThemeSource: () => 'dark',
     })
 
@@ -2858,7 +2829,7 @@ describe('Electron desktop runtime', () => {
     await release()
   })
 
-  it('does not install a native backdrop when Windows material is off', async () => {
+  it('never installs a native backdrop on Windows, even after a live theme change', async () => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
     electron.nativeTheme.themeSource = 'light'
     const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
@@ -2867,7 +2838,6 @@ describe('Electron desktop runtime', () => {
       ...spec,
       mode: 'extended',
       material: 'off',
-      windowsBuild: 22_621,
       readThemeSource: () => 'dark',
     })
 

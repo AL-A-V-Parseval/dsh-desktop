@@ -1,7 +1,7 @@
 diff --git a/lib/index.js b/lib/index.js
 --- a/lib/index.js
 +++ b/lib/index.js
-@@ -222,7 +222,7 @@
+@@ -240,7 +240,7 @@
  	if (!info) return null;
  	return {
  		version: versionOf(info),
@@ -10,7 +10,7 @@ diff --git a/lib/index.js b/lib/index.js
  		type: pathType(info),
  		size: Number(info.size)
  	};
-@@ -237,7 +237,7 @@
+@@ -255,7 +255,7 @@
  	if (!info) return null;
  	return {
  		version: versionOf(info),

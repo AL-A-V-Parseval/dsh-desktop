@@ -19,7 +19,7 @@
   <img src="https://img.shields.io/badge/Linux-x64-4493F8?style=flat-square" alt="Target platform: Linux x64">
 </p>
 
-<p align="center"><sub>This repository is a community fork of <a href="https://github.com/anywhere-labs/dsh-desktop">anywhere-labs/dsh-desktop</a> (DSH Desktop <strong>2.0.13</strong>, runtime <code>0.1.5-rc.2</code>). It is independent of DeepSeek and the upstream project, with no affiliation, partnership, authorization, or endorsement.</sub></p>
+<p align="center"><sub>This repository is a community fork of <a href="https://github.com/anywhere-labs/dsh-desktop">anywhere-labs/dsh-desktop</a> (DSH Desktop <strong>2.0.14</strong>, runtime <code>0.1.7-rc.1</code>). It is independent of DeepSeek and the upstream project, with no affiliation, partnership, authorization, or endorsement.</sub></p>
 
 ## What this is
 
@@ -27,7 +27,7 @@ DSH Desktop integrates the local Web UI, Host service, and plugin system of [Dee
 
 This fork is **Linux-focused**: it fixes the upstream desktop's inability to run stably on Linux, restoring subprocess tools (`bash` / `glob` / `grep`), the plugin market, and attachments.
 
-- Upstream baseline: the latest `master` of [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) (build base `ce9288fd75`, product version 2.0.13)
+- Upstream baseline: the latest `master` of [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) (build base `9c65ef7291`, product version 2.0.14)
 - Target platform: **Linux x64**
 - Artifacts: a portable archive (tar.gz) and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships with a detached GPG signature, and the `.deb` also carries an internal `debsigs` signature
 

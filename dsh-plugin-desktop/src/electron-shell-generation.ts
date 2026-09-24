@@ -217,7 +217,6 @@ export class ElectronShellGeneration {
   private released = false
   private attentionCount = 0
   private prepareFullscreenReveal: (() => void) | undefined
-  private refreshNativeMaterial: (() => void) | undefined
   private flushWindowState: (() => void) | undefined
   private cleanupListeners: (() => void) | undefined
   private readonly rendererRecovery: DesktopRendererRecovery
@@ -331,11 +330,6 @@ export class ElectronShellGeneration {
     })
     window.accessibleTitle = spec.windowTitle
     platform.configureWindow(window)
-    const refreshNativeMaterial = (): void => {
-      platform.refreshThemeMaterial(window, spec.material)
-    }
-    this.refreshNativeMaterial = refreshNativeMaterial
-    refreshNativeMaterial()
     this.window = window
     try {
       if (isolated) {
@@ -862,10 +856,6 @@ export class ElectronShellGeneration {
     this.tray.setContextMenu(Menu.buildFromTemplate(this.options.buildTrayTemplate()))
   }
 
-  refreshThemeMaterial(): void {
-    if (this.window !== undefined && !this.window.isDestroyed()) this.refreshNativeMaterial?.()
-  }
-
   async release(): Promise<void> {
     if (this.released) return
     this.released = true
@@ -882,7 +872,6 @@ export class ElectronShellGeneration {
     this.window = undefined
     this.tray = undefined
     this.prepareFullscreenReveal = undefined
-    this.refreshNativeMaterial = undefined
     this.flushWindowState = undefined
     if (window === undefined) return
 

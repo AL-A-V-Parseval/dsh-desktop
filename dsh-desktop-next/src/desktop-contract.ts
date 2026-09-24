@@ -14,7 +14,8 @@ export type DesktopSettingsPage = 'general' | 'permissions'
 export interface DesktopPreferences {
   closeToTray: boolean
   macosMaterial: 'off' | 'transparent'
-  windowsMaterial: 'off' | 'mica'
+  /** Legacy key kept for the shared settings surface; Windows has no selectable material. */
+  windowsMaterial: 'off'
   /** Accepted for the shared settings surface; Linux still renders an opaque frame. */
   linuxMaterial: 'off' | 'transparent'
   browserAccess: boolean
@@ -56,7 +57,6 @@ export interface DesktopState {
   updates?: import('./update-state.ts').NextUpdateState
   trayAvailable: boolean
   notificationsAvailable: boolean
-  windowsMicaSupported: boolean
   browserUrl: string | null
   lan: DesktopLanHttpsRuntimeSnapshot | null
   recovery?: {

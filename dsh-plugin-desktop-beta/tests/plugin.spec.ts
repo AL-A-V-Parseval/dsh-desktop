@@ -206,7 +206,6 @@ function createHarness(
   })
   const runtime: DesktopRuntime = {
     platform,
-    windowsBuild: platform === 'win32' ? 22_631 : undefined,
     locale: 'en',
     updates: {
       isPackaged: false,
@@ -426,15 +425,13 @@ describe('desktop Host plugin', () => {
       'extended',
       'win32',
       '2.0.3',
-      'mica',
-      22_631,
+      'off',
     )).searchParams)).toEqual({
       'dsh-desktop-mode': 'extended',
       'dsh-desktop-platform': 'win32',
       'dsh-desktop-version': '2.0.3',
-      'dsh-desktop-material': 'mica',
+      'dsh-desktop-material': 'off',
       'dsh-desktop-titlebar-inset': '36',
-      'dsh-desktop-mica': '1',
     })
     expect(Object.fromEntries(new URL(desktopRendererUrl(
       43120,
@@ -685,14 +682,25 @@ describe('desktop Host plugin', () => {
 
   it('requests one orderly restart after the native material changes', async () => {
     vi.useFakeTimers()
-    const harness = createHarness('win32')
+    const harness = createHarness('darwin')
     apply(harness.ctx, harness.config)
 
     harness.restart.mockImplementation(() => new Promise<void>(() => {}))
-    await harness.notify({ windowsMaterial: 'mica' })
+    await harness.notify({ macosMaterial: 'off' })
     await vi.runAllTimersAsync()
 
     expect(harness.restart).toHaveBeenCalledOnce()
+  })
+
+  it('does not restart for a legacy Windows Mica value that still renders opaque', async () => {
+    vi.useFakeTimers()
+    const harness = createHarness('win32')
+    apply(harness.ctx, harness.config)
+
+    await harness.notify({ windowsMaterial: 'mica' })
+    await vi.runAllTimersAsync()
+
+    expect(harness.restart).not.toHaveBeenCalled()
   })
 
   it('projects live built-in theme changes into an advanced native material', () => {

@@ -146,10 +146,8 @@ export interface DesktopTerminalSpec {
 
 /** Values the desktop-shell plugin hands to the Electron adapter. */
 export interface DesktopShellSpec extends DesktopWindowConfig {
-  /** Actual material after platform and Windows-build capability gating. */
+  /** Actual material after platform capability gating. */
   material: DesktopWindowMaterial
-  /** Windows build used for material capability reporting, when applicable. */
-  windowsBuild?: number
   /** Unmodified Web root served by the active DSH profile. */
   url: string
   /** Official one-time launch URL used to mint this Electron session's browser cookie. */
@@ -180,9 +178,6 @@ export interface DesktopShellSpec extends DesktopWindowConfig {
 export interface DesktopRuntime {
   /** Current Electron platform. */
   readonly platform: DesktopPlatform
-
-  /** NT build number used to gate system backdrop materials. */
-  readonly windowsBuild: number | undefined
 
   /** Locale currently used for native tray contributions. */
   readonly locale: DesktopLocale

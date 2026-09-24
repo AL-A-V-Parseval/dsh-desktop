@@ -3,12 +3,12 @@ import type { DesktopLocale, DesktopRuntime, DesktopShellSpec, DesktopTrayItem, 
 import { HostRpc } from './host-rpc.ts'
 import { parseDesktopPlatformLoginRequest } from './platform-login.ts'
 
-export type RuntimeSnapshot = Pick<DesktopRuntime, 'platform' | 'windowsBuild' | 'locale'> & {
+export type RuntimeSnapshot = Pick<DesktopRuntime, 'platform' | 'locale'> & {
   updates: Omit<DesktopUpdateAdapter, 'request' | 'confirmDownload' | 'showManualCheckResult' | 'downloadAndOpen' | 'notify'>
 }
 export function runtimeSnapshot(runtime: DesktopRuntime): RuntimeSnapshot {
   const { isPackaged, canDownload, currentVersion, releaseChannel, statePath, installationId } = runtime.updates
-  return { platform: runtime.platform, windowsBuild: runtime.windowsBuild, locale: runtime.locale,
+  return { platform: runtime.platform, locale: runtime.locale,
     updates: { isPackaged, canDownload, currentVersion, statePath,
       ...(releaseChannel ? { releaseChannel } : {}), ...(installationId ? { installationId } : {}) } }
 }
@@ -47,7 +47,7 @@ export function createHostRuntime(rpc: HostRpc, snapshot: RuntimeSnapshot): Desk
     return localeSync
   }
   const runtime: DesktopRuntime = {
-    platform: snapshot.platform, windowsBuild: snapshot.windowsBuild,
+    platform: snapshot.platform,
     get locale() { return locale },
     updates: {
       ...snapshot.updates,

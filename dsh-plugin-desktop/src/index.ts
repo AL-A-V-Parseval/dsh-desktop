@@ -61,7 +61,6 @@ import { DESKTOP_FRAME_HEIGHT } from './window-chrome.ts'
 import {
   effectiveDesktopWindowMaterial,
   type DesktopWindowMaterial,
-  windowsSupportsMica,
 } from './window-material.ts'
 import { DESKTOP_PRODUCT_NAME } from './product-identity.ts'
 import { watchPlatformLogin, type PlatformLoginAccount } from './platform-login.ts'
@@ -126,7 +125,6 @@ export function desktopRendererUrl(
   platform: Context['desktopRuntime']['platform'],
   appVersion: string,
   material: DesktopWindowMaterial = 'off',
-  windowsBuild?: number,
 ): string {
   const url = new URL(`http://127.0.0.1:${String(port)}/`)
   url.searchParams.set('dsh-desktop-mode', mode)
@@ -137,9 +135,6 @@ export function desktopRendererUrl(
     // Body-level plugin portals do not inherit the framed root's geometry.
     // Publish the exact content boundary so they can yield Desktop chrome.
     url.searchParams.set('dsh-desktop-titlebar-inset', String(DESKTOP_FRAME_HEIGHT))
-  }
-  if (platform === 'win32') {
-    url.searchParams.set('dsh-desktop-mica', windowsSupportsMica(windowsBuild) ? '1' : '0')
   }
   return url.href
 }
@@ -350,7 +345,6 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
       if (next.mode === resolved.mode
         && next.port === resolved.port
         && next.macosMaterial === resolved.macosMaterial
-        && next.windowsMaterial === resolved.windowsMaterial
         && next.linuxMaterial === resolved.linuxMaterial) {
         if (pending !== undefined) clearImmediate(pending)
         pending = undefined
@@ -402,8 +396,6 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
         resolved.mode,
         runtime.platform,
         resolved.macosMaterial,
-        resolved.windowsMaterial,
-        runtime.windowsBuild,
         resolved.linuxMaterial,
       )
       const url = desktopRendererUrl(
@@ -412,12 +404,10 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
         runtime.platform,
         runtime.updates.currentVersion,
         material,
-        runtime.windowsBuild,
       )
       return runtime.schedule({
         ...resolved,
         material,
-        ...(runtime.windowsBuild === undefined ? {} : { windowsBuild: runtime.windowsBuild }),
         url,
         authenticationUrl: ctx.connection.authenticatedUrl(new URL(url).origin),
         rendererAccessHeader: browserAccess.rendererHeader,
