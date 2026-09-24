@@ -33,6 +33,7 @@ import { isMap, isPair, isScalar, parseAllDocuments, parseDocument, type Pair, t
 import { findOverlayPackage, resolveOverlayPackage } from './package-overlay.ts'
 import { DESKTOP_DEFAULT_WEB_PORT } from './desktop-port.ts'
 import {
+  desktopBrowserAccessAvailable,
   desktopBrowserAccessEnabled,
   desktopNetworkExposureForBrowserAccess,
   desktopWebServerHost,
@@ -67,6 +68,7 @@ import {
   type DesktopMarketProvider,
   type DesktopMarketSnapshot,
 } from './desktop-market.ts'
+import { DesktopShellConfig } from './settings-bridge.ts'
 
 /** Persistent profile managed by the desktop launcher and the ordinary dsh plugin command. */
 export const DESKTOP_PROFILE_NAME = 'desktop'
@@ -112,6 +114,8 @@ const SETTINGS_DOCUMENT_FORMATS: Readonly<Record<string, 'yaml' | 'json'>> = Obj
   '.json': 'json',
 })
 const DESKTOP_SETTINGS_NAMESPACE = 'dsh-desktop'
+/** Loader entry id the settings import keys Desktop's shell section by. */
+const DESKTOP_SHELL_ENTRY_ID = 'desktop-shell'
 const UI_LAYOUT_PACKAGE = '@deepseek-ai/dsh-client-ui-layout'
 const UI_SIDEBAR_PACKAGE = '@deepseek-ai/dsh-client-ui-sidebar'
 const UI_CONVERSATION_PACKAGE = '@deepseek-ai/dsh-client-ui-conversation'
@@ -404,6 +408,93 @@ export function readDesktopStartupSettings(config: DesktopSettingsDocumentConfig
 /** Read only the shell mode from the settings provider's resolved file. */
 export function readDesktopShellMode(config: DesktopSettingsDocumentConfig): DesktopShellMode {
   return readDesktopStartupSettings(config).mode
+}
+
+/**
+ * The desktop-shell section of a settings document the settings service has not imported yet.
+ *
+ * The setup wizard, the recovery window and every 0.1.6 install write startup choices to
+ * the harness-home document, but 0.1.7's settings service only merges that document into
+ * the profile patch layer after the Loader is up (`SettingsForms#importLegacyDocument`),
+ * and renames it to `settings.yaml.imported` as it does. The launcher's layout patches and
+ * the shell plugin's own row both resolve before that, so while the document still exists
+ * under its own name its section is the value the row is about to have. Reading only the
+ * composed row booted the first generation after the wizard in compatibility mode, and the
+ * import then switched the row to the chosen mode underneath it: the recomposed profile
+ * dropped `ui-layout` while the open renderer never installed Desktop's own layout, so
+ * eighteen client plugins waited on a layout service forever and startup went to recovery.
+ * @param spec - the resolved harness-home document, after section migration.
+ * @returns the pending section, or undefined when there is nothing left to import.
+ */
+function pendingDesktopShellSection(spec: DesktopSettingsDocumentSpec): Record<string, unknown> | undefined {
+  // The import only ever reads `<home>/settings.yaml`.
+  if (spec.format !== 'yaml') return undefined
+  let text: string
+  try {
+    text = readFileSync(spec.filename, 'utf8')
+  } catch (cause) {
+    if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return undefined
+    throw cause
+  }
+  const parsed = parseDocument(text, { prettyErrors: true })
+  // A document the import cannot parse is renamed away without merging anything.
+  if (parsed.errors.length > 0) return undefined
+  const root: unknown = parsed.toJS()
+  if (typeof root !== 'object' || root === null || Array.isArray(root)) return undefined
+  const document = root as Record<string, unknown>
+  // `migrateDesktopSettingsDocumentSections` has already renamed 0.1.6's key; the
+  // import merges only the section keyed by the entry id.
+  const section = document[DESKTOP_SHELL_ENTRY_ID]
+  return typeof section === 'object' && section !== null && !Array.isArray(section)
+    ? section as Record<string, unknown>
+    : undefined
+}
+
+/** Fields the import may write; it refuses a section carrying any other key. */
+const PENDING_DESKTOP_SHELL_FIELDS: ReadonlySet<string> = new Set([
+  'mode',
+  'macosMaterial',
+  'windowsMaterial',
+  'linuxMaterial',
+  'port',
+  'openBrowser',
+  'networkExposure',
+  'logLevel',
+])
+
+/**
+ * The desktop-shell config as it will stand once the pending document is imported.
+ * @param composed - the composed desktop-shell row config.
+ * @param pending - the section {@link pendingDesktopShellSection} found, if any.
+ * @param platform - native platform the import validates the section for.
+ * @returns the merged config, or undefined when the import would not apply it.
+ */
+function pendingDesktopShellConfig(
+  composed: Record<string, unknown>,
+  pending: Record<string, unknown> | undefined,
+  platform: NodeJS.Platform,
+): Record<string, unknown> | undefined {
+  if (pending === undefined) return undefined
+  // The import skips the whole section when it is rejected, so the row keeps its
+  // composed values; so does this generation. It accepts only volatile fields,
+  // validates the merged row against the schema, and applies the shell's own
+  // combination checks.
+  if (Object.keys(pending).some(key => !PENDING_DESKTOP_SHELL_FIELDS.has(key))) return undefined
+  // `SettingsForms#update` merges the section over the current row field by field.
+  const merged = { ...composed, ...pending }
+  let mode: DesktopShellMode
+  let openBrowser: boolean
+  try {
+    const candidate = DesktopShellConfig(merged as never)
+    mode = candidate.mode.get()
+    openBrowser = candidate.openBrowser.get()
+    desktopStartupSettingsFromSettings({ [DESKTOP_SETTINGS_NAMESPACE]: merged })
+  } catch {
+    return undefined
+  }
+  if (!desktopBrowserAccessAvailable(mode) && openBrowser) return undefined
+  if (mode !== 'compatibility' && platform === 'linux') return undefined
+  return merged
 }
 
 /** Resolve the public Web template once and reject an incompatible DSH release. */
@@ -1200,9 +1291,15 @@ export function prepareDesktopProfile(
     throw new Error(`${BIN_NAME}: desktop profile has no desktop-shell row`)
   }
   const desktopShellConfig = rowConfig(desktopShell)
+  const pendingShellConfig = pendingDesktopShellConfig(
+    desktopShellConfig,
+    pendingDesktopShellSection(settingsSpec),
+    platform,
+  )
   // Startup preferences used to live in the global settings document. 0.1.7 made
   // persisted form values profile-specific, so the composed desktop-shell row — the
-  // bundle default overridden by the profile's own patch layer — is now the source.
+  // bundle default overridden by the profile's own patch layer — is now the source,
+  // plus whatever the not-yet-imported document is about to merge into it.
   const {
     mode,
     port,
@@ -1211,7 +1308,7 @@ export function prepareDesktopProfile(
     linuxMaterial,
     openBrowser,
     networkExposure,
-  } = desktopStartupSettingsFromSettings({ [DESKTOP_SETTINGS_NAMESPACE]: desktopShellConfig })
+  } = desktopStartupSettingsFromSettings({ [DESKTOP_SETTINGS_NAMESPACE]: pendingShellConfig ?? desktopShellConfig })
   const webRuntime = rows.get('web-runtime')
   if (webRuntime === undefined) {
     throw new Error(`${BIN_NAME}: desktop profile has no web-runtime row`)
@@ -1361,7 +1458,16 @@ export function prepareDesktopProfile(
   // parsed -- `networkExposure`, withdrawn to loopback when browser access is
   // off -- is now derived by `resolveDesktopConfig` in `settings-bridge.ts`,
   // which is where the plugin already owns that rule on the write path.
-  patches.push({ id: 'desktop-shell', disabled: false })
+  //
+  // The one exception is the generation that still has a settings document to
+  // import. The shell plugin boots on this row before the import merges the
+  // document into the profile, so without the pending values it would open the
+  // renderer in the old mode while the layout patches above follow the new one.
+  // The import renames the document before it writes, so every recomposition it
+  // triggers (and every later edit) sees no pending document and no pin.
+  patches.push(pendingShellConfig === undefined
+    ? { id: 'desktop-shell', disabled: false }
+    : { id: 'desktop-shell', disabled: false, config: pendingShellConfig })
   return {
     homeDir: home,
     reloadOptions: {
