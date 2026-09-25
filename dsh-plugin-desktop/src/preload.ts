@@ -1,7 +1,6 @@
 /** Minimal context-isolated bridges for drag payloads, Desktop-owned actions, and the upstream Desktop marker. */
 
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import { markDocumentPlatform } from './preload-platform.ts'
 import { SETUP_ONBOARDING_CHANNEL } from './setup-onboarding-bridge.ts'
 import { DESKTOP_FILE_PATH_BRIDGE } from './file-path-bridge-contract.ts'
 import {
@@ -10,10 +9,6 @@ import {
   type DesktopRendererAction,
   type DesktopRendererActionsBridge,
 } from './renderer-actions-contract.ts'
-
-// The official Web UI scopes menu backings and desktop chrome to html[data-platform].
-// Our own preload must publish the same marker as the upstream Desktop preload.
-markDocumentPlatform(document, process.platform)
 
 contextBridge.exposeInMainWorld(DESKTOP_FILE_PATH_BRIDGE, {
   /** Resolve only genuine disk-backed Web File objects selected by the operator. */
