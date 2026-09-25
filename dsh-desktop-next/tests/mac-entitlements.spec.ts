@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { expect, it, vi } from 'vitest'
 import { NEXT_MAC_REQUIRED_ENTITLEMENTS, verifyNextMacEntitlements } from '../scripts/verify-mac-entitlements.ts'
 
@@ -22,7 +23,7 @@ it('checks both architectures in the main app and all four Helpers', () => {
   expect(read).toHaveBeenCalledTimes(10)
   for (const suffix of ['', ' (Renderer)', ' (GPU)', ' (Plugin)']) {
     for (const arch of ['arm64', 'x86_64']) {
-      expect(read).toHaveBeenCalledWith(`/mounted/DSH NEXT.app/Contents/Frameworks/DSH NEXT Helper${suffix}.app`, arch)
+      expect(read).toHaveBeenCalledWith(join('/mounted/DSH NEXT.app', 'Contents', 'Frameworks', `DSH NEXT Helper${suffix}.app`), arch)
     }
   }
 })
