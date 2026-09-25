@@ -17,6 +17,14 @@ if (location.protocol === 'dsh-app:' && location.hostname === 'app') {
   syncNativeLocale()
   syncWindowsAppearance()
   syncWindowMaterial()
+  contextBridge.exposeInMainWorld('dshOnboarding', {
+    setActive: (active: boolean) => { void ipcRenderer.invoke('dsh-desktop:setup-onboarding', { action: 'active', active }).catch(() => {}) },
+  })
+  contextBridge.exposeInMainWorld('dshDesktopSetup', {
+    read: () => ipcRenderer.invoke('dsh-desktop:setup-onboarding', { action: 'read' }),
+    dismissAccount: (profile: string) => ipcRenderer.invoke('dsh-desktop:setup-onboarding', { action: 'dismiss-account', profile }),
+    finish: (profile: string, selection?: unknown) => ipcRenderer.invoke('dsh-desktop:setup-onboarding', { action: 'finish', profile, selection }),
+  })
   contextBridge.exposeInMainWorld('desktopNext', {
     permissions: permissionBridge(),
     onOpenSettings,

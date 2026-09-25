@@ -83,10 +83,37 @@ try {
     '@deepseek-ai/dsh-client-shortcuts', '@deepseek-ai/dsh-client-ui-shortcuts']) {
     assert.ok(officialRows.some(row => row.moduleName === name && row.enabled), `rc.2 composition is missing ${name}`)
   }
-  for (const name of ['@deepseek-ai/dsh-schedule', '@deepseek-ai/dsh-time-context']) {
+  for (const name of ['@deepseek-ai/dsh-schedule', '@deepseek-ai/dsh-time-context', '@deepseek-ai/dsh-client-ui-schedule']) {
     assert.ok(officialRows.some(row => row.moduleName === name && !row.enabled), `${name} must remain opt-in`)
   }
+  // Match the Scheduled Tasks card: context, Host, then client; disable in reverse.
+  const scheduleModules = ['@deepseek-ai/dsh-time-context', '@deepseek-ai/dsh-schedule', '@deepseek-ai/dsh-client-ui-schedule']
+  for (const enabled of [true, false]) {
+    for (const name of enabled ? scheduleModules : [...scheduleModules].reverse()) {
+      const row = (await rpc('listPlugins')).find(row => row.moduleName === name)
+      assert.ok(row && row.readOnlyReason === undefined, `${name} must be manageable`)
+      const result = await rpc('setPluginEnabled', { id: row.entryId, enabled })
+      assert.equal(result.application, 'applied', JSON.stringify(result))
+    }
+    for (const name of scheduleModules) {
+      const row = (await rpc('listPlugins')).find(row => row.moduleName === name)
+      assert.equal(row?.enabled, enabled, JSON.stringify(row))
+      if (enabled) assert.equal(row?.fiberPhase, 'active', JSON.stringify(row))
+    }
+    await stop()
+    ;({ origin, cookie } = await boot('desktop'))
+    for (const name of scheduleModules) {
+      const row = (await rpc('listPlugins')).find(row => row.moduleName === name)
+      assert.equal(row?.enabled, enabled, `Schedule selection must survive restart: ${name}`)
+      if (enabled) assert.equal(row?.fiberPhase, 'active', JSON.stringify(row))
+    }
+  }
+  console.log('verify-host: Scheduled Tasks enable/disable and restart persistence passed')
   const availableBundles = await rpc('listBundles')
+  for (const name of scheduleModules) {
+    assert.ok(availableBundles.some(bundle => bundle.rows.some(row => row.moduleName === name && row.entryId)),
+      `Native plugin details must expose the live Schedule component: ${name}`)
+  }
   // dsh 0.1.7 deleted `-web-profile` and merged its `ui-agent-team` row into `-profile`.
   for (const [name, rowIds] of [
     ['@deepseek-ai/dsh-experimental-agent-team-profile', ['agent-team', 'ui-agent-team']],

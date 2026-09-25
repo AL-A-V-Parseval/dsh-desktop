@@ -13,17 +13,4 @@ export default defineConfig([
     fixedExtension: false, dts: false, clean: false,
     deps: { neverBundle: ['electron'] },
   })),
-  {
-    entry: { client: 'src/client/index.ts' },
-    outDir: 'lib', format: 'cjs', platform: 'browser', target: 'es2022',
-    fixedExtension: false, dts: false, clean: false,
-    define: { 'process.env.NODE_ENV': JSON.stringify('production') },
-    deps: { neverBundle: ['react', 'react/jsx-runtime', '@deepseek-ai/dsh-client-ui-primitives'], alwaysBundle: ['lucide-react'] },
-    outputOptions: {
-      entryFileNames: 'client.js',
-      banner: 'window.__ModuleLoader__.load({ id: "dsh-desktop-next", factory: (require) => {',
-      footer: 'return module.exports; } });',
-      intro: 'var module = { exports: {} }; var exports = module.exports;',
-    },
-  },
 ])

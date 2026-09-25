@@ -336,7 +336,7 @@ it('persists a Profile switch and relaunches the app only after hiding windows a
   } finally { vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
 })
 
-it.each(['complete', 'skip'] as const)('shows first-run onboarding without a Host and saves before starting it on %s', async outcome => {
+it.each(['complete', 'skip'] as const)('continues first-run setup in the official app and saves before restarting on %s', async outcome => {
   const home = mkdtempSync(join(tmpdir(), 'next-onboarding-'))
   vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
   fixture.needsOnboarding = true
@@ -345,37 +345,29 @@ it.each(['complete', 'skip'] as const)('shows first-run onboarding without a Hos
     await vi.waitFor(() => expect(fixture.windows).toHaveLength(1))
     const window = fixture.windows[0]
     const sender = { sender: window.webContents, senderFrame: window.webContents.mainFrame }
-    const command = fixture.handlers.get('dsh-next:command')!
+    const setup = fixture.handlers.get('dsh-desktop:setup-onboarding')!
     const manager = new NextProfiles(home)
-    expect(window.webContents.mainFrame.url).toContain('locale=zh')
-    expect(window.webContents.mainFrame.url).toMatch(/#onboarding$/)
-    expect(fixture.start).not.toHaveBeenCalled()
-    fixture.trays[0].emit('click')
-    await command(sender, { type: 'controls' })
-    expect(window.loadedUrls).toHaveLength(1)
-    expect(fixture.handlers.get('dsh-next:state')!(sender).onboarding).toBe(true)
-    expect(fixture.handlers.get('dsh-next:state')!(sender).onboardingComputerUse).toBe(false)
-    await expect(command(sender, { type: 'onboarding-skip', profile: 'other' })).rejects.toThrow('unavailable')
-    await expect(command(sender, { type: 'onboarding-complete', profile: 'desktop', features: { market: true, dshMarket: true, remoteControl: true } })).rejects.toThrow('only one')
-    await expect(command(sender, { type: 'onboarding-complete', profile: 'desktop', features: { market: false, remoteControl: false }, computerUse: 'yes' })).rejects.toThrow('Computer Use')
+    expect(window.webContents.mainFrame.url).toBe('dsh-app://app/')
+    expect(fixture.start).toHaveBeenCalledOnce()
+    expect(await setup(sender, { action: 'read' })).toMatchObject({ required: true, edition: 'next', computerUse: false })
+    await expect(setup({ ...sender, senderFrame: { url: 'dsh-app://app/' } }, { action: 'read' })).rejects.toThrow()
+    await expect(setup(sender, { action: 'finish', profile: 'other' })).rejects.toThrow('unavailable')
+    await expect(setup(sender, { action: 'finish', profile: 'desktop', selection: { market: 'invalid', aaEnabled: false, computerUse: false } })).rejects.toThrow('Invalid setup choices')
     expect(manager.onboardingRequired('desktop')).toBe(true)
-    expect(fixture.start).not.toHaveBeenCalled()
-    expect(window.loadedUrls).toHaveLength(1)
-    fixture.start.mockImplementationOnce(async () => {
+    fixture.restart.mockImplementationOnce(async () => {
       expect(manager.onboardingRequired('desktop')).toBe(false)
       expect(manager.features('desktop')).toEqual(outcome === 'skip'
         ? { market: true, remoteControl: false } : { market: false, dshMarket: true, remoteControl: true })
       expect(manager.computerUseEnabled('desktop')).toBe(outcome === 'complete')
-      expect(window.visible).toBe(false)
     })
-    await command(sender, outcome === 'skip' ? { type: 'onboarding-skip', profile: 'desktop' }
-      : { type: 'onboarding-complete', profile: 'desktop', features: { market: false, dshMarket: true, remoteControl: true }, computerUse: true })
-    expect(fixture.start).toHaveBeenCalledOnce()
-    expect(fixture.windows).toHaveLength(2)
-    expect(fixture.windows[1].webContents.mainFrame.url).toBe('dsh-app://app/')
-    const appSender = { sender: fixture.windows[1].webContents, senderFrame: fixture.windows[1].webContents.mainFrame }
-    await expect(command(appSender, { type: 'onboarding-skip', profile: 'desktop' })).rejects.toThrow('unavailable')
-    expect(fixture.start).toHaveBeenCalledOnce()
+    await setup(sender, { action: 'finish', profile: 'desktop', ...(outcome === 'complete' ? {
+      selection: { market: 'dsh-market', aaEnabled: true, computerUse: true },
+    } : {}) })
+    expect(fixture.restart).toHaveBeenCalledOnce()
+    expect(fixture.windows).toHaveLength(1)
+    expect(window.loadedUrls).toEqual(['dsh-app://app/', 'dsh-app://app/'])
+    expect(await setup(sender, { action: 'read' })).toMatchObject({ required: false })
+    await expect(setup(sender, { action: 'finish', profile: 'desktop' })).rejects.toThrow('unavailable')
   } finally { vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
 })
 
@@ -429,26 +421,27 @@ it.each(['complete', 'skip', 'close'] as const)('reopens a completed Profile wit
     const window = fixture.windows[0]
     const sender = { sender: window.webContents, senderFrame: window.webContents.mainFrame }
     const command = fixture.handlers.get('dsh-next:command')!
-    expect(window.webContents.mainFrame.url).toMatch(/#onboarding$/)
-    expect(fixture.start).not.toHaveBeenCalled()
+    expect(window.webContents.mainFrame.url).toBe('dsh-app://app/')
+    expect(fixture.start).toHaveBeenCalledOnce()
     expect(fixture.handlers.get('dsh-next:state')!(sender)).toMatchObject({ onboarding: true, onboardingComputerUse: true, features })
     // Reopening is a launch mode, not a deletion of the completion record.
     expect(manager.onboardingRequired('desktop')).toBe(false)
     if (outcome === 'close') {
       window.close()
-      expect(fixture.start).not.toHaveBeenCalled()
+      expect(fixture.start).toHaveBeenCalledOnce()
     } else {
       await command(sender, outcome === 'skip' ? { type: 'onboarding-skip', profile: 'desktop' }
         : { type: 'onboarding-complete', profile: 'desktop', features: { market: true, remoteControl: false }, computerUse: false })
       expect(fixture.start).toHaveBeenCalledOnce()
-      expect(fixture.windows[1].webContents.mainFrame.url).toBe('dsh-app://app/')
+      expect(fixture.restart).toHaveBeenCalledOnce()
+      expect(window.loadedUrls).toEqual(['dsh-app://app/', 'dsh-app://app/'])
     }
     expect(manager.features('desktop')).toEqual(outcome === 'complete' ? { market: true, remoteControl: false } : features)
     expect(manager.computerUseEnabled('desktop')).toBe(outcome !== 'complete')
     expect(manager.onboardingRequired('desktop')).toBe(false)
     if (outcome !== 'close') {
       const { app } = await import('electron')
-      const main = fixture.windows[1]
+      const main = fixture.windows[0]
       await command({ sender: main.webContents, senderFrame: main.webContents.mainFrame }, { type: 'restart-app' })
       await vi.waitFor(() => expect(app.relaunch).toHaveBeenCalled())
       expect(vi.mocked(app.relaunch).mock.calls[0]![0]!.args).not.toContain('--next-onboarding')
@@ -509,8 +502,8 @@ it('does not mark an unfinished flow complete when its window closes', async () 
     const { app } = await import('electron')
     app.emit('activate')
     expect(fixture.windows).toHaveLength(2)
-    expect(fixture.windows[1].webContents.mainFrame.url).toMatch(/#onboarding$/)
-    expect(fixture.start).not.toHaveBeenCalled()
+    expect(fixture.windows[1].webContents.mainFrame.url).toBe('dsh-app://app/')
+    expect(fixture.start).toHaveBeenCalledOnce()
   } finally { vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
 })
 
