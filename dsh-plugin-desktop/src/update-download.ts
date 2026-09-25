@@ -42,7 +42,7 @@ export type UpdateDownloadErrorCode =
  * One settled download response plus the URL the redirect chain landed on.
  * Electron `net.fetch` cannot fill `Response.url` (a documented limitation:
  * the value is always empty), so the transport adapter follows redirects
- * itself and reports the settled URL here for the origin gate to validate.
+ * itself and reports the settled URL here for the HTTPS check.
  */
 export interface UpdateArtifactResponse {
   readonly response: Response
@@ -52,25 +52,6 @@ export interface UpdateArtifactResponse {
 
 /** Request boundary supplied by the Electron adapter or a test. */
 export type UpdateArtifactRequest = (url: string, init: RequestInit) => Promise<UpdateArtifactResponse>
-
-/**
- * Default download targets the installer fetch may settle on: the fixed product
- * endpoint plus the reviewed mirror it redirects through. The mirror is
- * pinned to the maintainer's repository path, not just the host, because the
- * host serves arbitrary user uploads under other paths. A redirect chain
- * that ends anywhere else is treated as a compromised download service
- * instead of being executed after a magic-number check. Adding or moving a
- * target requires a client release. Next explicitly opts into arbitrary HTTPS
- * artifact storage because its mirror redirects to short-lived CDN hosts.
- */
-const ALLOWED_DOWNLOAD_TARGETS: readonly {
-  readonly host: string
-  readonly pathPrefix?: string
-}[] = [
-  { host: 'www.dshdesktop.cn' },
-  { host: 'dshdesktop.cn' },
-  { host: 'modelscope.cn', pathPrefix: '/models/t4wefan/deepseek-harness-desktop/' },
-]
 
 /** Inputs for one user-confirmed installer download. */
 export interface DownloadDesktopUpdateOptions {
@@ -84,8 +65,6 @@ export interface DownloadDesktopUpdateOptions {
   readonly destinationPath: string
   /** Redirect-following request adapter, normally backed by Electron `net.request`. */
   readonly request: UpdateArtifactRequest
-  /** Next-only opt-in: accept any HTTPS artifact host after the first-party download endpoint. */
-  readonly allowAnyHttpsOrigin?: boolean
   /** Optional cancellation signal owned by the update coordinator. */
   readonly signal?: AbortSignal
   /**
@@ -195,8 +174,7 @@ export async function downloadDesktopUpdate(options: DownloadDesktopUpdateOption
     throw new UpdateDownloadError('empty-body', 'The update download service returned an empty body.')
   }
   try {
-    if (channel === 'next' && options.allowAnyHttpsOrigin) assertSecureDownloadUrl(finalUrl)
-    else assertAllowedDownloadOrigin(finalUrl)
+    assertSecureDownloadUrl(finalUrl)
     assertDeclaredSize(response)
   } catch (cause) {
     await discardResponseBody(response)
@@ -480,21 +458,6 @@ export function assertSecureDownloadUrl(finalUrl: string): URL {
     throw new UpdateDownloadError('redirect-origin', 'The update download must settle on HTTPS.')
   }
   return parsed
-}
-
-export function assertAllowedDownloadOrigin(finalUrl: string): void {
-  const parsed = assertSecureDownloadUrl(finalUrl)
-  const host = parsed.hostname.toLowerCase()
-  const allowed = ALLOWED_DOWNLOAD_TARGETS.some(target =>
-    host === target.host
-    && (target.pathPrefix === undefined || parsed.pathname.startsWith(target.pathPrefix)),
-  )
-  if (!allowed) {
-    throw new UpdateDownloadError(
-      'redirect-origin',
-      'The update download was redirected to an unreviewed origin.',
-    )
-  }
 }
 
 /** Normalize the optional expected digest at option validation time, before any network work. */
