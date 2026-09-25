@@ -337,6 +337,8 @@
         }
       },
       "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
       "icon": "build/app-icon.icon",
       "mergeASARs": false,
       "notarize": true,
