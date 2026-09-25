@@ -29,7 +29,7 @@ This fork is **Linux-focused**: it fixes the upstream desktop's inability to run
 
 - Upstream baseline: the latest `master` of [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) (build base `9c65ef7291`, manifest version 2.0.14, latest release tag `v2.0.13`)
 - Target platform: **Linux x64**
-- Artifacts: an AppImage and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships with a detached GPG signature, and the `.deb` also carries an internal `debsigs` signature
+- Artifacts: an AppImage, a portable archive (tar.gz) and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships with a detached GPG signature, and the `.deb` also carries an internal `debsigs` signature
 
 ## Changes in this fork
 
@@ -59,7 +59,7 @@ See `.yarn/patches/`, `patches/`, and the commit history for details.
 
 ## Download and run
 
-Grab the Linux x64 build from [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases). Two forms are provided: an **AppImage** and a **Debian package**. Replace `<version>` in the commands below with the actual version on the Release page (stable is shaped like `2.0.14`, the Next channel like `2.0.14-next`).
+Grab the Linux x64 build from [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases). Three forms are provided: an **AppImage**, a **portable archive (tar.gz)** and a **Debian package**. Replace `<version>` in the commands below with the actual version on the Release page (stable is shaped like `2.0.14`, the Next channel like `2.0.14-next`).
 
 ### AppImage (no installation)
 
@@ -69,6 +69,16 @@ chmod +x DSH-Desktop-<version>-x86_64.AppImage
 ```
 
 The Next channel adds a `Next` prefix: `DSH-Desktop-Next-<version>-x86_64.AppImage`.
+
+### Portable archive (tar.gz)
+
+```sh
+tar -xzf DSH-Desktop-<version>-x64-portable.tar.gz
+cd DSH-Desktop-<version>-x64-portable
+./dsh-desktop
+```
+
+The Next channel uses `DSH-Desktop-Next-<version>-x64-portable.tar.gz` (the unpacked binary is `./dsh-desktop-next`).
 
 ### Debian / Ubuntu package (.deb)
 

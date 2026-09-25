@@ -29,7 +29,7 @@ DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harne
 
 - 上游基线：上游 [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) 最新 `master`（构建基线 `9c65ef7291`，清单版本 2.0.14，最近发布 tag `v2.0.13`）
 - 目标平台：**Linux x64**
-- 产物：AppImage 与 Debian/Ubuntu 安装包（.deb），随 `SHA256SUMS` 提供 GPG 分离签名，`.deb` 另含 `debsigs` 内部签名
+- 产物：AppImage、便携包（tar.gz）与 Debian/Ubuntu 安装包（.deb），随 `SHA256SUMS` 提供 GPG 分离签名，`.deb` 另含 `debsigs` 内部签名
 
 ## 本 fork 相对上游的改动
 
@@ -59,7 +59,7 @@ Linux 版 Electron 会向进程空间泄漏 glib 符号，与 sharp/libvips 的 
 
 ## 下载与运行
 
-从 [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases) 获取 Linux x64 包，提供 **AppImage** 与 **Debian 包** 两种形式。下面命令中的 `<version>` 请替换为 Release 页面上的实际版本号（稳定版形如 `2.0.14`，Next 通道形如 `2.0.14-next`）。
+从 [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases) 获取 Linux x64 包，提供 **AppImage**、**便携包（tar.gz）** 与 **Debian 包** 三种形式。下面命令中的 `<version>` 请替换为 Release 页面上的实际版本号（稳定版形如 `2.0.14`，Next 通道形如 `2.0.14-next`）。
 
 ### AppImage（免安装）
 
@@ -69,6 +69,16 @@ chmod +x DSH-Desktop-<version>-x86_64.AppImage
 ```
 
 Next 通道的文件名带 `Next` 前缀：`DSH-Desktop-Next-<version>-x86_64.AppImage`。
+
+### 便携包（tar.gz）
+
+```sh
+tar -xzf DSH-Desktop-<version>-x64-portable.tar.gz
+cd DSH-Desktop-<version>-x64-portable
+./dsh-desktop
+```
+
+Next 通道对应 `DSH-Desktop-Next-<version>-x64-portable.tar.gz`（解包后二进制为 `./dsh-desktop-next`）。
 
 ### Debian / Ubuntu 安装包（.deb）
 
