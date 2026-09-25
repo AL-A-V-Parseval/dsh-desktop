@@ -12,11 +12,12 @@ import { SIDEBAR_COLLAPSED } from './layout-state.ts'
 const DESKTOP_OWNED_STYLES = `
 html, body, #root { width: 100%; height: 100%; }
 body:is([data-dsh-desktop-mode="extended"], [data-dsh-desktop-mode="advanced"]) { margin: 0; background: transparent !important; }
-/* Native vibrancy can leave page text legible through a blurred menu. Use the
-   theme's nearly opaque macOS overlay fill as a readable fallback, while the
-   shared MenuSurface keeps its blur and positioning. */
-html[data-platform="darwin"] body:is([data-dsh-desktop-mode="extended"], [data-dsh-desktop-mode="advanced"])[data-dsh-desktop-material="transparent"] {
-  --dsw-menu-surface-fill: var(--dsw-specific-menu);
+/* The official html[data-platform] marker also activates its native keyboard
+   bridge, which this Desktop shell does not provide. Scope only the menu fill
+   to our own platform marker: an opaque themed layer stays readable even when
+   Chromium cannot blur the transparent vibrancy window. */
+body:is([data-dsh-desktop-mode="extended"], [data-dsh-desktop-mode="advanced"])[data-dsh-desktop-platform="darwin"][data-dsh-desktop-material="transparent"] {
+  --dsw-menu-surface-fill: var(--dsw-alias-bg-layer-2);
 }
 .dshDesktopFrame { position: relative; display: grid; grid-template-rows: 100%; width: 100%; height: 100%; overflow: hidden; background: transparent; transition: grid-template-columns var(--ds-transition-duration-slow) var(--ds-ease-in-out); }
 .dshDesktopSidebarSurface { --dsw-specific-sidebar-fill: transparent; position: relative; grid-column: 1; grid-row: 1; min-width: 0; overflow: hidden; background: transparent; border-right: 1px solid var(--dsw-alias-border-l1); }
