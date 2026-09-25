@@ -718,17 +718,11 @@ async function main(): Promise<void> {
       if (runtime.safeMode || runtime.recoveryMode) return null
       const features = runtime.profiles.features(runtime.selected)
       return { required: onboarding, edition: 'next', profile: runtime.selected,
-        accountPending: !onboarding && runtime.profiles.accountSetupPending(runtime.selected),
         computerUse: runtime.profiles.computerUseEnabled(runtime.selected),
         input: { appVersion: version, profileName: runtime.selected, platform: process.platform,
           mode: 'compatibility', macosMaterial: 'off', windowsMaterial: 'off', openBrowser: false, networkExposure: 'loopback',
           market: features.market ? 'community-market' : features.dshMarket ? 'dsh-market' : 'disabled', aaEnabled: features.remoteControl,
           notifications: { enabled: true, notifyOnTurnCompletion: true, notifyOnTurnFailure: true, notifyOnJobCompletion: false, notifyOnJobFailure: false } } }
-    }
-    if (value.action === 'dismiss-account') {
-      if (onboarding || value.profile !== runtime.selected || runtime.safeMode || runtime.recoveryMode) throw new Error('Account setup is unavailable')
-      runtime.profiles.dismissAccountSetup(runtime.selected)
-      return
     }
     if (value.action !== 'finish' || !onboarding || value.profile !== runtime.selected || runtime.safeMode || runtime.recoveryMode) throw new Error('Setup is unavailable')
     if (value.selection === undefined) return command({ type: 'onboarding-skip', profile: value.profile })

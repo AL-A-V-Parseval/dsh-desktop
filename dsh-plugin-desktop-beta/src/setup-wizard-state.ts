@@ -284,20 +284,6 @@ export async function beginDesktopSetupWizard(userDataDir: string, profileDir: s
   await writeFileAtomic(`${path}.pending`, 'pending\n', { mode: STATE_FILE_MODE, dirMode: STATE_DIRECTORY_MODE })
 }
 
-/** Resume the optional official login entry after applying Desktop preferences. */
-export function desktopSetupAccountPending(userDataDir: string, profileDir: string): boolean {
-  const path = desktopSetupWizardStatePath(userDataDir, profileDir)
-  if (readDesktopSetupWizardState(userDataDir, profileDir) === undefined) return false
-  const text = readStateBytes(`${path}.account`)
-  if (text !== undefined && text !== 'pending\n') throw invalid('invalid account continuation')
-  return text !== undefined
-}
-
-export function dismissDesktopSetupAccount(userDataDir: string, profileDir: string): void {
-  if (!desktopSetupAccountPending(userDataDir, profileDir)) return
-  unlinkSync(`${desktopSetupWizardStatePath(userDataDir, profileDir)}.account`)
-}
-
 function clearPending(path: string): void {
   if (existingPathInfo(`${path}.pending`) === undefined) return
   assertSafeStateTarget(`${path}.pending`)
@@ -343,10 +329,9 @@ export async function completeOrSkipDesktopSetupWizard(
   assertSafeStateTarget(path)
   const current = readStateBytes(path)
   if (current !== undefined) parseState(current, profileHash)
+  // Earlier builds queued a sign-in page after Setup; that page no longer exists.
   assertSafeStateTarget(`${path}.account`)
-  if (outcome === 'completed') {
-    await writeFileAtomic(`${path}.account`, 'pending\n', { mode: STATE_FILE_MODE, dirMode: STATE_DIRECTORY_MODE })
-  } else if (existingPathInfo(`${path}.account`) !== undefined) unlinkSync(`${path}.account`)
+  if (existingPathInfo(`${path}.account`) !== undefined) unlinkSync(`${path}.account`)
   await writeFileAtomic(path, `${JSON.stringify(state, undefined, 2)}\n`, {
     mode: STATE_FILE_MODE,
     dirMode: STATE_DIRECTORY_MODE,

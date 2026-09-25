@@ -16,8 +16,6 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   beginDesktopSetupWizard,
   desktopSetupWizardPending,
-  desktopSetupAccountPending,
-  dismissDesktopSetupAccount,
   clearDesktopSetupWizardState,
   completeOrSkipDesktopSetupWizard,
   desktopSetupWizardProfileHash,
@@ -31,21 +29,15 @@ import {
 
 const temporaryDirectories: string[] = []
 
-it('resumes the account choice after completion, independently for each Profile', async () => {
+it('queues no sign-in page after Setup and removes one left by an earlier build', async () => {
   const root = temporaryDirectory('dsh-account-setup-')
-  const first = join(root, 'first'), second = join(root, 'second')
-  expect(desktopSetupAccountPending(root, first)).toBe(false)
-  await recordSetup(root, first, 'completed')
-  expect(desktopSetupAccountPending(root, first)).toBe(true)
-  expect(desktopSetupAccountPending(root, second)).toBe(false)
-  await recordSetup(root, second, 'skipped')
-  expect(desktopSetupAccountPending(root, second)).toBe(false)
-  dismissDesktopSetupAccount(root, first)
-  expect(desktopSetupAccountPending(root, first)).toBe(false)
-  expect(readDesktopSetupWizardState(root, first)?.outcome).toBe('completed')
-  await recordSetup(root, first, 'completed')
-  await clearDesktopSetupWizardState(root, first)
-  expect(desktopSetupAccountPending(root, first)).toBe(false)
+  const profile = join(root, 'first')
+  const statePath = desktopSetupWizardStatePath(root, profile)
+  await beginDesktopSetupWizard(root, profile)
+  writeFileSync(`${statePath}.account`, 'pending\n', { mode: 0o600 })
+  await recordSetup(root, profile, 'completed')
+  expect(readdirSync(join(statePath, '..'))).toEqual(['state.json'])
+  expect(readDesktopSetupWizardState(root, profile)?.outcome).toBe('completed')
 })
 const RECORDED_AT = '2026-08-28T04:05:06.789Z'
 const CURRENT_VERSIONS: DesktopSetupWizardVersions = Object.freeze({
@@ -149,7 +141,7 @@ describe('Desktop Setup Wizard state', () => {
       ...CURRENT_VERSIONS,
       recordedAt: RECORDED_AT,
     })
-    expect(readdirSync(directory)).toEqual(['state.json', 'state.json.account'])
+    expect(readdirSync(directory)).toEqual(['state.json'])
     if (process.platform !== 'win32') {
       expect(statSync(join(userData, 'profile-setup')).mode & 0o777).toBe(0o700)
       expect(statSync(directory).mode & 0o777).toBe(0o700)

@@ -471,7 +471,7 @@ describe('Electron desktop runtime', () => {
   it('limits setup persistence to the active renderer main frame and releases its handler', async () => {
     const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
     const runtime = new ElectronDesktopRuntime(async () => {})
-    const bridge = { read: vi.fn(async () => null), finish: vi.fn(async () => {}), dismissAccount: vi.fn(async () => {}), applyPending: vi.fn(async () => {}) }
+    const bridge = { read: vi.fn(async () => null), finish: vi.fn(async () => {}), applyPending: vi.fn(async () => {}) }
     runtime.setupOnboarding = bridge
     const applySetupSettings = vi.fn(async () => {})
     const release = runtime.schedule({ ...spec, applySetupSettings })
@@ -491,9 +491,8 @@ describe('Electron desktop runtime', () => {
     const settings = { mode: 'extended' }
     await ((bridge.finish.mock.calls[0] as unknown[])[2] as (value: unknown) => Promise<void>)(settings)
     expect(applySetupSettings).toHaveBeenCalledExactlyOnceWith(settings)
-    await expect(handler({ ...sender, senderFrame: { url: spec.url } }, { action: 'dismiss-account', profile: 'desktop' })).rejects.toThrow('Untrusted')
-    await handler(sender, { action: 'dismiss-account', profile: 'desktop' })
-    expect(bridge.dismissAccount).toHaveBeenCalledExactlyOnceWith('desktop')
+    // Setup no longer queues a sign-in page, so its acknowledgement is gone too.
+    await expect(handler(sender, { action: 'dismiss-account', profile: 'desktop' })).rejects.toThrow('Setup is unavailable')
     await expect(handler({ ...sender, senderFrame: { url: spec.url } }, { action: 'apply-pending', profile: 'desktop' })).rejects.toThrow('Untrusted')
     expect(bridge.applyPending).not.toHaveBeenCalled()
     await handler(sender, { action: 'apply-pending', profile: 'desktop' })
