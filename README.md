@@ -29,7 +29,7 @@ DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harne
 
 - 上游基线：上游 [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) 最新 `master`（构建基线 `9c65ef7291`，清单版本 2.0.14，最近发布 tag `v2.0.13`）
 - 目标平台：**Linux x64**
-- 产物：便携包（tar.gz）与 Debian/Ubuntu 安装包（.deb），随 `SHA256SUMS` 提供 GPG 分离签名，`.deb` 另含 `debsigs` 内部签名
+- 产物：AppImage 与 Debian/Ubuntu 安装包（.deb），随 `SHA256SUMS` 提供 GPG 分离签名，`.deb` 另含 `debsigs` 内部签名
 
 ## 本 fork 相对上游的改动
 
@@ -59,31 +59,29 @@ Linux 版 Electron 会向进程空间泄漏 glib 符号，与 sharp/libvips 的 
 
 ## 下载与运行
 
-从 [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases) 获取 Linux x64 安装包，提供两种形式。下面命令中的 `<version>` 请替换为 Release 页面上的实际版本号（形如 `X.Y.Z-linux.N`）。
+从 [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases) 获取 Linux x64 包，提供 **AppImage** 与 **Debian 包** 两种形式。下面命令中的 `<version>` 请替换为 Release 页面上的实际版本号（稳定版形如 `2.0.14`，Next 通道形如 `2.0.14-next`）。
 
-### 便携包（tar.gz）
+### AppImage（免安装）
 
 ```sh
-tar -xzf DSH-Desktop-<version>-x64-portable.tar.gz
-cd DSH-Desktop-<version>-x64
-./dsh-desktop        # 2.0.13-linux.* 的包内二进制名为 ./dsh-plugin-desktop
+chmod +x DSH-Desktop-<version>-x86_64.AppImage
+./DSH-Desktop-<version>-x86_64.AppImage
 ```
+
+Next 通道的文件名带 `Next` 前缀：`DSH-Desktop-Next-<version>-x86_64.AppImage`。
 
 ### Debian / Ubuntu 安装包（.deb）
 
 ```sh
-sudo apt install ./dsh-desktop_<version>_amd64.deb
-# 或：sudo dpkg -i dsh-desktop_<version>_amd64.deb && sudo apt -f install
+sudo apt install ./DSH-Desktop-<version>-amd64.deb
+# 或：sudo dpkg -i DSH-Desktop-<version>-amd64.deb && sudo apt -f install
 ```
 
-安装后可从应用菜单启动，或在终端运行 `dsh-desktop`。`.deb` 会：
+Next 通道对应 `DSH-Desktop-Next-<version>-amd64.deb`（包名 `dsh-desktop-next`，可与稳定版并存）。
 
-- 安装到 `/opt/dsh-desktop`
-- 提供 `/usr/bin/dsh-desktop` 命令、`.desktop` 菜单项与图标
-- 在 `postinst` 中设置 `chrome-sandbox` 的 setuid 权限
-- 声明 `Recommends: nodejs`（sharp 桥接需要真实 Node）
+安装后可从应用菜单启动：稳定版装到 `/opt/DSH Desktop`（命令 `dsh-desktop`），Next 装到 `/opt/DSH NEXT`（命令 `dsh-desktop-next`）；`.deb` 会在 `postinst` 中设置 `chrome-sandbox` 的 setuid 权限。
 
-卸载：`sudo apt remove dsh-desktop`（用户数据 `~/.config/DSH Desktop` 不会被删除）。
+卸载：`sudo apt remove dsh-desktop`（或 `dsh-desktop-next`）；用户数据 `~/.config/DSH Desktop` 不会被删除。
 
 两种形式都要求：
 
@@ -100,8 +98,8 @@ sudo apt install ./dsh-desktop_<version>_amd64.deb
 gpg --import Jic2007-release-key.asc
 gpg --verify SHA256SUMS.asc SHA256SUMS
 sha256sum -c SHA256SUMS
-# 可选：校验 .deb 内部签名（需要 debsigs）
-debsigs --verify dsh-desktop_<version>_amd64.deb
+# 可选：列出 .deb 内部签名（debsigs 0.1.26 的 --verify 尚未实现）
+debsigs --list DSH-Desktop-<version>-amd64.deb
 ```
 
 ## 从源码构建

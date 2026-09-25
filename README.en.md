@@ -29,7 +29,7 @@ This fork is **Linux-focused**: it fixes the upstream desktop's inability to run
 
 - Upstream baseline: the latest `master` of [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) (build base `9c65ef7291`, manifest version 2.0.14, latest release tag `v2.0.13`)
 - Target platform: **Linux x64**
-- Artifacts: a portable archive (tar.gz) and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships with a detached GPG signature, and the `.deb` also carries an internal `debsigs` signature
+- Artifacts: an AppImage and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships with a detached GPG signature, and the `.deb` also carries an internal `debsigs` signature
 
 ## Changes in this fork
 
@@ -59,31 +59,29 @@ See `.yarn/patches/`, `patches/`, and the commit history for details.
 
 ## Download and run
 
-Grab the Linux x64 build from [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases). Two forms are provided. Replace `<version>` in the commands below with the actual version on the Release page (shaped like `X.Y.Z-linux.N`).
+Grab the Linux x64 build from [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases). Two forms are provided: an **AppImage** and a **Debian package**. Replace `<version>` in the commands below with the actual version on the Release page (stable is shaped like `2.0.14`, the Next channel like `2.0.14-next`).
 
-### Portable archive (tar.gz)
+### AppImage (no installation)
 
 ```sh
-tar -xzf DSH-Desktop-<version>-x64-portable.tar.gz
-cd DSH-Desktop-<version>-x64
-./dsh-desktop        # 2.0.13-linux.* archives still ship ./dsh-plugin-desktop
+chmod +x DSH-Desktop-<version>-x86_64.AppImage
+./DSH-Desktop-<version>-x86_64.AppImage
 ```
+
+The Next channel adds a `Next` prefix: `DSH-Desktop-Next-<version>-x86_64.AppImage`.
 
 ### Debian / Ubuntu package (.deb)
 
 ```sh
-sudo apt install ./dsh-desktop_<version>_amd64.deb
-# or: sudo dpkg -i dsh-desktop_<version>_amd64.deb && sudo apt -f install
+sudo apt install ./DSH-Desktop-<version>-amd64.deb
+# or: sudo dpkg -i DSH-Desktop-<version>-amd64.deb && sudo apt -f install
 ```
 
-After installing, launch it from the application menu or run `dsh-desktop`. The `.deb`:
+The Next channel uses `DSH-Desktop-Next-<version>-amd64.deb` (package name `dsh-desktop-next`, installable alongside stable).
 
-- installs to `/opt/dsh-desktop`
-- provides the `/usr/bin/dsh-desktop` command, a `.desktop` menu entry, and an icon
-- sets the `chrome-sandbox` setuid permission in `postinst`
-- declares `Recommends: nodejs` (the sharp bridge needs a real Node)
+After installing, launch it from the application menu: stable installs to `/opt/DSH Desktop` (command `dsh-desktop`) and Next to `/opt/DSH NEXT` (command `dsh-desktop-next`). The `.deb` sets the `chrome-sandbox` setuid permission in `postinst`.
 
-Uninstall with `sudo apt remove dsh-desktop` (user data in `~/.config/DSH Desktop` is kept).
+Uninstall with `sudo apt remove dsh-desktop` (or `dsh-desktop-next`); user data in `~/.config/DSH Desktop` is kept.
 
 Both forms require:
 
@@ -100,8 +98,8 @@ Both forms require:
 gpg --import Jic2007-release-key.asc
 gpg --verify SHA256SUMS.asc SHA256SUMS
 sha256sum -c SHA256SUMS
-# optional: internal .deb signature (requires debsigs)
-debsigs --verify dsh-desktop_<version>_amd64.deb
+# optional: list the internal .deb signatures (debsigs 0.1.26 has no --verify yet)
+debsigs --list DSH-Desktop-<version>-amd64.deb
 ```
 
 ## Build from source
