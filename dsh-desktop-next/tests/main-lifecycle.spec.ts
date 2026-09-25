@@ -357,7 +357,7 @@ it.each(['complete', 'skip'] as const)('continues first-run setup in the officia
     fixture.restart.mockImplementationOnce(async () => {
       expect(manager.onboardingRequired('desktop')).toBe(false)
       expect(manager.features('desktop')).toEqual(outcome === 'skip'
-        ? { market: true, remoteControl: false } : { market: false, dshMarket: true, remoteControl: true })
+        ? { market: false, remoteControl: false } : { market: false, dshMarket: true, remoteControl: true })
       expect(manager.computerUseEnabled('desktop')).toBe(outcome === 'complete')
     })
     await setup(sender, { action: 'finish', profile: 'desktop', ...(outcome === 'complete' ? {
