@@ -30,8 +30,10 @@
     "dist:mac": "node scripts/package.ts mac",
     "dist:mac-smoke": "node scripts/package.ts mac-smoke",
     "dist:win": "node scripts/package.ts win",
+    "dist:linux": "node scripts/package.ts linux",
     "check:mac-package": "yarn check",
-    "check:win-package": "yarn check"
+    "check:win-package": "yarn check",
+    "check:linux-package": "yarn check"
   },
   "dependencies": {
     "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.ceba59602e4c1.r1188e1a1.tgz",
@@ -377,9 +379,26 @@
     },
     "linux": {
       "target": [
-        "dir"
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "build/app-icon.png",
+      "artifactName": "DSH-Desktop-Next-${version}-${arch}.${ext}",
+      "category": "Development",
+      "synopsis": "Agentic coding desktop for the DeepSeek Harness (Next channel)",
+      "maintainer": "DeepSeek <dsh-desktop@deepseek.com>",
+      "executableName": "dsh-desktop-next",
+      "syncDesktopName": true,
       "asar": false
     },
     "dmg": {

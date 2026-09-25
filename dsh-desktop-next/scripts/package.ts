@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { packageDirectory } from '../../dsh-plugin-desktop-beta/scripts/package-dir.mjs'
 import { releaseMac } from '../../dsh-plugin-desktop-beta/scripts/release-mac.ts'
 import { packageMacSmoke } from '../../dsh-plugin-desktop-beta/scripts/package-mac.ts'
+import { packageLinuxArtifacts } from '../../dsh-plugin-desktop-beta/scripts/package-linux.ts'
 import { createWindowsPackageOptions, packageWindowsInstaller } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
 import { prepareNextMacRuntime } from './mac-runtime.ts'
 import { runNextPackagingCommand } from './packaging-command.ts'
@@ -40,4 +41,21 @@ if (mode === 'dir') {
   packageWindowsInstaller({ ...createWindowsPackageOptions(), desktopRoot, workspaceRoot, run,
     prepareRuntime: () => {},
     verifier: join(desktopRoot, 'scripts/verify-win-installer.ts') })
-} else throw new Error('Expected dir, mac, mac-smoke or win')
+} else if (mode === 'linux') {
+  // Next runs its own gates, then reuses Beta's shared unsigned AppImage/deb step.
+  run('corepack', ['yarn', 'run', 'check:linux-package'], desktopRoot, process.env)
+  packageLinuxArtifacts({
+    env: { ...process.env, DSH_PACKAGE_CHECK_ALREADY_RAN: '1' },
+    platform: process.platform,
+    arch: process.arch,
+    nodeVersion: process.versions.node,
+    workspaceRoot,
+    desktopRoot,
+    builderCli: require.resolve('electron-builder/cli.js'),
+    prepareRuntime: () => {},
+    verifier: join(desktopRoot, 'scripts/verify-linux-artifacts.ts'),
+    nodeExecutable: process.execPath,
+    run,
+    log: message => { console.log(message) },
+  })
+} else throw new Error('Expected dir, linux, mac, mac-smoke or win')
