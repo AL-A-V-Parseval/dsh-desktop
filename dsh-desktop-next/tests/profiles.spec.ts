@@ -92,6 +92,8 @@ it('records onboarding per Profile together with its plugin choices and retains 
     custom: 'keep', dependencies: manifest.dependencies,
     dsh: { desktopNextOnboarding: { version: 1, outcome: 'completed' }, profile: { bundles: expect.arrayContaining(['my-plugin']) } },
   })
+  // No sign-in page is queued after Setup any more.
+  expect(JSON.parse(readFileSync(file, 'utf8')).dsh.desktopNextOnboarding).toEqual({ version: 1, outcome: 'completed' })
   manager.select('work'); manager.select('desktop')
   expect(manager.onboardingRequired('desktop')).toBe(false)
 })

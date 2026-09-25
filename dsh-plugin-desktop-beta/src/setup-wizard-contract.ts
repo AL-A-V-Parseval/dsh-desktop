@@ -28,7 +28,7 @@ export interface DesktopSetupWizardSelection {
   readonly notifications: DesktopSetupWizardNotifications
 }
 
-/** Fixed capabilities and current values supplied before the Host is started. */
+/** Fixed capabilities and current values supplied when Desktop setup is opened. */
 export interface DesktopSetupWizardInput extends DesktopSetupWizardSelection {
   readonly appVersion: string
   readonly profileName: string

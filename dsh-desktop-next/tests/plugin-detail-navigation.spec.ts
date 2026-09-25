@@ -16,6 +16,7 @@ function fixture() {
   const hookState: unknown[] = []
   let cursor = 0
   let Page: (props: Record<string, unknown>) => Node
+  let navigation: any
   let apply: (context: unknown) => void
   const source = readFileSync(createRequire(import.meta.url).resolve('@deepseek-ai/dsh-client-ui-plugin-manager/client'), 'utf8')
   const require = (id: string) => {
@@ -31,37 +32,50 @@ function fixture() {
     if (id === 'react-dom') return {}
     if (id === '@deepseek-ai/dsh-client-ui-primitives') return new Proxy({}, { get: (_, name) => (props: Node['props']) => jsx(String(name), props) })
     if (id === '@deepseek-ai/dsh-client-ui-slots') return { resolveSlotLabel: (label: unknown) => label }
-    if (id === '@deepseek-ai/dsh-client-store') return { createSnapshotStore: (state: unknown) => ({ getSnapshot: () => state }) }
+    if (id === '@deepseek-ai/dsh-client-store') return {
+      createSnapshotStore: (state: unknown) => ({ getSnapshot: () => state }),
+      defineStore: ({ init, actions }: any) => ({ create: () => {
+        const state = init()
+        return { getSnapshot: () => state, actions: Object.fromEntries(Object.entries(actions).map(([name, action]) =>
+          [name, (...args: unknown[]) => (action as any)(state, ...args)])) }
+      } }),
+    }
     throw new Error(`Unexpected browser dependency: ${id}`)
   }
   runInNewContext(source, { window: { __ModuleLoader__: { load: (entry: { factory: (require: unknown) => { apply: typeof apply } }) => { apply = entry.factory(require).apply } } } })
   const noop = () => () => {}
   apply!({ effect: (effect: () => void) => effect(), on: noop,
     locale: { register: noop, bind: () => (key: string) => key }, remote: { $on: noop },
-    slots: { inject: (_name: string, register: () => void) => register(), register: (options: { name: string }, view: typeof Page) => {
-      if (options.name === 'main') Page = view
+    layout: { panelInfo: { subscribe: noop }, selectPanel: vi.fn() }, reflect: { provide: noop },
+    slots: { inject: (_name: string, register: () => unknown) => {
+      const result = register()
+      if (result && typeof result === 'object' && Symbol.iterator in result) [...result as Iterable<unknown>]
+    }, register: (options: { name: string; store?: any }, view: typeof Page) => {
+      if (options.name === 'main') { Page = view; navigation = options.store.create() }
       return () => {}
     } },
   })
   const remote = { name: '@agents-anywhere/dsh-bridge-next', enabled: true, installed: false, optional: true,
-    version: '0.1.0', description: 'Remote connection', rows: [{ rowId: 'bridge', moduleName: 'bridge', enabled: true, phase: 'active' }] }
+    version: '0.1.0', description: 'Remote connection', rows: [{ entryId: undefined as string | undefined, rowId: 'bridge', moduleName: 'bridge', enabled: true, phase: 'active' }] }
   const official = { ...remote, name: 'official-team', rows: [] }
-  const state = { status: 'ready', packages: [official, remote], busy: [], notice: null, highlight: null, confirm: null,
+  const state = { status: 'ready', packages: [official, remote], busy: [] as string[], notice: null, highlight: null, confirm: null,
     install: { open: false } }
   const item = { id: 'desktop-next-computer-use', label: 'Computer Use' }
   const ledger = { items: [item], bundles: new Set([remote.name]), rows: new Set(),
     hiddenBundles: new Set([remote.name]), hiddenItems: new Set([item.id]) }
   let overview: { onOpenBundle(name: string): void; onOpenItem(id: string): void }
   const setEnabled = vi.fn()
+  const setRowEnabled = vi.fn()
   const props = {
+    useStore: (select: (state: unknown) => unknown) => select(navigation.getSnapshot()), actions: navigation.actions,
     t: (key: string) => key, ensure: vi.fn(), resolveText: (text: string) => text,
-    useConfigurations: () => [], usePluginManager: () => state, useConfigLedger: () => ledger, setEnabled,
+    useConfigurations: () => [], usePluginManager: () => state, useConfigLedger: () => ledger, setEnabled, setRowEnabled,
     renderSlot: (name: string, owner: Record<string, unknown>, options?: unknown) => {
       if (name === 'plugins.overview') overview = owner as typeof overview
       return jsx('slot', { name, owner, options })
     },
   }
-  return { state, remote, item, ledger, setEnabled,
+  return { state, remote, item, ledger, setEnabled, setRowEnabled,
     page: () => { cursor = 0; return Page!(props) }, overview: () => overview!,
   }
 }
@@ -134,4 +148,27 @@ it('places keyed bundle actions before the native switch without sharing the car
   const openButton = nodes(rendered).find(node => node.props.onClick === head.props.onOpen)!
   expect(openButton).toBeDefined()
   expect(nodes(openButton).some(node => node.props.name === 'plugins.bundle.actions')).toBe(false)
+})
+
+
+it('lets composite item details reuse the official component list, live state and row toggles', () => {
+  const app = fixture()
+  const schedule = { rowId: 'schedule', entryId: 'include:schedule', moduleName: '@deepseek-ai/dsh-schedule', enabled: true, phase: 'active' }
+  const unrelated = { entryId: undefined, rowId: 'other', moduleName: 'other-plugin', enabled: true, phase: 'active' }
+  app.state.packages.push({ ...app.remote, name: '@deepseek-ai/dsh-web-app', rows: [schedule, unrelated] })
+  app.page()
+  app.overview().onOpenItem(app.item.id)
+  const body = render(component(app.page(), 'ItemDetail')!)
+  const pageSlot = nodes(body).find(node => node.props.name === 'plugins.item' && node.props.owner.view === 'page')!
+  const rows = pageSlot.props.owner.renderComponents(['@deepseek-ai/dsh-schedule']) as Node
+  expect(typeof rows.type === 'function' && rows.type.name).toBe('RowsSection')
+  expect(rows.props.rows).toEqual([schedule])
+  rows.props.toggle.onSetEnabled(schedule, false)
+  expect(app.setRowEnabled).toHaveBeenCalledWith('include:schedule', false)
+  app.state.busy.push('row:include:schedule')
+  expect(rows.props.toggle.busy(schedule)).toBe(true)
+  schedule.enabled = false
+  const updatedBody = render(component(app.page(), 'ItemDetail')!)
+  const updatedSlot = nodes(updatedBody).find(node => node.props.name === 'plugins.item' && node.props.owner.view === 'page')!
+  expect(updatedSlot.props.owner.renderComponents(['@deepseek-ai/dsh-schedule']).props.rows[0].enabled).toBe(false)
 })

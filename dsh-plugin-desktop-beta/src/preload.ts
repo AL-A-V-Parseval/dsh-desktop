@@ -1,6 +1,7 @@
 /** Minimal context-isolated bridges for drag payloads, Desktop-owned actions, and the upstream Desktop marker. */
 
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
+import { SETUP_ONBOARDING_CHANNEL } from './setup-onboarding-bridge.ts'
 import { DESKTOP_FILE_PATH_BRIDGE } from './file-path-bridge-contract.ts'
 import {
   DESKTOP_RENDERER_ACTION_CHANNEL,
@@ -27,3 +28,9 @@ contextBridge.exposeInMainWorld(DESKTOP_RENDERER_ACTIONS_BRIDGE, actions)
 // browser tab on their Web fallbacks, and turns on the DeepSeek account entry whose
 // Platform sign-in the Host hands to the native shell (src/platform-login.ts).
 contextBridge.exposeInMainWorld('dshDesktop', Object.freeze({ protocolVersion: 1 }))
+
+contextBridge.exposeInMainWorld('dshDesktopSetup', {
+  read: () => ipcRenderer.invoke(SETUP_ONBOARDING_CHANNEL, { action: 'read' }),
+  applyPending: (profile: string) => ipcRenderer.invoke(SETUP_ONBOARDING_CHANNEL, { action: 'apply-pending', profile }),
+  finish: (profile: string, selection?: unknown) => ipcRenderer.invoke(SETUP_ONBOARDING_CHANNEL, { action: 'finish', profile, selection }),
+})
