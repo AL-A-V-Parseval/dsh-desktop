@@ -152,6 +152,8 @@ import {
   desktopSetupWizardRequired,
   desktopSetupWizardStateConstants,
   readDesktopSetupWizardState,
+  desktopSetupAccountPending,
+  dismissDesktopSetupAccount,
 } from './setup-wizard-state.ts'
 import {
   migrateDesktopBrowserAccessSettings,
@@ -1439,11 +1441,15 @@ async function start(): Promise<void> {
     runtime.setupOnboarding = {
       read: async () => ({ required: setupPending, edition: 'desktop', profile: activeProfileName,
         restartPending: setupRestartPending,
+        accountPending: safeModePaths === undefined && !setupPending && desktopSetupAccountPending(marketUserDataDir, prepared.profile.dir),
         input: setupInput }),
+      dismissAccount: async profile => {
+        if (setupPending || profile !== activeProfileName || safeModePaths !== undefined) throw new Error('Desktop account setup is unavailable')
+        dismissDesktopSetupAccount(marketUserDataDir, prepared.profile.dir)
+      },
       applyPending: async profile => {
-        if (setupPending || setupSaving || profile !== activeProfileName || safeModePaths !== undefined) {
-          throw new Error('Desktop settings are not ready to apply')
-        }
+        if (setupPending || setupSaving || profile !== activeProfileName || safeModePaths !== undefined
+          || desktopSetupAccountPending(marketUserDataDir, prepared.profile.dir)) throw new Error('Desktop settings are not ready to apply')
         if (!setupRestartPending) return
         setupRestartPending = false
         setImmediate(() => {
@@ -1481,8 +1487,8 @@ async function start(): Promise<void> {
           await completeOrSkipDesktopSetupWizard(marketUserDataDir, prepared.profile.dir,
             selection === undefined ? 'skipped' : 'completed', setupWizardVersions)
           setupPending = false
-          // Keep the current renderer/Host alive; preferences are applied on the
-          // next launch, which Setup's closing toast offers explicitly.
+          // Keep the current renderer/Host alive for official login and onboarding.
+          // Preferences are applied on the next launch, requested explicitly afterwards.
           setupRestartPending = selection !== undefined
         } finally { setupSaving = false }
       },

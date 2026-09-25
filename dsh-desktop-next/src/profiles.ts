@@ -23,7 +23,7 @@ export const DEFAULT_FEATURES: Readonly<Features> = { remoteControl: false, mark
 interface ProfileManifest {
   dsh: {
     desktopNextPlugins?: number
-    desktopNextOnboarding?: { version: number; outcome: 'completed' | 'skipped' }
+    desktopNextOnboarding?: { version: number; outcome: 'completed' | 'skipped'; accountPending?: boolean }
     /** Names recovery removed from `profile.bundles`; a UI ledger, never a policy. */
     desktopNextDeselectedBundles?: string[]
     profile: { bundles: string[] }
@@ -145,6 +145,15 @@ export class NextProfiles {
     const saved = this.manifest(name).dsh.desktopNextOnboarding
     return saved?.version !== 1 || !['completed', 'skipped'].includes(saved.outcome)
   }
+  accountSetupPending(name: string): boolean {
+    return !this.onboardingRequired(name) && this.manifest(name).dsh.desktopNextOnboarding?.accountPending === true
+  }
+  dismissAccountSetup(name: string): void {
+    const manifest = this.manifest(name)
+    if (manifest.dsh.desktopNextOnboarding?.accountPending !== true) return
+    delete manifest.dsh.desktopNextOnboarding.accountPending
+    atomicJson(join(this.directory(name), 'package.json'), manifest)
+  }
   /** Read the saved native-provider choice without importing any user plugin. */
   computerUseEnabled(name: string): boolean {
     return computerUsePatch(readPrivateFile(join(this.directory(name), 'cordis.patch.yml')) ?? '[]\n').enabled
@@ -166,7 +175,8 @@ export class NextProfiles {
       nextPatch = computerUsePatch(originalPatch ?? '[]\n', choices.computerUse).text
       applyFeatures(manifest, features)
     }
-    manifest.dsh.desktopNextOnboarding = { version: 1, outcome: value === undefined ? 'skipped' : 'completed' }
+    manifest.dsh.desktopNextOnboarding = { version: 1, outcome: value === undefined ? 'skipped' : 'completed',
+      ...(value === undefined ? {} : { accountPending: true }) }
     const patchChanged = nextPatch !== undefined && nextPatch !== originalPatch
     if (patchChanged && nextPatch !== undefined) atomicText(patchPath, nextPatch)
     try {

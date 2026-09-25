@@ -183,7 +183,7 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
   }
   const settings = createDesktopSettingsPort(ctx, config, runtime.platform)
   // Choices first-run Setup saved into this generation's settings. Setup's own
-  // closing toast offers the restart that applies them.
+  // continuation offers the restart that applies them, after its account step.
   let setupSettings: DesktopSetupWizardSettings | undefined
   let setupSaved = false
   const rendererOrigin = `http://127.0.0.1:${String(ctx.webServer.port)}`
@@ -367,8 +367,8 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
         pending = undefined
         return
       }
-      // Setup's closing toast already offers this restart; a native prompt would
-      // duplicate it. Only a later, different choice asks for its own restart.
+      // A native restart prompt here would interrupt the official login that
+      // follows Setup; only a later, different choice asks for its own restart.
       if (matchesSetup) {
         if (pending !== undefined) clearImmediate(pending)
         pending = undefined

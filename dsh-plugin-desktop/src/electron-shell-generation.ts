@@ -365,6 +365,9 @@ export class ElectronShellGeneration {
       if (value.action === 'apply-pending' && typeof value.profile === 'string' && this.options.setupOnboarding?.applyPending) {
         return this.options.setupOnboarding.applyPending(value.profile)
       }
+      if (value.action === 'dismiss-account' && typeof value.profile === 'string' && this.options.setupOnboarding) {
+        return this.options.setupOnboarding.dismissAccount(value.profile)
+      }
       if (value.action !== 'finish' || typeof value.profile !== 'string' || !this.options.setupOnboarding) throw new Error('Setup is unavailable')
       if (value.selection !== undefined && !isDesktopSetupWizardSelection(value.selection)) throw new Error('Invalid setup selection')
       const { spec } = this.options

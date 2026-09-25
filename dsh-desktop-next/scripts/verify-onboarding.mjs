@@ -28,7 +28,7 @@ const host = new DesktopHostProcess(process.execPath, root, profiles.directory('
 const screenshots = join(root, '.desktop-next/verification')
 mkdirSync(screenshots, { recursive: true })
 let browser, page
-let required = true, rejectSave = false, rejectRead = true
+let required = true, accountPending = false, rejectDismiss = true, rejectSave = false, rejectRead = true
 const finishes = [], errors = []
 const selection = { mode: 'compatibility', macosMaterial: 'off', windowsMaterial: 'off', openBrowser: false,
   networkExposure: 'loopback', market: 'community-market', aaEnabled: false,
@@ -47,21 +47,33 @@ try {
   await context.exposeFunction('__bootFailed', message => { errors.push(message) })
   await context.exposeFunction('__readSetup', () => {
     if (rejectRead) { rejectRead = false; throw new Error('Fixture: setup state unavailable') }
-    return { required, edition: 'next', profile: 'desktop', computerUse: false,
+    return { required, accountPending, edition: 'next', profile: 'desktop', computerUse: false,
       input: { ...selection, appVersion: '2.0.14-next', platform: 'darwin', profileName: 'desktop' } }
   })
   await context.exposeFunction('__finishSetup', (profile, value) => {
     if (rejectSave) { rejectSave = false; throw new Error('Fixture: could not save Profile') }
-    finishes.push({ profile, selection: value }); required = false
+    finishes.push({ profile, selection: value }); required = false; accountPending = value !== undefined
+  })
+  await context.exposeFunction('__dismissAccount', profile => {
+    assert.equal(profile, 'desktop')
+    if (rejectDismiss) { rejectDismiss = false; throw new Error('Fixture: account choice save failed') }
+    accountPending = false
   })
   await context.addInitScript(() => {
     globalThis.dshDesktop = { protocolVersion: 1 }
     globalThis.dshDesktopBoot = { ready: () => globalThis.__boot(), failed: message => globalThis.__bootFailed(message) }
-    globalThis.dshDesktopSetup = { read: () => globalThis.__readSetup(), finish: (profile, value) => globalThis.__finishSetup(profile, value) }
+    globalThis.dshDesktopSetup = { read: () => globalThis.__readSetup(), finish: (profile, value) => globalThis.__finishSetup(profile, value), dismissAccount: profile => globalThis.__dismissAccount(profile) }
   })
   page = await context.newPage(); page.setDefaultTimeout(20_000)
   page.on('pageerror', error => errors.push(error.stack ?? error.message))
   const surface = page.locator('[data-desktop-onboarding="desktop-extension"]')
+  const captureAccount = async name => {
+    await page.evaluate(async () => {
+      await Promise.all(document.getAnimations().filter(animation => animation.effect?.getComputedTiming().iterations !== Infinity)
+        .map(animation => animation.finished.catch(() => {})))
+    })
+    await page.screenshot({ path: join(screenshots, name) })
+  }
   const navigate = async (name, delta) => {
     const current = Number(await surface.locator('[data-page]').getAttribute('data-page'))
     await surface.getByRole('button', { name }).click()
@@ -120,14 +132,31 @@ try {
   await surface.waitFor({ state: 'hidden' })
   assert.equal(finishes.length, 1)
   assert.deepEqual(finishes[0], { profile: 'desktop', selection: { ...selection, market: 'dsh-market', aaEnabled: true, computerUse: true } })
-  // The native app restarts after saving. Neither a sign-in page nor the
-  // official introduction follows Desktop setup: the app opens directly.
+  // The native app restarts after saving. No authorization should start in the old renderer.
   await page.reload()
-  await page.locator('[data-desktop-onboarding-surface]').waitFor({ state: 'detached' })
+  await surface.getByRole('heading', { name: '桌面设置已完成' }).waitFor()
+  await captureAccount('onboarding-official-account-choice.png')
+  await surface.getByRole('button', { name: '登录 DeepSeek' }).click()
+  await surface.getByRole('alert').filter({ hasText: 'account choice save failed' }).waitFor()
+  await surface.getByRole('button', { name: '重试', exact: true }).click()
+  await surface.getByRole('button', { name: '登录 DeepSeek' }).click()
+  const login = page.getByRole('dialog', { name: '开始使用', exact: true })
+  await login.waitFor()
+  await surface.waitFor({ state: 'hidden' })
+  assert.equal(await surface.count(), 0)
+  await captureAccount('onboarding-official-account-login.png')
+  await login.getByRole('button', { name: '添加 API Key', exact: true }).click()
+  await login.waitFor({ state: 'hidden' })
+  await page.getByRole('dialog').filter({ hasText: 'API Key' }).waitFor()
+  await page.reload()
   await page.getByRole('button', { name: /^(插件|Plugins)$/ }).waitFor()
-  assert.equal(await page.locator('[data-desktop-onboarding], [data-desktop-onboarding-surface]').count(), 0)
+  assert.equal(await surface.count(), 0)
+  accountPending = true
+  await page.reload()
+  await surface.getByRole('button', { name: '暂时跳过', exact: true }).click()
+  await surface.waitFor({ state: 'hidden' })
+  assert.equal(accountPending, false)
   assert.equal(await page.locator('#root').evaluate(element => element.inert), false)
-  await page.screenshot({ path: join(screenshots, 'onboarding-official-after-setup.png') })
   required = true
   await open(); await next()
   await page.setViewportSize({ width: 680, height: 560 })
@@ -141,7 +170,7 @@ try {
   await surface.waitFor({ state: 'hidden' })
   assert.equal(finishes.at(-1).selection, undefined)
   assert.deepEqual(errors, [])
-  console.log(`Original Next onboarding passed inside the official surface: independent native eligibility, official progress ${officialPending ? 'unfinished' : 'completed'}, state-read and save retries, five original pages, artwork, back navigation, choices, skip, completion straight into the app without the official introduction, inert cleanup, and no repeat.`)
+  console.log(`Original Next onboarding passed inside the official surface: independent native eligibility, official progress ${officialPending ? 'unfinished' : 'completed'}, state-read and save retries, five original pages, artwork, back navigation, choices, skip, completion, inert cleanup, and no repeat.`)
 } catch (error) {
   console.error(errors)
   if (page) { console.error(await page.locator('body').innerText()); await page.screenshot({ path: join(screenshots, 'onboarding-failure.png') }).catch(() => {}) }

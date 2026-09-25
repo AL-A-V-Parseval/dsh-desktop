@@ -84,6 +84,10 @@ it('records onboarding per Profile together with its plugin choices and retains 
   const reread = new NextProfiles(manager.home)
   reread.ensure('desktop')
   expect(reread.onboardingRequired('desktop')).toBe(false)
+  expect(reread.accountSetupPending('desktop')).toBe(true)
+  expect(reread.accountSetupPending('work')).toBe(false)
+  reread.dismissAccountSetup('desktop')
+  expect(new NextProfiles(manager.home).accountSetupPending('desktop')).toBe(false)
   expect(reread.onboardingRequired('work')).toBe(true)
   expect(reread.features('desktop')).toEqual({ market: false, dshMarket: true, remoteControl: true })
   expect(reread.computerUseEnabled('desktop')).toBe(true)
@@ -92,8 +96,6 @@ it('records onboarding per Profile together with its plugin choices and retains 
     custom: 'keep', dependencies: manifest.dependencies,
     dsh: { desktopNextOnboarding: { version: 1, outcome: 'completed' }, profile: { bundles: expect.arrayContaining(['my-plugin']) } },
   })
-  // No sign-in page is queued after Setup any more.
-  expect(JSON.parse(readFileSync(file, 'utf8')).dsh.desktopNextOnboarding).toEqual({ version: 1, outcome: 'completed' })
   manager.select('work'); manager.select('desktop')
   expect(manager.onboardingRequired('desktop')).toBe(false)
 })
@@ -105,6 +107,7 @@ it('skips onboarding without changing current choices, while a recreated Profile
   const patch = '# existing choice\n- id: computer-use-cua-driver-native\n  disabled: false\n'
   writeFileSync(join(dir, 'cordis.patch.yml'), patch)
   manager.finishOnboarding('work')
+  expect(manager.accountSetupPending('work')).toBe(false)
   expect(manager.onboardingRequired('work')).toBe(false)
   expect(manager.features('work')).toEqual({ market: false, dshMarket: true, remoteControl: true })
   expect(readFileSync(join(dir, 'cordis.patch.yml'), 'utf8')).toBe(patch)

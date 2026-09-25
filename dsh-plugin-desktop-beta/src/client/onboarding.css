@@ -45,6 +45,11 @@ body:has(.dshDesktopOnboardingContent) {
 }
 
 .dshDesktopOnboardingContent { color: var(--foreground); }
+.dshDesktopAccountSetup { height: 100%; overflow: auto; display: flex; align-items: safe center; justify-content: center; padding: 64px 32px; }
+.dshDesktopAccountSetup > div { width: 100%; max-width: 560px; }
+.dshDesktopAccountSetup h1 { font-size: 32px; font-weight: 500; margin-bottom: 24px; }
+.dshDesktopAccountSetup p { color: var(--muted-foreground); line-height: 1.8; margin-bottom: 16px; }
+.dshDesktopAccountActions { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 32px; }
 .dshDesktopSetupContent { width: 100%; height: 100%; box-sizing: border-box; }
 /* Keep the original Desktop settings and confirmations inside the same
    full-page presentation used by Next and the official onboarding surface. */
