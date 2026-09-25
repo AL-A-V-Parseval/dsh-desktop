@@ -113,6 +113,7 @@ export class NextUpdates {
         let lastProgress = 0
         const path = await downloadDesktopUpdate({ platform, version: result.latestVersion, channel: 'next',
           destinationPath: join(directory, desktopUpdateFilename(platform, result.latestVersion, 'next')),
+          allowAnyHttpsOrigin: true,
           request: artifactRequest(this.options.request), expectedSha256: result.installerSha256?.[platform],
           signal: AbortSignal.any([signal, AbortSignal.timeout(60 * 60_000)]), onProgress: (received, total) => {
             if (Date.now() - lastProgress < 250 && received !== total) return
