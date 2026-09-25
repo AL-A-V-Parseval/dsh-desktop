@@ -66,7 +66,12 @@ it('refuses corrupt backups and linked configuration before modifying original f
   expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(original)
   const outside = environment()
   rmSync(join(dir, 'cordis.patch.yml'))
-  symlinkSync(join(outside.profiles.directory('desktop'), 'cordis.patch.yml'), join(dir, 'cordis.patch.yml'))
+  // Directory junctions exercise link rejection on Windows without symlink privileges.
+  symlinkSync(
+    process.platform === 'win32' ? outside.profiles.directory('desktop') : join(outside.profiles.directory('desktop'), 'cordis.patch.yml'),
+    join(dir, 'cordis.patch.yml'),
+    process.platform === 'win32' ? 'junction' : 'file',
+  )
   await expect(profiles.recover('desktop')).rejects.toThrow('regular file')
   expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(original)
 })
