@@ -26,7 +26,7 @@ function loadConnector(workspace, environment) {
 }
 
 for (const workspace of AA_WORKSPACES) {
-  test(`${workspace}: incomplete tool results retain the same hash after JSON transport`, () => {
+  test(`${workspace}: rc.2 tool results retain the same hash after JSON transport`, () => {
     const source = readFileSync(new URL(`../${workspace}/node_modules/@agents-anywhere/dsh-bridge-next/lib/index.js`, import.meta.url), 'utf8')
     const region = name => {
       const start = source.indexOf(`//#region src/host/dsh-runtime/${name}.ts`)
@@ -34,18 +34,22 @@ for (const workspace of AA_WORKSPACES) {
       assert.ok(start >= 0 && end > start)
       return source.slice(start, end)
     }
-    const createProjection = runInNewContext(
-      ['identity', 'tools', 'history'].map(region).join('\n') + ';createProjection',
+    const { createProjection, contentHash } = runInNewContext(
+      ['identity', 'tools', 'history'].map(region).join('\n') + ';({ createProjection, contentHash })',
       { createHash, Buffer, json: value => JSON.parse(JSON.stringify(value)), record: value => value ?? {} },
     )
     const projection = createProjection('native-session', 'platform-session')
     projection.apply({ type: 'tool/result', seq: 0, time: '2026-09-24T00:00:00Z',
-      data: { message: { content: [{}] }, meta: {} } })
+      data: { message: { role: 'tool', toolCallId: 'call-1', content: [] }, meta: {} } })
     const item = JSON.parse(JSON.stringify(projection.snapshot()[0]))
     // Python json.dumps(..., sort_keys=True, separators=(',', ':')) for this payload.
-    const canonical = '{"content":{"dshResultMeta":{},"input":{},"isError":false,"kind":"tool_call","output":"","result":[],"title":"tool","toolName":"tool"},"role":"assistant","status":"done","type":"tool"}'
+    const canonical = '{"content":{"callId":"call-1","dshResultMeta":{},"input":{},"isError":false,"kind":"tool_call","output":"","result":[],"title":"tool","toolName":"tool"},"role":"assistant","status":"done","type":"tool"}'
     assert.equal(item.contentHash, `sha256:${createHash('sha256').update(canonical).digest('hex')}`)
-    assert.equal(Object.hasOwn(item.content, 'callId'), false)
+    assert.equal(item.content.callId, 'call-1')
+    // Optional fields omitted by JSON must not change the hash sent to Python.
+    assert.equal(contentHash({ ...item, content: { ...item.content, optional: undefined } }), item.contentHash)
+    assert.throws(() => projection.apply({ type: 'tool/result', seq: 1, time: '2026-09-24T00:00:01Z',
+      data: { message: { content: [{}] }, meta: {} } }), /Invalid DSH tool result message/)
   })
 
   test(`${workspace}: Python gets a compatible bypass list without changing the parent`, async () => {

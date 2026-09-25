@@ -146,10 +146,14 @@ import {
 } from './profile.ts'
 import { DesktopProfileCheckpoint } from './profile-checkpoint.ts'
 import {
+  beginDesktopSetupWizard,
+  desktopSetupWizardPending,
   completeOrSkipDesktopSetupWizard,
   desktopSetupWizardRequired,
   desktopSetupWizardStateConstants,
   readDesktopSetupWizardState,
+  desktopSetupAccountPending,
+  dismissDesktopSetupAccount,
 } from './setup-wizard-state.ts'
 import {
   migrateDesktopBrowserAccessSettings,
@@ -159,8 +163,7 @@ import {
   readDesktopSetupWizardSettings,
   updateDesktopSetupWizardSettings,
 } from './setup-wizard-settings.ts'
-import type { DesktopSetupWizardResult } from './setup-wizard-contract.ts'
-import { DesktopSetupWizardWindow } from './setup-wizard-window.ts'
+import { isDesktopSetupWizardInput, desktopSetupWizardSelectionIsAvailable } from './setup-wizard-contract.ts'
 import { ProfileCreateWindow } from './profile-create-window.ts'
 import { DesktopProfileSelectionWindow } from './profile-selection-window.ts'
 import { showDesktopDialog } from './desktop-dialog-window.ts'
@@ -482,7 +485,6 @@ async function start(): Promise<void> {
   let logSink: LogFileSink | undefined
   let startupRecoveryController: DesktopStartupRecoveryController | undefined
   let startupRecoveryWindow: DesktopStartupRecoveryWindow | undefined
-  let setupWizardWindow: DesktopSetupWizardWindow | undefined
   let profileCompatibilityCreateWindow: ProfileCreateWindow | undefined
   let profileSelectionWindow: DesktopProfileSelectionWindow | undefined
   let startupRecoveryConfigurationPaths: DesktopStartupRecoveryConfigurationPaths | undefined
@@ -691,10 +693,6 @@ async function start(): Promise<void> {
     }
     if (profileSelectionWindow !== undefined) {
       profileSelectionWindow.show()
-      return true
-    }
-    if (setupWizardWindow !== undefined) {
-      setupWizardWindow.show()
       return true
     }
     if (startupRecoveryWindow !== undefined) {
@@ -1425,88 +1423,61 @@ async function start(): Promise<void> {
         preparationHooks,
       )
     }
-    // Safe Mode must reach the working surface with shipped defaults. Its
-    // disposable Desktop state deliberately has no Setup marker, so reading
-    // it as an ordinary Profile would incorrectly open first-run Setup.
+    // Desktop setup has its own per-Profile trigger, independent of account state.
+    // The official page checks that trigger before showing its own account flow.
     const setupWizardState = safeModePaths === undefined
-      ? readDesktopSetupWizardState(marketUserDataDir, prepared.profile.dir)
-      : undefined
-    if (safeModePaths === undefined && desktopSetupWizardRequired(setupWizardState, setupWizardVersions)
-      && !hasDesktopProfileUsageHistory(releaseUserDataLocations, prepared.profile.dir, activeProfileName)) {
-      const setupSettings = readDesktopSetupWizardSettings(prepared.settingsDocument)
-      setupWizardWindow = new DesktopSetupWizardWindow({
-        locale: desktopLocaleFromLanguageTag(app.getLocale()),
-        input: {
-          appVersion,
-          profileName: activeProfileName,
-          platform: runtime.platform,
-          ...setupSettings,
-          market: marketSelection.requested,
-          aaEnabled: profilePreferences?.aaEnabled === true,
-        },
-      })
-      let setupResult: DesktopSetupWizardResult
-      try {
-        setupResult = await setupWizardWindow.run()
-      } finally {
-        setupWizardWindow = undefined
-      }
-      if (setupResult.action === 'quit') {
-        startupRecoveryController?.dispose()
-        startupRecoveryController = undefined
-        await shutdown.request(0)
-        return
-      }
-      if (setupResult.action === 'skip') {
-        profilePreferences = await writeDesktopProfilePreferences(marketUserDataDir, prepared.profile.dir, {
-          ...desktopProfilePreferencesFromSettings(setupSettings, setupSettings.notifications, marketSelection.requested),
-          aaEnabled: false,
+      ? readDesktopSetupWizardState(marketUserDataDir, prepared.profile.dir) : undefined
+    let setupPending = safeModePaths === undefined
+      && desktopSetupWizardRequired(setupWizardState, setupWizardVersions)
+      && (desktopSetupWizardPending(marketUserDataDir, prepared.profile.dir)
+        || !hasDesktopProfileUsageHistory(releaseUserDataLocations, prepared.profile.dir, activeProfileName))
+    if (setupPending) await beginDesktopSetupWizard(marketUserDataDir, prepared.profile.dir)
+    const setupInput = { ...readDesktopSetupWizardSettings(prepared.settingsDocument), appVersion,
+      profileName: activeProfileName, platform: runtime.platform,
+      market: marketSelection.requested, aaEnabled: profilePreferences?.aaEnabled === true }
+    let setupSaving = false
+    let setupRestartPending = false
+    runtime.setupOnboarding = {
+      read: async () => ({ required: setupPending, edition: 'desktop', profile: activeProfileName,
+        restartPending: setupRestartPending,
+        accountPending: safeModePaths === undefined && !setupPending && desktopSetupAccountPending(marketUserDataDir, prepared.profile.dir),
+        input: setupInput }),
+      dismissAccount: async profile => {
+        if (setupPending || profile !== activeProfileName || safeModePaths !== undefined) throw new Error('Desktop account setup is unavailable')
+        dismissDesktopSetupAccount(marketUserDataDir, prepared.profile.dir)
+      },
+      applyPending: async profile => {
+        if (setupPending || setupSaving || profile !== activeProfileName || safeModePaths !== undefined
+          || desktopSetupAccountPending(marketUserDataDir, prepared.profile.dir)) throw new Error('Desktop settings are not ready to apply')
+        if (!setupRestartPending) return
+        setupRestartPending = false
+        setImmediate(() => {
+          nativeExit.requestRelaunch(desktopDefaultRelaunchArguments())
+          void shutdown.request(0)
         })
-        prepared = prepareDesktopProfile(process.env.DSH_TELEMETRY_DISABLED, homeDir, process.platform,
-          activeProfileName, pluginManagementStatePath, marketSelection, preparationHooks)
-        await completeOrSkipDesktopSetupWizard(
-          marketUserDataDir,
-          prepared.profile.dir,
-          'skipped',
-          setupWizardVersions,
-        )
-      } else {
-        profilePreferences = await writeDesktopProfilePreferences(
-          marketUserDataDir,
-          prepared.profile.dir,
-          desktopProfilePreferencesFromSettings(
-            setupResult.selection,
-            setupResult.selection.notifications,
-            setupResult.selection.market,
-            setupResult.selection.aaEnabled === true,
-          ),
-        )
-        await updateDesktopSetupWizardSettings(prepared.settingsDocument, {
-          mode: setupResult.selection.mode,
-          macosMaterial: setupResult.selection.macosMaterial,
-          windowsMaterial: setupResult.selection.windowsMaterial,
-          openBrowser: setupResult.selection.openBrowser,
-          networkExposure: setupResult.selection.networkExposure,
-          notifications: setupResult.selection.notifications,
-        })
-        await selectDesktopMarketProvider(marketUserDataDir, setupResult.selection.market)
-        marketSelection = readDesktopMarketStateForUserData(marketUserDataDir)
-        prepared = prepareDesktopProfile(
-          process.env.DSH_TELEMETRY_DISABLED,
-          homeDir,
-          process.platform,
-          activeProfileName,
-          pluginManagementStatePath,
-          marketSelection,
-          preparationHooks,
-        )
-        await completeOrSkipDesktopSetupWizard(
-          marketUserDataDir,
-          prepared.profile.dir,
-          'completed',
-          setupWizardVersions,
-        )
-      }
+      },
+      finish: async (profile, selection) => {
+        if (!setupPending || setupSaving || profile !== activeProfileName || safeModePaths !== undefined) throw new Error('Desktop setup is unavailable')
+        if (selection !== undefined && (!isDesktopSetupWizardInput({ ...selection, appVersion,
+          profileName: profile, platform: runtime.platform }) || !desktopSetupWizardSelectionIsAvailable(selection, { platform: runtime.platform }))) {
+          throw new Error('Invalid Desktop setup selection')
+        }
+        setupSaving = true
+        try {
+          if (selection !== undefined) {
+            profilePreferences = await writeDesktopProfilePreferences(marketUserDataDir, prepared.profile.dir,
+              desktopProfilePreferencesFromSettings(selection, selection.notifications, selection.market, selection.aaEnabled === true))
+            await selectDesktopMarketProvider(marketUserDataDir, selection.market)
+          }
+          // Keep the existing per-Profile marker; a failed save must remain resumable.
+          await completeOrSkipDesktopSetupWizard(marketUserDataDir, prepared.profile.dir,
+            selection === undefined ? 'skipped' : 'completed', setupWizardVersions)
+          setupPending = false
+          // Keep the current renderer/Host alive for official login and onboarding.
+          // Preferences are applied on the next launch, requested explicitly afterwards.
+          setupRestartPending = selection !== undefined
+        } finally { setupSaving = false }
+      },
     }
     if (profileCheckpoint === undefined) {
       try {

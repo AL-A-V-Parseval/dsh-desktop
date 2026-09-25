@@ -12,6 +12,8 @@ import {
   Tray,
   type WebContents,
 } from 'electron'
+import { isDesktopSetupWizardSelection } from './setup-wizard-contract.ts'
+import { SETUP_ONBOARDING_CHANNEL } from './setup-onboarding-bridge.ts'
 import { CompatibilityShell, type CompatibilityShellActions } from './compatibility-shell.ts'
 import { formatDesktopExitCode } from './desktop-logger.ts'
 import { showDesktopMessageBox } from './desktop-dialog-window.ts'
@@ -189,6 +191,7 @@ function isZoomShortcut(input: Electron.Input): 'in' | 'out' | 'reset' | undefin
 }
 
 export interface ElectronShellGenerationOptions {
+  readonly setupOnboarding?: import('./setup-onboarding-bridge.ts').DesktopOnboardingBridge | undefined
   readonly platform: ElectronPlatformStrategy
   readonly spec: DesktopShellSpec
   readonly preloadPath: string
@@ -359,6 +362,23 @@ export class ElectronShellGeneration {
         throw new Error('dsh-plugin-desktop: untrusted Desktop action sender')
       }
       await dispatchRendererAction(action)
+    })
+
+    renderer.ipc.handle(SETUP_ONBOARDING_CHANNEL, async (event, request: unknown) => {
+      if (this.released || event.sender !== renderer || event.senderFrame !== renderer.mainFrame
+        || !sameOriginFrame(event.senderFrame.url, origin)) throw new Error('Untrusted setup sender')
+      if (!request || typeof request !== 'object' || Array.isArray(request)) throw new Error('Invalid setup request')
+      const value = request as { action?: unknown; profile?: unknown; selection?: unknown }
+      if (value.action === 'read') return await this.options.setupOnboarding?.read() ?? null
+      if (value.action === 'apply-pending' && typeof value.profile === 'string' && this.options.setupOnboarding?.applyPending) {
+        return this.options.setupOnboarding.applyPending(value.profile)
+      }
+      if (value.action === 'dismiss-account' && typeof value.profile === 'string' && this.options.setupOnboarding) {
+        return this.options.setupOnboarding.dismissAccount(value.profile)
+      }
+      if (value.action !== 'finish' || typeof value.profile !== 'string' || !this.options.setupOnboarding) throw new Error('Setup is unavailable')
+      if (value.selection !== undefined && !isDesktopSetupWizardSelection(value.selection)) throw new Error('Invalid setup selection')
+      await this.options.setupOnboarding.finish(value.profile, value.selection)
     })
 
     let stateWriteTimer: ReturnType<typeof setTimeout> | undefined
@@ -610,7 +630,10 @@ export class ElectronShellGeneration {
       renderer.off('did-fail-load', loadFailed)
       renderer.off('did-start-loading', resetSurface)
       renderer.off('did-finish-load', loaded)
-      if (!renderer.isDestroyed()) renderer.ipc.removeHandler(DESKTOP_RENDERER_ACTION_CHANNEL)
+      if (!renderer.isDestroyed()) {
+        renderer.ipc.removeHandler(DESKTOP_RENDERER_ACTION_CHANNEL)
+        renderer.ipc.removeHandler(SETUP_ONBOARDING_CHANNEL)
+      }
       if (separateChrome !== undefined) {
         separateChrome.off('before-input-event', handleZoomShortcut)
         separateChrome.off('render-process-gone', rendererGone)

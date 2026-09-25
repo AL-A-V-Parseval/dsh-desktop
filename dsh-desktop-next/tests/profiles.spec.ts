@@ -1,10 +1,10 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, expect, it, vi } from 'vitest'
-import { composeEntries, loadOverlayPatches, OPTIONAL_BUNDLES, readProfilePatches } from '@deepseek-ai/dsh-app-boot'
-import { AA_PACKAGE, COMMUNITY_MARKET_PACKAGE, DSH_MARKET_PACKAGE, loadNextProfile, NEXT_PACKAGE, NextProfiles, profileName, WEB_BUNDLES } from '../src/profiles.ts'
+import { composeEntries, loadOverlayPatches, loadProfileDirectory, OPTIONAL_BUNDLES } from '@deepseek-ai/dsh-app-boot'
+import { AA_PACKAGE, COMMUNITY_MARKET_PACKAGE, DSH_MARKET_PACKAGE, loadNextProfile, NEXT_PACKAGE, NextProfiles, profileName, readNextProfilePatches, WEB_BUNDLES } from '../src/profiles.ts'
 import * as privateFiles from '../src/private-files.ts'
 
 const roots: string[] = []
@@ -25,6 +25,34 @@ it('starts fresh homes with desktop and preserves an explicitly selected legacy 
   manager.select('default')
   expect(new NextProfiles(manager.home).active).toBe('default')
   expect(manager.selectable('desktop')).toBe(true)
+})
+it('opens an existing Web Profile without recording a Next bundle for other launchers', () => {
+  const manager = profiles()
+  const dir = manager.create('work')
+  const path = join(dir, 'package.json')
+  const original = JSON.parse(readFileSync(path, 'utf8'))
+  original.dsh.profile.bundles = original.dsh.profile.bundles.filter((name: string) =>
+    name !== 'dsh-desktop-next' && name !== COMMUNITY_MARKET_PACKAGE)
+  delete original.dsh.desktopNextPlugins
+  original.custom = 'stable-setting'
+  const bytes = JSON.stringify(original)
+  writeFileSync(path, bytes)
+  expect(manager.selectable('work')).toBe(true)
+  expect(manager.features('work')).toEqual({ remoteControl: false, market: false })
+  manager.select('work')
+  expect(readFileSync(path, 'utf8')).toBe(bytes)
+
+  const profile = loadNextProfile(dir, manager.home)
+  expect(profile.layers.map(layer => layer.packageName)).toContain('dsh-desktop-next')
+  expect(loadProfileDirectory('stable', dir, NEXT_PACKAGE).layers.map(layer => layer.packageName))
+    .not.toContain('dsh-desktop-next')
+  const adopted = JSON.parse(readFileSync(path, 'utf8'))
+  expect(adopted.custom).toBe('stable-setting')
+  expect(adopted.dsh.profile.bundles).toEqual(original.dsh.profile.bundles)
+  expect(manager.features('work')).toEqual({ remoteControl: false, market: false })
+  expect(readdirSync(manager.home)).not.toContain('recovery')
+  manager.ensure('work')
+  expect(readFileSync(path, 'utf8')).toBe(bytes)
 })
 it('isolates profile configuration and preserves existing files on ensure', () => {
   const manager = profiles()
@@ -56,6 +84,10 @@ it('records onboarding per Profile together with its plugin choices and retains 
   const reread = new NextProfiles(manager.home)
   reread.ensure('desktop')
   expect(reread.onboardingRequired('desktop')).toBe(false)
+  expect(reread.accountSetupPending('desktop')).toBe(true)
+  expect(reread.accountSetupPending('work')).toBe(false)
+  reread.dismissAccountSetup('desktop')
+  expect(new NextProfiles(manager.home).accountSetupPending('desktop')).toBe(false)
   expect(reread.onboardingRequired('work')).toBe(true)
   expect(reread.features('desktop')).toEqual({ market: false, dshMarket: true, remoteControl: true })
   expect(reread.computerUseEnabled('desktop')).toBe(true)
@@ -75,6 +107,7 @@ it('skips onboarding without changing current choices, while a recreated Profile
   const patch = '# existing choice\n- id: computer-use-cua-driver-native\n  disabled: false\n'
   writeFileSync(join(dir, 'cordis.patch.yml'), patch)
   manager.finishOnboarding('work')
+  expect(manager.accountSetupPending('work')).toBe(false)
   expect(manager.onboardingRequired('work')).toBe(false)
   expect(manager.features('work')).toEqual({ market: false, dshMarket: true, remoteControl: true })
   expect(readFileSync(join(dir, 'cordis.patch.yml'), 'utf8')).toBe(patch)
@@ -220,16 +253,20 @@ it('composes optional AA and Market while retaining the official Web layout', ()
   expect(rows.some(row => row.name === '@deepseek-ai/dsh-experimental-computer-use-cua-driver-native' && row.disabled)).toBe(true)
   // Client module discovery requires a package root, not the previous /extensions subpath.
   expect(rows.find(row => row.id === 'desktop-next-capabilities')?.name).toBe('dsh-desktop-next')
-  const reread = readProfilePatches('next', {
-    name: 'desktop', dir, patchPath: profile.patchPath, installAnchor: NEXT_PACKAGE,
-    cwd: dir, home: manager.home, startedBundles: WEB_BUNDLES, telemetryDisabledEnv: '1',
-    overlays: [...loadOverlayPatches('next', fileURLToPath(new URL('../host.cordis.patch.yml', import.meta.url))),
-      ...loadOverlayPatches('next', join(dir, 'desktop-next.cordis.patch.json'))],
-  })
+  const overlays = [fileURLToPath(new URL('../host.cordis.patch.yml', import.meta.url)),
+    join(dir, 'desktop-next.cordis.patch.json')]
+  const reread = readNextProfilePatches(dir, manager.home, overlays)
   const reconciled = composeEntries([reread])
   expect(reconciled.some(row => row.name === 'dsh-community-market' && !row.disabled)).toBe(true)
   expect(reconciled.find(row => row.id === 'webserver')?.disabled).toBe(true)
   expect(reconciled.some(row => row.name === 'dsh-desktop-next/webserver' && !row.disabled)).toBe(true)
+  writeFileSync(profile.patchPath, '- id: ui-sidebar-browser\n  disabled: true\n- id: computer-use-cua-driver-native\n  disabled: false\n')
+  const updated = composeEntries([readNextProfilePatches(dir, manager.home, overlays)])
+  expect(updated.find(row => row.id === 'ui-sidebar-browser')?.disabled).toBe(true)
+  expect(updated.find(row => row.id === 'computer-use-cua-driver-native')?.disabled).toBe(false)
+  const pending = composeEntries([readNextProfilePatches(dir, manager.home, overlays,
+    [{ id: 'ui-sidebar-browser', disabled: false }])])
+  expect(pending.find(row => row.id === 'ui-sidebar-browser')?.disabled).toBe(false)
   manager.setFeatures('desktop', { remoteControl: false, market: false })
   const disabled = composeEntries([...loadNextProfile(dir, manager.home).layers.map(layer => layer.patches), loadOverlayPatches('next', join(dir, 'desktop-next.cordis.patch.json'))])
   expect(disabled.some(row => !row.disabled && (row.name === AA_PACKAGE || row.name === 'dsh-community-market'))).toBe(false)
@@ -265,7 +302,7 @@ it('migrates legacy switches once and preserves later official plugin selections
   const file = join(dir, 'package.json')
   const manifest = JSON.parse(readFileSync(file, 'utf8'))
   delete manifest.dsh.desktopNextPlugins
-  manifest.dsh.profile.bundles = [...WEB_BUNDLES, DSH_MARKET_PACKAGE]
+  manifest.dsh.profile.bundles = [...WEB_BUNDLES, 'dsh-desktop-next', DSH_MARKET_PACKAGE]
   manifest.dependencies = { 'my-plugin': '1.0.0' }
   manifest.custom = 'keep'
   writeFileSync(file, JSON.stringify(manifest))
@@ -274,6 +311,10 @@ it('migrates legacy switches once and preserves later official plugin selections
   expect(manager.features('desktop')).toEqual({ market: false, remoteControl: true, dshMarket: true })
   const migrated = JSON.parse(readFileSync(file, 'utf8'))
   expect(migrated).toMatchObject({ dependencies: manifest.dependencies, custom: 'keep' })
+  expect(migrated.dsh.profile.bundles).not.toContain('dsh-desktop-next')
+  expect(loadProfileDirectory('stable', dir, NEXT_PACKAGE).layers.map(layer => layer.packageName))
+    .not.toContain('dsh-desktop-next')
+  expect(readdirSync(join(manager.home, 'recovery'))).toHaveLength(1)
   // The official manager writes the bundle list, with no shell feature flag write.
   migrated.dsh.profile.bundles = [...WEB_BUNDLES, COMMUNITY_MARKET_PACKAGE, DSH_MARKET_PACKAGE]
   writeFileSync(file, JSON.stringify(migrated))

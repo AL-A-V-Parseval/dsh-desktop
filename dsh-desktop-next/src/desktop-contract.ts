@@ -47,9 +47,9 @@ export interface DesktopState {
   busy: boolean
   failure: string
   safeMode: boolean
-  /** The selected Profile is in setup (first run or reopened); no Host has started. */
+  /** The selected Profile needs Desktop setup in the running official client. */
   onboarding?: boolean
-  /** Initial saved choice for the Host-independent wizard; live state belongs to pluginManager. */
+  /** Initial saved choice for setup; live state belongs to pluginManager. */
   onboardingComputerUse?: boolean
   home: string
   platform: string
