@@ -1,8 +1,9 @@
-import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { Context } from '@deepseek-ai/cordis'
-import { composeEntries, initProfile, PROFILE_TEMPLATES, readProfilePatches } from '@deepseek-ai/dsh-app-boot'
+import { composeEntries, initProfile, PROFILE_TEMPLATES, prepareProfileEntries, readProfilePatches } from '@deepseek-ai/dsh-app-boot'
 import { afterEach, expect, it, vi } from 'vitest'
 import { createDesktopProfileBoot } from '../src/profile-context.ts'
 import { prepareDesktopProfile } from '../src/profile.ts'
@@ -81,4 +82,27 @@ it('rejects mismatched package-manager and Profile identities', () => {
   const { prepared, pnpm } = fixture()
   expect(() => createDesktopProfileBoot(prepared, { ...pnpm, activeProfileName: 'other' }))
     .toThrow('identity disagree')
+})
+
+// rc.2 preflight runs before pluginPackages exists and repeats after settings/HMR.
+it('checks the selected artifact while still denying incompatible active Profile plugins', () => {
+  const { ctx, home, prepared } = fixture()
+  const packageName = '@deepseek-ai/dsh-session'
+  const ancestor = join(home, 'profiles', 'node_modules', packageName)
+  mkdirSync(ancestor, { recursive: true })
+  writeFileSync(join(ancestor, 'package.json'), JSON.stringify({
+    name: packageName, version: '99.0.0', peerDependencies: { '@deepseek-ai/dsh-llm': '0.1.5-rc.2' },
+  }))
+  const base = pathToFileURL(join(prepared.profile.dir, 'package.json')).href
+  const entries = [{ id: 'session-probe', name: packageName }]
+  expect(prepareProfileEntries(ctx, entries, base)[0]?.disabled).not.toBe(true)
+  // Once package inventory starts, preflight must retain the launcher's selection.
+  ctx.provide('pluginPackages', { packageOf: () => ({ manifestPath: join(ancestor, 'package.json') }) } as never)
+  expect(prepareProfileEntries(ctx, entries, base)[0]?.disabled).not.toBe(true)
+  const active = join(prepared.profile.dir, 'node_modules', 'incompatible-plugin')
+  mkdirSync(active, { recursive: true })
+  writeFileSync(join(active, 'package.json'), JSON.stringify({
+    name: 'incompatible-plugin', version: '1.0.0', peerDependencies: { '@deepseek-ai/dsh-llm': '0.1.5-rc.2' },
+  }))
+  expect(prepareProfileEntries(ctx, [{ id: 'incompatible', name: 'incompatible-plugin' }], base)[0]?.disabled).toBe(true)
 })

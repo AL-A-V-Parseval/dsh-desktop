@@ -928,6 +928,7 @@ function loadRecoveryFilteredProfile(
       name: profileName,
       dir: profileDir,
       layers,
+      skippedBundles: [],
       patchPath,
       patches: existsSync(patchPath) ? loadOverlayPatches(BIN_NAME, patchPath) : [],
     },

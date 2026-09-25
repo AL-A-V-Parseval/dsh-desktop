@@ -7,6 +7,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import { Button, PluginArtworkDefault, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
 import { Choice, MARKET_OPTIONS, marketBody, marketTitle } from '../../../dsh-plugin-desktop-beta/src/client/DesktopSettingsSection.tsx'
 import { en as desktopEn, zh as desktopZh, type DesktopSettingsLocaleKey } from '../../../dsh-plugin-desktop-beta/src/client/desktop-settings-locales.ts'
+import { SCHEDULE_MODULES, ScheduleSettings } from './schedule.tsx'
 import { ComputerUseSettings } from './computer-use.tsx'
 import { registerVoicePermissions } from './voice-permissions.tsx'
 
@@ -14,6 +15,7 @@ const COMMUNITY = 'dsh-community-market'
 const MARKET = 'dshmarket'
 const REMOTE = '@agents-anywhere/dsh-bridge-next'
 const COMPUTER_ITEM = 'desktop-next-computer-use'
+const SCHEDULE_ITEM = 'desktop-next-schedule'
 
 type Translate = (cn: string, en: string) => string
 
@@ -32,7 +34,15 @@ export function registerPluginControls(ctx: Context): void {
       const actions = inner.slots.register({ name: 'plugins.detail.actions', id: COMPUTER_ITEM,
         locale: 'desktop-next', inject: () => ({ context: inner }),
       }, ComputerUseActions)
-      return () => { actions(); hiddenItem(); item(); for (const off of hidden) off(); dispose() }
+      const schedule = inner.slots.register({ name: 'plugins.item', id: SCHEDULE_ITEM,
+        label: () => inner.locale.bind('desktop-next')('language') === 'zh' ? '定时任务' : 'Scheduled Tasks',
+        locale: 'desktop-next', inject: () => ({ context: inner }),
+      }, ScheduleItem)
+      const hiddenSchedule = inner.slots.register({ name: 'plugins.item.hidden', key: SCHEDULE_ITEM }, () => null)
+      const scheduleActions = inner.slots.register({ name: 'plugins.detail.actions', id: SCHEDULE_ITEM,
+        locale: 'desktop-next', inject: () => ({ context: inner }),
+      }, ScheduleActions)
+      return () => { scheduleActions(); hiddenSchedule(); schedule(); actions(); hiddenItem(); item(); for (const off of hidden) off(); dispose() }
     })
   })
 }
@@ -110,6 +120,10 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: Pro
         icon={<PluginArtworkDefault size={36} />} onOpen={() => { onOpenItem(COMPUTER_ITEM) }}>
         <ComputerUseSettings context={context} zh={zh} />
       </PluginCard>
+      <PluginCard title={t('定时任务', 'Scheduled Tasks')} description={scheduleDescription(t)}
+        icon={<PluginArtworkDefault size={36} />} onOpen={() => { onOpenItem(SCHEDULE_ITEM) }}>
+        <ScheduleSettings context={context} zh={zh} />
+      </PluginCard>
     </div>
     {notice && <p role="status" className="dshDesktopSettingsHint">{notice}</p>}
     {error && <div role="alert" className="dshDesktopSettingsError">{error} <Button variant="outline" size="sm" disabled={loading || busy} onClick={() => { setError(''); refresh(value => value + 1) }}>{t('重试', 'Retry')}</Button></div>}
@@ -125,6 +139,22 @@ const computerDescription = (t: Translate): string => t(
   '让 AI 查看屏幕、操作鼠标和键盘。截图理解需要支持图片输入的模型。',
   'Let AI view the screen and control the mouse and keyboard. Understanding screenshots requires a model with image input.',
 )
+
+const scheduleDescription = (t: Translate): string => t(
+  '让 AI 按指定时间或周期执行任务，并在原对话中继续。',
+  'Let AI run tasks at a scheduled time or interval and continue in the original conversation.',
+)
+
+function ScheduleItem({ t, view, renderComponents }: PropsLocale<'desktop-next'> & PropsRuntime<'plugins.item'> & { context: Context }) {
+  const zh = t('language') === 'zh'
+  if (view === 'summary') return scheduleDescription((cn, en) => zh ? cn : en)
+  return renderComponents?.(SCHEDULE_MODULES) ?? null
+}
+
+function ScheduleActions({ context, t, subject }: PropsLocale<'desktop-next'> & PropsRuntime<'plugins.detail.actions'> & { context: Context }) {
+  if (subject.kind !== 'item' || subject.id !== SCHEDULE_ITEM) return null
+  return <ScheduleSettings context={context} zh={t('language') === 'zh'} />
+}
 
 function ComputerUseItem({ context, t, view }: PropsLocale<'desktop-next'> & PropsRuntime<'plugins.item'> & { context: Context }) {
   const zh = t('language') === 'zh'
