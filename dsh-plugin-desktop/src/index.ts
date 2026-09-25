@@ -185,6 +185,7 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
   // Choices first-run Setup saved into this generation's settings. Setup's own
   // continuation offers the restart that applies them, after its account step.
   let setupSettings: DesktopSetupWizardSettings | undefined
+  let setupSaved = false
   const rendererOrigin = `http://127.0.0.1:${String(ctx.webServer.port)}`
   ctx.effect(
     () => ctx.webServer.register({
@@ -347,6 +348,17 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
         next.networkExposure,
       )
       updateLiveWebAccess(nextBrowserAccess, nextNetworkExposure)
+      const matchesSetup = setupSettings !== undefined
+        && next.mode === setupSettings.mode
+        && next.port === resolved.port
+        && next.macosMaterial === setupSettings.macosMaterial
+        && next.linuxMaterial === resolved.linuxMaterial
+      // Once saved, any other value supersedes Setup's choice for this generation;
+      // a later return to it is a new change and asks for its restart.
+      if (!matchesSetup && setupSaved) {
+        setupSettings = undefined
+        setupSaved = false
+      }
       if (next.mode === resolved.mode
         && next.port === resolved.port
         && next.macosMaterial === resolved.macosMaterial
@@ -357,11 +369,7 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
       }
       // A native restart prompt here would interrupt the official login that
       // follows Setup; only a later, different choice asks for its own restart.
-      if (setupSettings !== undefined
-        && next.mode === setupSettings.mode
-        && next.port === resolved.port
-        && next.macosMaterial === setupSettings.macosMaterial
-        && next.linuxMaterial === resolved.linuxMaterial) {
+      if (matchesSetup) {
         if (pending !== undefined) clearImmediate(pending)
         pending = undefined
         return
@@ -455,6 +463,7 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
         },
         applySetupSettings: async next => {
           setupSettings = next
+          setupSaved = false
           try {
             await settings.update({
               mode: next.mode,
@@ -463,11 +472,14 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
               openBrowser: next.openBrowser,
               networkExposure: next.networkExposure,
             })
-            await ctx.settings.update(DESKTOP_NOTIFICATIONS_SETTINGS_ENTRY_ID, { ...next.notifications })
           } catch (cause) {
             setupSettings = undefined
             throw cause
           }
+          // The mode is saved; a failed notifications write must not bring back
+          // the native prompt for it.
+          setupSaved = true
+          await ctx.settings.update(DESKTOP_NOTIFICATIONS_SETTINGS_ENTRY_ID, { ...next.notifications })
         },
       })
     },
