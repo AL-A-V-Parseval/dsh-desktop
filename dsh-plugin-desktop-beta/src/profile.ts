@@ -1443,17 +1443,21 @@ export function prepareDesktopProfile(
       trustedHosts: webRuntimeTrustedHosts(webRuntimeConfig.trustedHosts, lanAddresses),
     },
   })
-  const layoutMode = hooks.generationMode ?? mode
-  if (layoutMode === 'advanced' || layoutMode === 'extended') {
+  // The saved mode is what the next generation boots, so the config editor's
+  // validation pass must still reject a layout it could not start.
+  if (mode === 'advanced' || mode === 'extended') {
     for (const [id, packageName] of [
       ['ui-layout', UI_LAYOUT_PACKAGE],
       ['ui-sidebar', UI_SIDEBAR_PACKAGE],
       ['ui-conversation', UI_CONVERSATION_PACKAGE],
     ] as const) {
       if (rows.get(id)?.name !== packageName) {
-        throw new Error(`${BIN_NAME}: ${layoutMode} desktop mode must use ${packageName} in the ${id} row`)
+        throw new Error(`${BIN_NAME}: ${mode} desktop mode must use ${packageName} in the ${id} row`)
       }
     }
+  }
+  const layoutMode = hooks.generationMode ?? mode
+  if (layoutMode === 'advanced' || layoutMode === 'extended') {
     patches.push(
       { id: 'ui-layout', disabled: true },
       { id: 'ui-sidebar', disabled: false },

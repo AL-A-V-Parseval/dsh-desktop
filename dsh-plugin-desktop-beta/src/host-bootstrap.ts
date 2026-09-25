@@ -76,6 +76,13 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
     let currentProfilePreferences: DesktopProfilePreferences = profilePreferences
     let profilePreferencesWriteTail: Promise<void> = Promise.resolve()
     let profilePreferencesStopping = false
+    // Setup saves from the Electron process after this Host booted; follow the
+    // durable file so its Market and AA choices are neither reverted nor hidden.
+    const latestProfilePreferences = (): DesktopProfilePreferences =>
+      readDesktopProfilePreferences(marketUserDataDir, prepared.profile.dir) ?? currentProfilePreferences
+    const readProfilePreferences = (): DesktopProfilePreferences => {
+      try { return latestProfilePreferences() } catch { return currentProfilePreferences }
+    }
     const enqueueProfilePreferencesWrite = (
       update: (current: DesktopProfilePreferences) => DesktopProfilePreferences,
     ): Promise<DesktopProfilePreferencesStateV1> => {
@@ -83,10 +90,7 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
         return Promise.reject(new Error(`${BIN_NAME}: Profile preferences are stopping`))
       }
       const write = profilePreferencesWriteTail.then(async () => {
-        // Setup saves from the Electron process after this Host booted; start
-        // from the durable file so its Market and AA choices are not reverted.
-        const next = update(readDesktopProfilePreferences(marketUserDataDir, prepared.profile.dir)
-          ?? currentProfilePreferences)
+        const next = update(latestProfilePreferences())
         const stored = await writeDesktopProfilePreferences(
           marketUserDataDir,
           prepared.profile.dir,
@@ -196,13 +200,13 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
           pendingSettingsRestart = undefined
         }, 'dsh-plugin-desktop: pending Desktop settings restart')
         const readMarket = () => desktopMarketSnapshotWithEffective(
-          desktopProfileMarketSnapshot(currentProfilePreferences.market),
+          desktopProfileMarketSnapshot(readProfilePreferences().market),
           prepared.market.effective,
         )
         hostCtx.provide('desktopSettingsController', new DesktopSettingsController({
           profiles: hostCtx.desktopProfiles,
           readMarket,
-          readAa: () => ({ requested: currentProfilePreferences.aaEnabled === true, effective: prepared.aaEnabled }),
+          readAa: () => ({ requested: readProfilePreferences().aaEnabled === true, effective: prepared.aaEnabled }),
           selectAa: async enabled => {
             await enqueueProfilePreferencesWrite(current => desktopProfilePreferencesFromSettings(
               current,
