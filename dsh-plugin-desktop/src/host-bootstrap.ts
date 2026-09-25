@@ -13,7 +13,7 @@ import { DesktopActionsService } from './desktop-actions.ts'
 import { clearDesktopProfilePluginState, DesktopPluginsService } from './desktop-plugins.ts'
 import { desktopMarketSnapshotWithEffective, selectDesktopMarketProvider, type DesktopMarketProvider, type DesktopMarketSnapshot } from './desktop-market.ts'
 import DesktopSettingsController from './desktop-settings-controller.ts'
-import { clearDesktopProfilePreferences, desktopProfilePreferencesFromSettings, writeDesktopProfilePreferences, type DesktopProfilePreferences, type DesktopProfilePreferencesStateV1 } from './profile-preferences.ts'
+import { clearDesktopProfilePreferences, desktopProfilePreferencesFromSettings, readDesktopProfilePreferences, writeDesktopProfilePreferences, type DesktopProfilePreferences, type DesktopProfilePreferencesStateV1 } from './profile-preferences.ts'
 import { clearDesktopProfileUsageHistory, type DesktopReleaseUserDataLocations } from './profile-channel-admission.ts'
 import { desktopInstallAnchor, type PreparedDesktopProfile } from './profile.ts'
 import { desktopLanBrowserUrls, desktopLoopbackBrowserUrl } from './desktop-network.ts'
@@ -83,7 +83,10 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
         return Promise.reject(new Error(`${BIN_NAME}: Profile preferences are stopping`))
       }
       const write = profilePreferencesWriteTail.then(async () => {
-        const next = update(currentProfilePreferences)
+        // Setup saves from the Electron process after this Host booted; start
+        // from the durable file so its Market and AA choices are not reverted.
+        const next = update(readDesktopProfilePreferences(marketUserDataDir, prepared.profile.dir)
+          ?? currentProfilePreferences)
         const stored = await writeDesktopProfilePreferences(
           marketUserDataDir,
           prepared.profile.dir,

@@ -64,8 +64,10 @@ import {
 } from './window-material.ts'
 import { DESKTOP_PRODUCT_NAME } from './product-identity.ts'
 import { watchPlatformLogin, type PlatformLoginAccount } from './platform-login.ts'
+import type { DesktopSetupWizardSettings } from './setup-wizard-settings.ts'
 import {
   createDesktopSettingsPort,
+  DESKTOP_NOTIFICATIONS_SETTINGS_ENTRY_ID,
   readUiLocalePreference,
   readUiThemeSource,
   resolveDesktopConfig,
@@ -180,6 +182,9 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
     bluePath: fileURLToPath(new URL('../build/tray-icon-blue.png', import.meta.url)),
   }
   const settings = createDesktopSettingsPort(ctx, config, runtime.platform)
+  // Choices first-run Setup saved into this generation's settings. Setup's own
+  // continuation offers the restart that applies them, after its account step.
+  let setupSettings: DesktopSetupWizardSettings | undefined
   const rendererOrigin = `http://127.0.0.1:${String(ctx.webServer.port)}`
   ctx.effect(
     () => ctx.webServer.register({
@@ -350,6 +355,17 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
         pending = undefined
         return
       }
+      // A native restart prompt here would interrupt the official login that
+      // follows Setup; only a later, different choice asks for its own restart.
+      if (setupSettings !== undefined
+        && next.mode === setupSettings.mode
+        && next.port === resolved.port
+        && next.macosMaterial === setupSettings.macosMaterial
+        && next.linuxMaterial === resolved.linuxMaterial) {
+        if (pending !== undefined) clearImmediate(pending)
+        pending = undefined
+        return
+      }
       pending ??= setImmediate(() => {
         pending = undefined
         void runtime.requestRestart().catch((cause: unknown) => {
@@ -436,6 +452,22 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
           await settings.update(mode !== 'compatibility' && storedBrowserCapability
             ? { mode, openBrowser: false, networkExposure: 'loopback' }
             : { mode })
+        },
+        applySetupSettings: async next => {
+          setupSettings = next
+          try {
+            await settings.update({
+              mode: next.mode,
+              macosMaterial: next.macosMaterial,
+              windowsMaterial: next.windowsMaterial,
+              openBrowser: next.openBrowser,
+              networkExposure: next.networkExposure,
+            })
+            await ctx.settings.update(DESKTOP_NOTIFICATIONS_SETTINGS_ENTRY_ID, { ...next.notifications })
+          } catch (cause) {
+            setupSettings = undefined
+            throw cause
+          }
         },
       })
     },

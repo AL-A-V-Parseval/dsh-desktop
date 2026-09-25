@@ -473,7 +473,8 @@ describe('Electron desktop runtime', () => {
     const runtime = new ElectronDesktopRuntime(async () => {})
     const bridge = { read: vi.fn(async () => null), finish: vi.fn(async () => {}), dismissAccount: vi.fn(async () => {}), applyPending: vi.fn(async () => {}) }
     runtime.setupOnboarding = bridge
-    const release = runtime.schedule(spec)
+    const applySetupSettings = vi.fn(async () => {})
+    const release = runtime.schedule({ ...spec, applySetupSettings })
     await runtime.mountScheduled()
     const handler = electron.webContents.ipc.handle.mock.calls.find(([name]) => name === 'dsh-desktop:setup-onboarding')?.[1]
     expect(handler).toBeTypeOf('function')
@@ -485,7 +486,11 @@ describe('Electron desktop runtime', () => {
     await expect(handler(sender, { action: 'finish', profile: 'desktop', selection: { market: 'disabled' } })).rejects.toThrow('Invalid setup selection')
     expect(bridge.finish).not.toHaveBeenCalled()
     await handler(sender, { action: 'finish', profile: 'desktop' })
-    expect(bridge.finish).toHaveBeenCalledExactlyOnceWith('desktop', undefined)
+    expect(bridge.finish).toHaveBeenCalledExactlyOnceWith('desktop', undefined, expect.any(Function))
+    // Setup saves through the renderer generation's own settings writer.
+    const settings = { mode: 'extended' }
+    await ((bridge.finish.mock.calls[0] as unknown[])[2] as (value: unknown) => Promise<void>)(settings)
+    expect(applySetupSettings).toHaveBeenCalledExactlyOnceWith(settings)
     await expect(handler({ ...sender, senderFrame: { url: spec.url } }, { action: 'dismiss-account', profile: 'desktop' })).rejects.toThrow('Untrusted')
     await handler(sender, { action: 'dismiss-account', profile: 'desktop' })
     expect(bridge.dismissAccount).toHaveBeenCalledExactlyOnceWith('desktop')

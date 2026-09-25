@@ -57,6 +57,17 @@ it('rereads user patches while preserving the Desktop composition and root file'
   expect(readFileSync(prepared.profile.patchPath, 'utf8')).toContain('disabled: true')
 })
 
+it('keeps the running generation\'s layout rows when a saved mode hot-reloads the Profile', () => {
+  const { prepared, ctx } = fixture()
+  expect(prepared.mode).toBe('compatibility')
+  // Setup and the mode picker save the mode into the patch layer mid-generation.
+  writeFileSync(prepared.profile.patchPath, '- id: desktop-shell\n  config:\n    mode: extended\n')
+  const rows = composeEntries([readProfilePatches('test', ctx.profileContext)])
+  expect(rows.find(row => row.id === 'desktop-shell')?.config).toEqual(expect.objectContaining({ mode: 'extended' }))
+  // The open compatibility page never installs Desktop's layout; keep the official one.
+  expect(rows.find(row => row.id === 'ui-layout')?.disabled ?? false).toBe(false)
+})
+
 it('signals readiness once and cancels listeners on disposal or unsubscription', async () => {
   const { ctx, boot } = fixture()
   const callback = vi.fn()

@@ -160,6 +160,7 @@ import {
   migrateDesktopWindowMaterialSettings,
   migrateLegacyAgentPresetSettings,
   mirrorDesktopSetupWizardProfileSettings,
+  normalizeDesktopSetupWizardSettings,
   readDesktopSetupWizardSettings,
   updateDesktopSetupWizardSettings,
 } from './setup-wizard-settings.ts'
@@ -1456,7 +1457,7 @@ async function start(): Promise<void> {
           void shutdown.request(0)
         })
       },
-      finish: async (profile, selection) => {
+      finish: async (profile, selection, applySettings) => {
         if (!setupPending || setupSaving || profile !== activeProfileName || safeModePaths !== undefined) throw new Error('Desktop setup is unavailable')
         if (selection !== undefined && (!isDesktopSetupWizardInput({ ...selection, appVersion,
           profileName: profile, platform: runtime.platform }) || !desktopSetupWizardSelectionIsAvailable(selection, { platform: runtime.platform }))) {
@@ -1468,6 +1469,18 @@ async function start(): Promise<void> {
             profilePreferences = await writeDesktopProfilePreferences(marketUserDataDir, prepared.profile.dir,
               desktopProfilePreferencesFromSettings(selection, selection.notifications, selection.market, selection.aaEnabled === true))
             await selectDesktopMarketProvider(marketUserDataDir, selection.market)
+            // Preferences only mirror the Profile; its patch layer decides the next
+            // generation. A new Profile has no settings document left to import, so
+            // save through the live settings scopes the way the mode picker does.
+            if (applySettings === undefined) throw new Error('Desktop settings are unavailable')
+            await applySettings(normalizeDesktopSetupWizardSettings({
+              mode: selection.mode,
+              macosMaterial: selection.macosMaterial,
+              windowsMaterial: selection.windowsMaterial,
+              openBrowser: selection.openBrowser,
+              networkExposure: selection.networkExposure,
+              notifications: selection.notifications,
+            }))
           }
           // Keep the existing per-Profile marker; a failed save must remain resumable.
           await completeOrSkipDesktopSetupWizard(marketUserDataDir, prepared.profile.dir,
@@ -1629,7 +1642,10 @@ async function start(): Promise<void> {
           return Promise.reject(new Error(`${BIN_NAME}: Profile preferences are stopping`))
         }
         const write = profilePreferencesWriteTail.then(async () => {
-          const next = update(currentProfilePreferences)
+          // Setup saves from the Electron process after this Host booted; start
+          // from the durable file so its Market and AA choices are not reverted.
+          const next = update(readDesktopProfilePreferences(marketUserDataDir, prepared.profile.dir)
+            ?? currentProfilePreferences)
           const stored = await writeDesktopProfilePreferences(
             marketUserDataDir,
             prepared.profile.dir,
