@@ -24,6 +24,7 @@ import {
   type DesktopOpenWorkspaceDelivery,
 } from './launch-workspace-contract.ts'
 import { DESKTOP_RENDERER_ACTION_CHANNEL } from './renderer-actions-contract.ts'
+import { DESKTOP_NATIVE_DIRECTORY_PICKER_CHANNEL } from './directory-picker-contract.ts'
 import { createDesktopRendererActionDispatcher } from './renderer-actions-dispatch.ts'
 import type { DesktopNotification, DesktopShellSpec } from './runtime.ts'
 import { prepareTrayIcon } from './tray-icons.ts'
@@ -195,6 +196,7 @@ export interface ElectronShellGenerationOptions {
   readonly platform: ElectronPlatformStrategy
   readonly spec: DesktopShellSpec
   readonly preloadPath: string
+  readonly pickDirectory: () => Promise<string | null>
   readonly buildApplicationMenuItems: () => readonly Electron.MenuItemConstructorOptions[]
   readonly isQuitting: () => boolean
   readonly buildTrayTemplate: () => Electron.MenuItemConstructorOptions[]
@@ -355,6 +357,17 @@ export class ElectronShellGeneration {
       }
       await dispatchRendererAction(action)
     })
+
+    if (platform.platform === 'darwin') {
+      renderer.ipc.handle(DESKTOP_NATIVE_DIRECTORY_PICKER_CHANNEL, async event => {
+        if (this.released || event.sender !== renderer
+          || event.senderFrame === null || event.senderFrame !== renderer.mainFrame
+          || !sameOriginFrame(event.senderFrame.url, origin)) {
+          throw new Error('dsh-plugin-desktop: untrusted directory picker sender')
+        }
+        return await this.options.pickDirectory()
+      })
+    }
 
     renderer.ipc.handle(SETUP_ONBOARDING_CHANNEL, async (event, request: unknown) => {
       if (this.released || event.sender !== renderer || event.senderFrame !== renderer.mainFrame
@@ -626,6 +639,7 @@ export class ElectronShellGeneration {
       renderer.off('did-finish-load', loaded)
       if (!renderer.isDestroyed()) {
         renderer.ipc.removeHandler(DESKTOP_RENDERER_ACTION_CHANNEL)
+        if (platform.platform === 'darwin') renderer.ipc.removeHandler(DESKTOP_NATIVE_DIRECTORY_PICKER_CHANNEL)
         renderer.ipc.removeHandler(SETUP_ONBOARDING_CHANNEL)
       }
       if (isolated) {
