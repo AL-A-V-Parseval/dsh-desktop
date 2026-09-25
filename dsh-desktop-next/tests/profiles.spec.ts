@@ -276,6 +276,29 @@ it('composes optional AA and Market while retaining the official Web layout', ()
   expect(disabled.some(row => !row.disabled && (row.name === AA_PACKAGE || row.name === 'dsh-community-market'))).toBe(false)
 })
 
+it('shares AA defaults across Profiles and replaces legacy generated state overrides', () => {
+  const manager = profiles()
+  for (const name of ['desktop', 'work']) {
+    const dir = manager.ensure(name)
+    manager.setFeatures(name, { remoteControl: true, market: false })
+    const legacyRoot = join(manager.home, 'agents-anywhere', name)
+    mkdirSync(legacyRoot, { recursive: true })
+    const legacyState = join(legacyRoot, 'settings.json')
+    writeFileSync(legacyState, '{"fixture":"preserve"}')
+    const overlayPath = join(dir, 'desktop-next.cordis.patch.json')
+    writeFileSync(overlayPath, JSON.stringify([{ id: 'agents-anywhere-bridge-next', config: {
+      dshHome: manager.home, stateRoot: legacyRoot,
+    } }]))
+    loadNextProfile(dir, manager.home)
+    const rows = composeEntries([readNextProfilePatches(dir, manager.home, [overlayPath])])
+    const aa = rows.find(row => row.id === 'agents-anywhere-bridge-next')
+    expect(aa?.disabled).not.toBe(true)
+    expect(aa?.config).toEqual({ dshHome: manager.home })
+    expect(JSON.parse(readFileSync(overlayPath, 'utf8'))[0].config).toEqual({ dshHome: manager.home })
+    expect(readFileSync(legacyState, 'utf8')).toBe('{"fixture":"preserve"}')
+  }
+})
+
 it('refuses to overwrite an unmanaged bundle fallback', () => {
   const manager = profiles()
   const dir = manager.ensure('desktop')
