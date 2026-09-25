@@ -252,6 +252,13 @@ function projectSettings(
   })
 }
 
+/** Normalize one complete Setup choice exactly as the settings writer would store it. */
+export function normalizeDesktopSetupWizardSettings(
+  value: DesktopSetupWizardSettings,
+): DesktopSetupWizardSettings {
+  return normalizedUpdate(value)
+}
+
 function normalizedUpdate(
   value: DesktopSetupWizardSettings,
 ): DesktopSetupWizardSettings {

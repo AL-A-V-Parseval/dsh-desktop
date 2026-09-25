@@ -370,7 +370,9 @@ export class ElectronShellGeneration {
       }
       if (value.action !== 'finish' || typeof value.profile !== 'string' || !this.options.setupOnboarding) throw new Error('Setup is unavailable')
       if (value.selection !== undefined && !isDesktopSetupWizardSelection(value.selection)) throw new Error('Invalid setup selection')
-      await this.options.setupOnboarding.finish(value.profile, value.selection)
+      const { spec } = this.options
+      await this.options.setupOnboarding.finish(value.profile, value.selection,
+        spec.applySetupSettings === undefined ? undefined : settings => spec.applySetupSettings!(settings))
     })
 
     let stateWriteTimer: ReturnType<typeof setTimeout> | undefined
