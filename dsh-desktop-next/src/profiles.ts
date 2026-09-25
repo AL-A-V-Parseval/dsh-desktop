@@ -18,7 +18,7 @@ export const DSH_MARKET_PACKAGE = 'dshmarket'
 /** Legacy shell shape, now projected from the standard Profile bundle selection. */
 export interface Features { remoteControl: boolean; market: boolean; dshMarket?: boolean }
 export interface OnboardingChoices { features: Features; computerUse: boolean }
-export const DEFAULT_FEATURES: Readonly<Features> = { remoteControl: false, market: true }
+export const DEFAULT_FEATURES: Readonly<Features> = { remoteControl: false, market: false }
 
 interface ProfileManifest {
   dsh: {
