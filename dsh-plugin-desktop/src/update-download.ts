@@ -54,13 +54,14 @@ export interface UpdateArtifactResponse {
 export type UpdateArtifactRequest = (url: string, init: RequestInit) => Promise<UpdateArtifactResponse>
 
 /**
- * Download targets the installer fetch may settle on: the fixed product
+ * Default download targets the installer fetch may settle on: the fixed product
  * endpoint plus the reviewed mirror it redirects through. The mirror is
  * pinned to the maintainer's repository path, not just the host, because the
  * host serves arbitrary user uploads under other paths. A redirect chain
  * that ends anywhere else is treated as a compromised download service
  * instead of being executed after a magic-number check. Adding or moving a
- * target requires a client release.
+ * target requires a client release. Next explicitly opts into arbitrary HTTPS
+ * artifact storage because its mirror redirects to short-lived CDN hosts.
  */
 const ALLOWED_DOWNLOAD_TARGETS: readonly {
   readonly host: string
@@ -83,6 +84,8 @@ export interface DownloadDesktopUpdateOptions {
   readonly destinationPath: string
   /** Redirect-following request adapter, normally backed by Electron `net.request`. */
   readonly request: UpdateArtifactRequest
+  /** Next-only opt-in: accept any HTTPS artifact host after the first-party download endpoint. */
+  readonly allowAnyHttpsOrigin?: boolean
   /** Optional cancellation signal owned by the update coordinator. */
   readonly signal?: AbortSignal
   /**
@@ -192,7 +195,8 @@ export async function downloadDesktopUpdate(options: DownloadDesktopUpdateOption
     throw new UpdateDownloadError('empty-body', 'The update download service returned an empty body.')
   }
   try {
-    assertAllowedDownloadOrigin(finalUrl)
+    if (channel === 'next' && options.allowAnyHttpsOrigin) assertSecureDownloadUrl(finalUrl)
+    else assertAllowedDownloadOrigin(finalUrl)
     assertDeclaredSize(response)
   } catch (cause) {
     await discardResponseBody(response)
@@ -464,7 +468,8 @@ function assertDeclaredSize(response: Response): void {
   }
 }
 
-export function assertAllowedDownloadOrigin(finalUrl: string): void {
+/** Require a usable HTTPS URL even when an update channel permits external artifact hosts. */
+export function assertSecureDownloadUrl(finalUrl: string): URL {
   let parsed: URL
   try {
     parsed = new URL(finalUrl)
@@ -474,6 +479,11 @@ export function assertAllowedDownloadOrigin(finalUrl: string): void {
   if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.port && parsed.port !== '443') {
     throw new UpdateDownloadError('redirect-origin', 'The update download must settle on HTTPS.')
   }
+  return parsed
+}
+
+export function assertAllowedDownloadOrigin(finalUrl: string): void {
+  const parsed = assertSecureDownloadUrl(finalUrl)
   const host = parsed.hostname.toLowerCase()
   const allowed = ALLOWED_DOWNLOAD_TARGETS.some(target =>
     host === target.host
