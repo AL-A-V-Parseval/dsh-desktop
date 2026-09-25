@@ -15,7 +15,7 @@ export async function verifyDesktopOnboardingBrowser({ url, cookie, headers }) {
   const browser = await chromium.launch({ headless: true, ...(process.env.DSH_NEXT_TEST_BROWSER_CHANNEL ? { channel: process.env.DSH_NEXT_TEST_BROWSER_CHANNEL } : {}) })
   let page
   const errors = []
-  let required = true, accountPending = false, restartPending = false, rejectSave = true, restartRequests = 0
+  let required = true, restartPending = false, rejectSave = true, restartRequests = 0
   const submissions = []
   const input = {
     profileName: 'desktop', appVersion: '2.0.14', platform: 'darwin',
@@ -28,17 +28,16 @@ export async function verifyDesktopOnboardingBrowser({ url, cookie, headers }) {
     const target = new URL(url)
     const separator = cookie.indexOf('=')
     await context.addCookies([{ url: target.origin, name: cookie.slice(0, separator), value: cookie.slice(separator + 1) }])
-    await context.exposeFunction('__readSetup', () => ({ required, accountPending, restartPending, edition: 'desktop', profile: 'desktop', input }))
+    await context.exposeFunction('__readSetup', () => ({ required, restartPending, edition: 'desktop', profile: 'desktop', input }))
     await context.exposeFunction('__finishSetup', (profile, selection) => {
       if (rejectSave) { rejectSave = false; throw new Error('Fixture: save failed') }
-      submissions.push({ profile, selection }); required = false; accountPending = selection !== undefined
+      submissions.push({ profile, selection }); required = false
       restartPending = selection !== undefined
     })
-    await context.exposeFunction('__dismissAccount', profile => { assert.equal(profile, 'desktop'); accountPending = false })
-    await context.exposeFunction('__applyPending', profile => { assert.equal(profile, 'desktop'); assert.equal(accountPending, false); restartRequests++; restartPending = false })
+    await context.exposeFunction('__applyPending', profile => { assert.equal(profile, 'desktop'); restartRequests++; restartPending = false })
     await context.addInitScript(() => {
       globalThis.dshDesktop = { protocolVersion: 1 }
-      globalThis.dshDesktopSetup = { read: () => globalThis.__readSetup(), finish: (profile, selection) => globalThis.__finishSetup(profile, selection), dismissAccount: profile => globalThis.__dismissAccount(profile), applyPending: profile => globalThis.__applyPending(profile) }
+      globalThis.dshDesktopSetup = { read: () => globalThis.__readSetup(), finish: (profile, selection) => globalThis.__finishSetup(profile, selection), applyPending: profile => globalThis.__applyPending(profile) }
     })
     page = await context.newPage(); page.setDefaultTimeout(20_000)
     page.on('pageerror', error => errors.push(error.message))
@@ -98,31 +97,12 @@ export async function verifyDesktopOnboardingBrowser({ url, cookie, headers }) {
     await click('开始使用')
     await surface.getByRole('alert').filter({ hasText: 'save failed' }).waitFor()
     await click('开始使用')
-    await surface.getByRole('heading', { name: '桌面设置已完成', exact: true }).waitFor()
+    // Setup hands straight to the restart toast: no sign-in page, no official introduction.
+    await surface.waitFor({ state: 'detached' })
     const { appVersion, profileName, platform, ...selection } = input
     assert.deepEqual(submissions, [{ profile: 'desktop', selection: { ...selection, mode: 'compatibility', market: 'dsh-market', aaEnabled: true, openBrowser: true, networkExposure: 'lan' } }])
     assert.equal(restartRequests, 0)
-    await click('登录 DeepSeek')
-    const login = page.getByRole('dialog', { name: '开始使用', exact: true })
-    await login.waitFor()
-    assert.equal(restartRequests, 0)
-    await login.getByRole('button', { name: '关闭', exact: true }).click()
-    await login.waitFor({ state: 'hidden' })
-    assert.equal(accountPending, false)
-    accountPending = true
-    await page.reload()
-    await click('登录 DeepSeek')
-    await login.getByRole('button', { name: '添加 API Key', exact: true }).click()
-    const credential = page.getByRole('dialog').filter({ hasText: 'API Key' })
-    await credential.waitFor()
-    assert.equal(restartRequests, 0)
-    assert.equal(await page.locator('#root').evaluate(element => element.inert), true)
-    await credential.getByRole('button', { name: '稍后配置', exact: true }).click()
-    await credential.waitFor({ state: 'hidden' })
     await page.setViewportSize({ width: 1040, height: 720 })
-    await page.reload()
-    await page.getByRole('button', { name: /^(插件|Plugins)$/ }).waitFor()
-    assert.equal(await surface.count(), 0)
     const restartToast = page.getByRole('alert').filter({ hasText: '桌面设置已保存，下次重启后生效。' })
     await restartToast.waitFor()
     await page.waitForFunction(() => [...document.querySelectorAll('[role="alert"]')].some(element =>
@@ -138,6 +118,9 @@ export async function verifyDesktopOnboardingBrowser({ url, cookie, headers }) {
     await page.screenshot({ path: join(tmpdir(), 'dsh-desktop-setup-official-toast.png') })
     await restartToast.waitFor({ state: 'hidden' })
     assert.equal(restartRequests, 0)
+    await page.getByRole('button', { name: /^(插件|Plugins)$/ }).waitFor()
+    assert.equal(await page.locator('[data-desktop-onboarding], [data-desktop-onboarding-surface]').count(), 0)
+    assert.equal(await page.locator('#root').evaluate(element => element.inert), false)
     // Reloading re-reads the native pending state; an explicit action still works.
     await page.reload()
     await page.getByRole('button', { name: '立即重启', exact: true }).click()
@@ -155,7 +138,7 @@ export async function verifyDesktopOnboardingBrowser({ url, cookie, headers }) {
     assert.equal(restartRequests, 1)
     assert.equal(await page.locator('#root').evaluate(element => element.inert), false)
     assert.deepEqual(errors, [])
-    console.log('Original Desktop wizard passed: eight pages, retained choices, original browser/LAN/skip confirmations, save retry, completion, and no repeat.')
+    console.log('Original Desktop wizard passed: eight pages, retained choices, original browser/LAN/skip confirmations, save retry, completion straight to the restart toast without a sign-in page or the official introduction, and no repeat.')
   } catch (error) {
     console.error(errors)
     if (page) {
