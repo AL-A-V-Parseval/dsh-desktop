@@ -18,7 +18,7 @@ export const DSH_MARKET_PACKAGE = 'dshmarket'
 /** Legacy shell shape, now projected from the standard Profile bundle selection. */
 export interface Features { remoteControl: boolean; market: boolean; dshMarket?: boolean }
 export interface OnboardingChoices { features: Features; computerUse: boolean }
-export const DEFAULT_FEATURES: Readonly<Features> = { remoteControl: false, market: true }
+export const DEFAULT_FEATURES: Readonly<Features> = { remoteControl: false, market: false }
 
 interface ProfileManifest {
   dsh: {
@@ -247,10 +247,12 @@ export function loadNextProfile(projectDir: string, home: string, installAnchor 
     patchPaths: [NEXT_BUNDLE_PATCH], patches: loadOverlayPatches('dsh-desktop-next', NEXT_BUNDLE_PATCH) })
   const overlay = [
     { id: 'agents-anywhere-bridge-next', config: {
-      dshHome: home, stateRoot: join(home, 'agents-anywhere', basename(projectDir)),
+      dshHome: home,
     } },
   ]
-  // Only supply per-Profile storage paths. The official manager owns bundle/row enablement.
+  // Leave AA stateRoot unset to share its default credentials and device binding with Stable/Beta.
+  // Rewriting the generated overlay also removes the former per-Profile stateRoot on upgrade.
+  // The official manager still owns per-Profile bundle/row enablement.
   atomicJson(join(projectDir, 'desktop-next.cordis.patch.json'), overlay)
   return profile
 }

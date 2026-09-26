@@ -20,6 +20,9 @@ it('starts fresh homes with desktop and preserves an explicitly selected legacy 
   const legacy = manager.ensure('default')
   const original = readFileSync(join(legacy, 'package.json'), 'utf8')
   manager.ensure(manager.active)
+  expect(manager.features('desktop')).toEqual({ remoteControl: false, market: false })
+  expect(JSON.parse(readFileSync(join(manager.directory('desktop'), 'package.json'), 'utf8')).dsh.profile.bundles)
+    .not.toContain(COMMUNITY_MARKET_PACKAGE)
   expect(manager.list()).toEqual(['default', 'desktop'])
   expect(readFileSync(join(legacy, 'package.json'), 'utf8')).toBe(original)
   manager.select('default')
@@ -58,12 +61,13 @@ it('isolates profile configuration and preserves existing files on ensure', () =
   const manager = profiles()
   const first = manager.ensure('desktop')
   manager.create('work')
+  expect(manager.features('work')).toEqual({ remoteControl: false, market: false })
   writeFileSync(join(first, 'cordis.patch.yml'), '# user patch\n[]\n')
   manager.ensure('desktop')
   manager.setFeatures('work', { remoteControl: true, market: false })
   manager.select('work')
   expect(new NextProfiles(manager.home).active).toBe('work')
-  expect(manager.features('desktop')).toEqual({ remoteControl: false, market: true })
+  expect(manager.features('desktop')).toEqual({ remoteControl: false, market: false })
   expect(manager.features('work')).toEqual({ remoteControl: true, market: false })
   expect(readFileSync(join(first, 'cordis.patch.yml'), 'utf8')).toBe('# user patch\n[]\n')
   expect(() => manager.create('work')).toThrow()
@@ -191,7 +195,7 @@ it('restores the original patch and leaves onboarding pending when completion ca
     expect(() => manager.finishOnboarding('desktop', { features: { market: false, remoteControl: true }, computerUse: true })).toThrow('Cannot save manifest')
     expect(readFileSync(join(dir, 'cordis.patch.yml'), 'utf8')).toBe(patch)
     expect(manager.onboardingRequired('desktop')).toBe(true)
-    expect(manager.features('desktop')).toEqual({ market: true, remoteControl: false })
+    expect(manager.features('desktop')).toEqual({ market: false, remoteControl: false })
   } finally { write.mockRestore() }
 })
 it('refuses a symlinked profile before writing outside Next home', () => {
@@ -272,6 +276,29 @@ it('composes optional AA and Market while retaining the official Web layout', ()
   expect(disabled.some(row => !row.disabled && (row.name === AA_PACKAGE || row.name === 'dsh-community-market'))).toBe(false)
 })
 
+it('shares AA defaults across Profiles and replaces legacy generated state overrides', () => {
+  const manager = profiles()
+  for (const name of ['desktop', 'work']) {
+    const dir = manager.ensure(name)
+    manager.setFeatures(name, { remoteControl: true, market: false })
+    const legacyRoot = join(manager.home, 'agents-anywhere', name)
+    mkdirSync(legacyRoot, { recursive: true })
+    const legacyState = join(legacyRoot, 'settings.json')
+    writeFileSync(legacyState, '{"fixture":"preserve"}')
+    const overlayPath = join(dir, 'desktop-next.cordis.patch.json')
+    writeFileSync(overlayPath, JSON.stringify([{ id: 'agents-anywhere-bridge-next', config: {
+      dshHome: manager.home, stateRoot: legacyRoot,
+    } }]))
+    loadNextProfile(dir, manager.home)
+    const rows = composeEntries([readNextProfilePatches(dir, manager.home, [overlayPath])])
+    const aa = rows.find(row => row.id === 'agents-anywhere-bridge-next')
+    expect(aa?.disabled).not.toBe(true)
+    expect(aa?.config).toEqual({ dshHome: manager.home })
+    expect(JSON.parse(readFileSync(overlayPath, 'utf8'))[0].config).toEqual({ dshHome: manager.home })
+    expect(readFileSync(legacyState, 'utf8')).toBe('{"fixture":"preserve"}')
+  }
+})
+
 it('refuses to overwrite an unmanaged bundle fallback', () => {
   const manager = profiles()
   const dir = manager.ensure('desktop')
@@ -324,7 +351,7 @@ it('migrates legacy switches once and preserves later official plugin selections
   const overlay = JSON.parse(readFileSync(join(dir, 'desktop-next.cordis.patch.json'), 'utf8'))
   expect(overlay.every((row: object) => !Object.hasOwn(row, 'disabled'))).toBe(true)
   manager.create('work')
-  expect(manager.features('work')).toEqual({ market: true, remoteControl: false })
+  expect(manager.features('work')).toEqual({ market: false, remoteControl: false })
 })
 
 it('keeps the recovery deselection ledger across a feature change and never reselects from it', () => {

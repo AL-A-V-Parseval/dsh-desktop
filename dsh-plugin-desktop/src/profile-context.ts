@@ -63,6 +63,7 @@ export function createDesktopProfileBoot(prepared: PreparedDesktopProfile, pnpm:
       {
         aaEnabled: options.aaEnabled,
         lanAddresses: prepared.lanAddresses,
+        generationMode: prepared.mode,
         ...(profilePatches === undefined ? {} : { profilePatches }),
       },
     ).patches, ...context.overlays],

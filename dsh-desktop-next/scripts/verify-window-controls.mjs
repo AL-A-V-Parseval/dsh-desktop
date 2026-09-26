@@ -788,7 +788,12 @@ try {
   const webPage = await webContext.newPage()
   webPage.setDefaultTimeout(15_000)
   await webPage.goto(streamBaseUrl)
-  await webPage.getByRole('button', { name: /^(稍后配置|Configure later)$/ }).click()
+  const webWelcome = webPage.getByRole('button', { name: /^(继续|Continue)$/ })
+  await webWelcome.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {})
+  if (await webWelcome.isVisible()) await webWelcome.click()
+  // The rc.2 Web entry can open directly when the default model is available.
+  await webPage.getByRole('button', { name: /^(稍后配置|Configure later)$/ }).click({ timeout: 2_000 }).catch(() => {})
+  await webPage.locator('[aria-modal=true]').waitFor({ state: 'hidden' })
   await openSettingsPanel(webPage)
   assert.equal(await webPage.locator('.dshDesktopNativeActions').count(), 0)
   assert.equal(await webPage.getByRole('button', { name: /^(桌面设置|Desktop settings)$/ }).count(), 0)

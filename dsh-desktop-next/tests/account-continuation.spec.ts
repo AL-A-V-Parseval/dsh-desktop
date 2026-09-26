@@ -20,7 +20,7 @@ function fixture(signedIn: boolean, required = false, failDismiss = false, overr
   const snapshot = { profile: 'work', required, accountPending: !required, edition: 'desktop', restartPending: false, input: { platform: 'darwin' }, ...overrides }
   hooks.values = [snapshot, '', 0, false]; hooks.setters = []; hooks.effects = []
   const bridge = {
-    read: vi.fn(async () => snapshot), finish: vi.fn(async () => {}),
+    read: vi.fn(async (): Promise<typeof snapshot | null> => snapshot), finish: vi.fn(async () => {}),
     dismissAccount: vi.fn(async () => { if (failDismiss) throw new Error('save failed') }),
     applyPending: vi.fn(async () => {}),
   }
@@ -33,10 +33,34 @@ function fixture(signedIn: boolean, required = false, failDismiss = false, overr
   const content = vi.fn((..._args: any[]) => 'Original wizard')
   registerDesktopOnboarding(ctx as any, content)
   const openLogin = vi.fn(), renderNext = vi.fn(), renderLoading = vi.fn(() => 'Loading')
-  const result = Component({ bridge, content, zh: true, accountStatus: signedIn ? 'credential-stored' : 'signed-out',
-    openLogin, renderNext, renderLoading, renderNavigation: vi.fn(), renderSurface: (value: unknown) => value })
-  return { bridge, content, openLogin, result, snapshot, renderNext }
+  const props = { bridge, content, zh: true, accountStatus: signedIn ? 'credential-stored' : 'signed-out',
+    openLogin, renderNext, renderLoading, renderNavigation: vi.fn(), renderSurface: (value: unknown) => value }
+  const result = Component(props)
+  const renderWithSnapshot = (value: unknown) => {
+    hooks.values = [value, '', 0, false]
+    return Component(props)
+  }
+  return { bridge, content, openLogin, result, snapshot, renderNext, renderWithSnapshot }
 }
+
+it('hands a Profile with no Desktop setup pending to the official decision', async () => {
+  const view = fixture(false)
+  view.bridge.read.mockResolvedValue(null)
+  hooks.effects[0]!()
+  await vi.waitFor(() => expect(hooks.setters[0]).toHaveBeenCalledWith(null))
+  expect(view.renderWithSnapshot(null)).toBeUndefined()
+  expect(view.renderNext).toHaveBeenCalledOnce()
+})
+
+it('hands an explicitly skipped Desktop setup to the official decision', async () => {
+  const view = fixture(false, true)
+  view.bridge.read.mockResolvedValue({ ...view.snapshot, required: false, accountPending: false })
+  await view.content.mock.calls[0]![2]('work')
+  expect(view.bridge.finish).toHaveBeenCalledWith('work', undefined)
+  expect(hooks.setters[0]).toHaveBeenCalledWith(null)
+  view.renderWithSnapshot(null)
+  expect(view.renderNext).toHaveBeenCalledOnce()
+})
 
 it('hands an already signed-in Profile to the official flow without showing login', async () => {
   const view = fixture(true)

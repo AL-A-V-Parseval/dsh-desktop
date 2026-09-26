@@ -19,7 +19,7 @@
   <img src="https://img.shields.io/badge/Linux-x64-4493F8?style=flat-square" alt="Target platform: Linux x64">
 </p>
 
-<p align="center"><sub>本仓库是社区 fork，基于 <a href="https://github.com/anywhere-labs/dsh-desktop">anywhere-labs/dsh-desktop</a>（上游 master 清单版本 <strong>2.0.14</strong>，最近发布 <strong>2.0.13</strong>；runtime <code>0.1.7-rc.1</code>）。与 DeepSeek（深度求索）及上游项目不存在隶属、合作、授权或背书关系。</sub></p>
+<p align="center"><sub>本仓库是社区 fork，基于 <a href="https://github.com/anywhere-labs/dsh-desktop">anywhere-labs/dsh-desktop</a>（上游 master 清单版本 <strong>2.0.15</strong>，最近发布 <strong>2.0.15</strong>；runtime <code>0.1.7-rc.2</code>）。与 DeepSeek（深度求索）及上游项目不存在隶属、合作、授权或背书关系。</sub></p>
 
 ## 这是什么
 
@@ -27,7 +27,7 @@ DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harne
 
 本 fork **聚焦 Linux**：修复上游桌面端在 Linux 上无法稳定运行的问题，让 `bash` / `glob` / `grep` 等子进程工具、插件市场与附件等能力在 Linux 上可用。
 
-- 上游基线：上游 [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) 最新 `master`（构建基线 `9c65ef7291`，清单版本 2.0.14，最近发布 tag `v2.0.13`）
+- 上游基线：上游 [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) 最新 `master`（构建基线 `faefc5b850`，清单版本 2.0.15，最近发布 tag `v2.0.15`）
 - 目标平台：**Linux x64**
 - 产物：AppImage、便携包（tar.gz）与 Debian/Ubuntu 安装包（.deb），随 `SHA256SUMS` 提供 GPG 分离签名，`.deb` 另含 `debsigs` 内部签名
 

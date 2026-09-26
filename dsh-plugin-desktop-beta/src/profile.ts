@@ -673,6 +673,19 @@ export interface DesktopProfilePreparationHooks {
    * the Loader back to the pre-edit config.
    */
   profilePatches?: readonly PatchOptions[]
+
+  /**
+   * Compose the layout rows for this running generation's shell mode instead of
+   * the one the Profile now stores.
+   *
+   * A mode change is saved into the patch layer while the generation keeps its
+   * renderer, and that save hot-reloads the Profile. Recomposing the layout rows
+   * from the new mode dropped `ui-layout` under a compatibility page that never
+   * installs Desktop's own layout, so the client plugins waited on a layout
+   * service forever and the window went to recovery. The saved mode takes effect
+   * with the restart that starts the next generation.
+   */
+  generationMode?: DesktopShellMode
 }
 
 /** User patch entry skipped to keep a profile bootable. */
@@ -1430,6 +1443,8 @@ export function prepareDesktopProfile(
       trustedHosts: webRuntimeTrustedHosts(webRuntimeConfig.trustedHosts, lanAddresses),
     },
   })
+  // The saved mode is what the next generation boots, so the config editor's
+  // validation pass must still reject a layout it could not start.
   if (mode === 'advanced' || mode === 'extended') {
     for (const [id, packageName] of [
       ['ui-layout', UI_LAYOUT_PACKAGE],
@@ -1440,6 +1455,9 @@ export function prepareDesktopProfile(
         throw new Error(`${BIN_NAME}: ${mode} desktop mode must use ${packageName} in the ${id} row`)
       }
     }
+  }
+  const layoutMode = hooks.generationMode ?? mode
+  if (layoutMode === 'advanced' || layoutMode === 'extended') {
     patches.push(
       { id: 'ui-layout', disabled: true },
       { id: 'ui-sidebar', disabled: false },

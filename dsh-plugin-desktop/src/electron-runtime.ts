@@ -103,9 +103,9 @@ const NULL_BODY_STATUSES = new Set([204, 205, 304])
 
 /**
  * Download-request adapter over Electron `net.request`. `net.fetch` cannot
- * back the download origin gate: its Response carries an empty `url` (a
+ * supply the HTTPS check: its Response carries an empty `url` (a
  * documented Electron limitation), so redirects are followed here and the
- * settled URL is reported alongside the response for the gate to validate.
+ * settled URL is reported alongside the response for validation.
  */
 export function requestDesktopArtifact(url: string, init: RequestInit): Promise<UpdateArtifactResponse> {
   return new Promise((resolve, reject) => {
@@ -326,6 +326,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
         platform: this.platformStrategy,
         spec,
         preloadPath: desktopPreloadPath(),
+        pickDirectory: () => this.pickDirectory(),
         buildApplicationMenuItems: () => this.buildApplicationMenuItems(),
         isQuitting: () => this.quitting,
         buildTrayTemplate: () => this.buildTrayTemplate(spec),

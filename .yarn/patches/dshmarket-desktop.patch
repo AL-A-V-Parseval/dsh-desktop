@@ -8,7 +8,7 @@ index 2911b31..e96b3cd 100644
  			}, []);
 -			const selfName = installed["dshmarket"] !== void 0 ? "dshmarket" : "dsh-market";
 +			const selfName = installed["dshmarket"] !== void 0 || updates["dshmarket"] !== void 0 ? "dshmarket" : "dsh-market";
- 			const updatableNames = Object.keys(installed).filter((name) => name !== selfName && !updatedNames.includes(name) && !effectiveDisabledSet.has(name) && updates[name] && updates[name].updateAvailable);
+ 			const updatableNames = Object.keys(installed).filter((name) => name !== selfName && !effectiveDisabledSet.has(name) && isPluginUpdatable(name, String(installed[name]), updates[name], updatedNames));
  			const batchUpdatableNames = updatableNames.filter((name) => updates[name]?.restoreRequired !== true);
  			const ignoredUpdateSet = (0, react.useMemo)(() => new Set(ignoredUpdateNames), [ignoredUpdateNames]);
 @@ -9635,7 +9635,7 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
