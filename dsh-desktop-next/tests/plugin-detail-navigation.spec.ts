@@ -47,6 +47,7 @@ function fixture() {
   apply!({ effect: (effect: () => void) => effect(), on: noop,
     locale: { register: noop, bind: () => (key: string) => key }, remote: { $on: noop },
     layout: { panelInfo: { subscribe: noop }, selectPanel: vi.fn() }, reflect: { provide: noop },
+    configForms: { describe: () => ({ getSnapshot: () => ({}), subscribe: noop }), get: () => undefined },
     slots: { inject: (_name: string, register: () => unknown) => {
       const result = register()
       if (result && typeof result === 'object' && Symbol.iterator in result) [...result as Iterable<unknown>]

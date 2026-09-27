@@ -8,6 +8,7 @@ import { atomicJson, atomicText, readPrivateFile } from './private-files.ts'
 import { NextRecovery } from './recovery.ts'
 import { DEFAULT_PROFILE } from './desktop-contract.ts'
 import { computerUsePatch } from './profile-computer-use.ts'
+import { legacySchedulePatch, SCHEDULE_BUNDLE } from './profile-schedule.ts'
 
 export const NEXT_PACKAGE = fileURLToPath(new URL('../package.json', import.meta.url))
 export const WEB_BUNDLES = [...PROFILE_TEMPLATES.web!.bundles]
@@ -23,6 +24,8 @@ export const DEFAULT_FEATURES: Readonly<Features> = { remoteControl: false, mark
 interface ProfileManifest {
   dsh: {
     desktopNextPlugins?: number
+    /** Set once the rc.2 Web-row Scheduled Tasks choices were carried onto the optional bundle. */
+    desktopNextScheduleBundle?: number
     desktopNextOnboarding?: { version: number; outcome: 'completed' | 'skipped'; accountPending?: boolean }
     /** Names recovery removed from `profile.bundles`; a UI ledger, never a policy. */
     desktopNextDeselectedBundles?: string[]
@@ -114,6 +117,7 @@ export class NextProfiles {
         atomicJson(join(dir, 'package.json'), migrated)
       }
     } else this.setFeatures(name, DEFAULT_FEATURES)
+    this.migrateSchedule(name)
     return dir
   }
   create(name: string): string {
@@ -122,6 +126,7 @@ export class NextProfiles {
     mkdirSync(dir, { mode: 0o700 })
     initProfile(dir, WEB_BUNDLES)
     this.setFeatures(name, DEFAULT_FEATURES)
+    this.migrateSchedule(name)
     return dir
   }
   features(name: string): Features {
@@ -195,6 +200,32 @@ export class NextProfiles {
     const manifest = this.manifest(name)
     if (manifest.dsh.desktopNextPlugins === 1) return
     this.setFeatures(name, { ...this.features(name), dshMarket: manifest.dsh.profile.bundles.includes(DSH_MARKET_PACKAGE) })
+  }
+  /**
+   * Once per Profile: rc.2 enabled Scheduled Tasks by patching three Web rows
+   * that upstream has since moved into an optional bundle. Those patches now
+   * match nothing, so select the bundle for users who had it on and drop the
+   * stale toggles. The marker stops a later deselection from being undone by
+   * the same row ids the bundle's own switches write.
+   */
+  private migrateSchedule(name: string): void {
+    const manifest = this.manifest(name)
+    if (manifest.dsh.desktopNextScheduleBundle === 1) return
+    const patchPath = join(this.directory(name), 'cordis.patch.yml')
+    let legacy: ReturnType<typeof legacySchedulePatch>
+    if (!manifest.dsh.profile.bundles.includes(SCHEDULE_BUNDLE)) {
+      // A malformed patch is left for recovery to handle; retry on the next start.
+      try { legacy = legacySchedulePatch(readPrivateFile(patchPath) ?? '[]\n') } catch { return }
+    }
+    if (legacy) {
+      new NextRecovery(this).backup(name, 'before-schedule-bundle-migration')
+      if (legacy.select) manifest.dsh.profile.bundles = [...manifest.dsh.profile.bundles, SCHEDULE_BUNDLE]
+    }
+    manifest.dsh.desktopNextScheduleBundle = 1
+    // Selection first: if the patch write is interrupted, the leftover toggles still
+    // address the selected bundle's rows with the same meaning.
+    atomicJson(join(this.directory(name), 'package.json'), manifest)
+    if (legacy) atomicText(patchPath, legacy.text)
   }
   private manifest(name: string): ProfileManifest {
     const value = JSON.parse(readPrivateFile(join(this.directory(name), 'package.json')) ?? 'null')
