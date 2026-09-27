@@ -150,6 +150,24 @@ Next contributes an application-owned profile layer at runtime; its recompositio
 
 Packaging entry points and the Next update client are implemented. Releases still require producing and validating platform artifacts and configuring the online Next channel. Stable/Beta data migration is not provided. The official distribution's offline Python/Office runtime and skill payloads are not yet integrated. Our enhanced/extended window modes remain deferred. An unpublished Next update channel is reported as unavailable; Next never installs a Stable/Beta package. Enhanced window modes remain hidden. Headless Node/Electron checks do not qualify cross-platform installers or visual behavior.
 
+## Bundled runtime payload
+
+A packaged installation carries a pinned first-party runtime payload so Office documents and workspace dependency queries need no system Python, Node.js, or pip:
+
+- **Location**: `resources/runtime/primary-runtime/` (interpreters and libraries) and `resources/runtime/office-skills/` (skill assets). The payload ships as ordinary files outside ASAR.
+- **Contents**: Python `3.12.14` with numpy, pandas, python-docx, python-pptx, openpyxl, Pillow, lxml, XlsxWriter and their dependencies, Node.js `24.21.0`, pnpm `11.8.0`, and the `runtime.json` manifest recording every version.
+- **Assembly**: `yarn prepare:primary-runtime` (also invoked by the packaging flow) downloads the archives locked by the pinned upstream checkout (`deepseek-harness/scripts/primary-runtime/lock.json`), verifies each SHA-256, unpacks them below `runtime/`, and then runs a native smoke on a matching host: Python imports, Office document round trips, `pip check`, and the Node and pnpm versions. Archives are cached by digest under the repository-root `.cache/primary-runtime`.
+- **Activation**: the packaged application publishes the payload directory as `DSH_BUNDLED_PRIMARY_RUNTIME`, and `cordis.patch.yml` inserts the `workspace-dependencies` and `skill-office` rows behind it. An explicit `DSH_PRIMARY_RUNTIME` points at a self-managed payload, and an empty value disables both capabilities.
+- **When absent**: development runs, an unprepared `package:dir`, or a removed payload leave both rows disabled and the rest of the application unaffected.
+
+The `load_workspace_dependencies` tool returns absolute paths for the Python interpreter, site-packages, the Node.js executable, and the pnpm entry; the `office-docx`, `office-pptx`, and `office-xlsx` skills are enabled by default. Interpreter, wheel, and Node.js license texts ship inside the file tree (`dependencies/python/`, each `*.dist-info/`, `dependencies/node/LICENSE`).
+
+The `desktop-pnpm` Host row provides one package-manager capability against the immutable active profile: `ctx.desktopPnpm.run(argv, signal?)`. It executes the packaged pnpm entry directly with the active Profile directory as `cwd`. Every Desktop-owned pnpm operation process-locally applies exactly one `--config.minimumReleaseAge=0` at the final package-manager boundary; it never rewrites the user's pnpm configuration. Callers own the remaining command construction, Profile bundle reconciliation, receipts, validation, and user-facing progress. Desktop deliberately adds no plugin-specific retry, snapshot, or rollback to this interface; all recovery is handled by the three healthy-start checkpoints.
+
+`run()` returns live stdout and stderr streams, a `done` promise that settles after the complete process tree exits, and `cancel()`. One operation may run per generation. The service uses the ordinary DSH subprocess provider, the exact packaged JavaScript entry, shell-free argv, and child-scoped DSH home, Electron-backed Node, CI, and native-module ABI values. The public runtime path still does not expose `node` or `dsh`; its private helper and the `ELECTRON_RUN_AS_NODE` and npm ABI variables exist only inside package-manager subprocess trees. The launcher does not modify the system `PATH`, shell startup files, profile configuration, or `.env` documents.
+
+Plugin authors should use the supported contract imports, lifecycle rules, and adaptation patterns in the [Desktop plugin service architecture](docs/plugin-services.md).
+
 ## Packaging and updates
 
 The product version is `2.0.14-next`. Run from the repository root:

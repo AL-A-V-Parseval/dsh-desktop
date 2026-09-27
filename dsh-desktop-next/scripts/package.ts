@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { packageDirectory } from '../../dsh-plugin-desktop-beta/scripts/package-dir.mjs'
 import { releaseMac } from '../../dsh-plugin-desktop-beta/scripts/release-mac.ts'
 import { packageMacSmoke } from '../../dsh-plugin-desktop-beta/scripts/package-mac.ts'
-import { packageLinuxArtifacts } from '../../dsh-plugin-desktop-beta/scripts/package-linux.ts'
+import { packageLinuxArtifacts, preparePrimaryRuntimePayload } from '../../dsh-plugin-desktop-beta/scripts/package-linux.ts'
 import { createWindowsPackageOptions, packageWindowsInstaller } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
 import { prepareNextMacRuntime } from './mac-runtime.ts'
 import { runNextPackagingCommand } from './packaging-command.ts'
@@ -52,7 +52,16 @@ if (mode === 'dir') {
     workspaceRoot,
     desktopRoot,
     builderCli: require.resolve('electron-builder/cli.js'),
-    prepareRuntime: () => {},
+    prepareRuntime: () => {
+      preparePrimaryRuntimePayload({
+        workspaceRoot,
+        desktopRoot,
+        env: process.env,
+        nodeExecutable: process.execPath,
+        run,
+        log: message => { console.log(message) },
+      })
+    },
     verifier: join(desktopRoot, 'scripts/verify-linux-artifacts.ts'),
     nodeExecutable: process.execPath,
     run,

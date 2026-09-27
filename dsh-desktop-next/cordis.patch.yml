@@ -10,3 +10,19 @@
     - id: computer-use-cua-driver-native
       name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-native'
       disabled: true
+
+    # Bundled runtime payload prepared by scripts/prepare-primary-runtime.mjs and
+    # published as DSH_BUNDLED_PRIMARY_RUNTIME. An explicit DSH_PRIMARY_RUNTIME
+    # overrides the bundled path, and an empty value opts out entirely.
+    - id: workspace-dependencies
+      name: '@deepseek-ai/dsh-tool-workspace-dependencies'
+      disabled: !!js "!(process.env.DSH_PRIMARY_RUNTIME ?? process.env.DSH_BUNDLED_PRIMARY_RUNTIME)"
+      config:
+        source: !!js "process.getBuiltinModule('node:path').resolve(process.env.DSH_PRIMARY_RUNTIME ?? process.env.DSH_BUNDLED_PRIMARY_RUNTIME ?? '')"
+
+    - id: skill-office
+      name: '@deepseek-ai/dsh-skill-office'
+      disabled: !!js "!(process.env.DSH_PRIMARY_RUNTIME ?? process.env.DSH_BUNDLED_PRIMARY_RUNTIME)"
+      config:
+        assetRoot: !!js "process.getBuiltinModule('node:path').resolve(process.env.DSH_PRIMARY_RUNTIME ?? process.env.DSH_BUNDLED_PRIMARY_RUNTIME ?? '', '..', 'office-skills')"
+        node: !!js "process.getBuiltinModule('node:path').resolve(process.env.DSH_PRIMARY_RUNTIME ?? process.env.DSH_BUNDLED_PRIMARY_RUNTIME ?? '', 'dependencies', 'node', 'bin', process.platform === 'win32' ? 'node.exe' : 'node')"

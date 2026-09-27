@@ -32,6 +32,22 @@ Login-shell 恢复完成后，Launcher 才创建 layered launch-environment snap
 
 插件作者应遵循 [Desktop 插件 service 架构](docs/plugin-services.zh.md)中记录的受支持 contract import、生命周期规则与适配模式。
 
+## 内置运行时载荷
+
+打包版随应用携带一份固定版本的第一方运行时载荷，让 Office 文档与工作区依赖查询不依赖系统 Python、Node.js 或 pip：
+
+- **位置**：`resources/runtime/primary-runtime/`（解释器与库）与 `resources/runtime/office-skills/`（技能资源）。载荷不在 ASAR 内，以普通文件随包分发。
+- **内容**：Python `3.12.14`（含 numpy、pandas、python-docx、python-pptx、openpyxl、Pillow、lxml、XlsxWriter 及其依赖）、Node.js `24.21.0`、pnpm `11.8.0`，以及记录全部版本的 `runtime.json`。
+- **组装**：`yarn prepare:primary-runtime`（打包流程会自动调用）按上游 pin 的 `deepseek-harness/scripts/primary-runtime/lock.json` 下载归档并逐个校验 SHA-256，解包到 `runtime/`，再在本机目标上执行原生冒烟：Python 导入、Office 文档读写往返、`pip check`、Node 与 pnpm 版本。归档按摘要缓存到仓库根 `.cache/primary-runtime`。
+- **启用条件**：打包版启动时把载荷目录发布为 `DSH_BUNDLED_PRIMARY_RUNTIME`，`cordis.patch.yml` 据此插入 `workspace-dependencies` 与 `skill-office` 两行。显式设置 `DSH_PRIMARY_RUNTIME` 可指向自备载荷，设为空字符串则完全关闭这两项能力。
+- **缺失时的行为**：开发运行、未准备载荷的 `package:dir` 或手动删除载荷后，两行保持禁用，应用其余功能不受影响。
+
+`load_workspace_dependencies` 工具返回 Python 解释器、site-packages、Node 可执行文件与 pnpm 入口的绝对路径；`office-docx`、`office-pptx`、`office-xlsx` 三个技能默认启用。载荷自带的解释器、wheel 与 Node.js 许可证文本随文件树分发（`dependencies/python/`、各 `*.dist-info/`、`dependencies/node/LICENSE`）。
+
+`run()` 会返回实时 stdout 与 stderr stream、在完整 process tree 退出后才 settle 的 `done` promise，以及 `cancel()`。每个 generation 同时最多运行一个 operation。Service 使用普通 DSH subprocess provider、准确的已打包 JavaScript entry、无 shell argv，以及只属于 child 的 DSH home、Electron-backed Node、CI 与 native-module ABI 值。公开 runtime path 仍不会暴露 `node` 或 `dsh`；其中私有 helper、`ELECTRON_RUN_AS_NODE` 与 npm ABI 变量只存在于 package-manager subprocess tree 内。Launcher 不会修改系统 `PATH`、shell 启动文件、profile 配置或 `.env` 文档。
+
+插件作者应遵循 [Desktop 插件 service 架构](docs/plugin-services.zh.md)中记录的受支持 contract import、生命周期规则与适配模式。
+
 ## 模式设置与重启边界
 
 DSH home `settings.yaml` 文档中的 `dsh-desktop.mode` 字段是单一事实源：

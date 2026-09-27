@@ -14,6 +14,18 @@ dsh-plugin-desktop/lib/
 dsh-community-market/lib/
 
 .env.yarn
+
+# Downloaded primary runtime archives used by scripts/prepare-primary-runtime.mjs.
+.cache/
+
+# Prepared primary runtime payloads; keep the tracked placeholders only.
+dsh-plugin-desktop/runtime/*
+!dsh-plugin-desktop/runtime/.gitkeep
+dsh-plugin-desktop-beta/runtime/*
+!dsh-plugin-desktop-beta/runtime/.gitkeep
+dsh-desktop-next/runtime/*
+!dsh-desktop-next/runtime/.gitkeep
+
 dsh-desktop-next/lib/
 dsh-desktop-next/dist/
 dsh-desktop-next/.desktop-next/

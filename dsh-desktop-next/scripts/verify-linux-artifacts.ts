@@ -17,6 +17,8 @@ export interface LinuxArtifacts {
   readonly debPath: string
   /** Unpacked application executable path. */
   readonly applicationPath: string
+  /** Unpacked bundled primary runtime payload root beside the application. */
+  readonly payloadPath: string
 }
 
 /** Injectable Linux artifact verification boundary. */
@@ -114,6 +116,47 @@ export function assertDebArchive(path: string, label: string): void {
   }
 }
 
+/** Payload entries required inside one packaged Linux installation. */
+const REQUIRED_PAYLOAD_ENTRIES = [
+  ['Python interpreter', ['primary-runtime', 'dependencies', 'python', 'bin', 'python3'], true],
+  ['Node.js executable', ['primary-runtime', 'dependencies', 'node', 'bin', 'node'], true],
+  ['pnpm entry', ['primary-runtime', 'dependencies', 'pnpm', 'bin', 'pnpm.mjs'], false],
+  ['Office skill checker', ['office-skills', 'scripts', 'check_office.py'], false],
+] as const
+
+/**
+ * Verify the bundled primary runtime payload copied beside the application.
+ *
+ * Packaging prepares the payload from the lock pinned by the upstream checkout and
+ * Electron Builder publishes it through `build.extraResources`. The runtime reads
+ * the same entries at execution time, so a missing interpreter or Office asset is
+ * a broken release rather than a degraded one.
+ *
+ * @param payloadRoot - `resources/runtime` of the unpacked application.
+ */
+export function assertPrimaryRuntimePayload(payloadRoot: string): void {
+  const manifestPath = join(payloadRoot, 'primary-runtime', 'runtime.json')
+  let manifest: { platform?: unknown, arch?: unknown, python?: unknown }
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as typeof manifest
+  } catch (cause) {
+    throw new Error(`bundled primary runtime manifest is unreadable: ${manifestPath}`, { cause })
+  }
+  if (manifest.platform !== 'linux' || manifest.arch !== 'x64') {
+    throw new Error(`bundled primary runtime targets ${String(manifest.platform)}-${String(manifest.arch)}, expected linux-x64`)
+  }
+  for (const [label, segments, executable] of REQUIRED_PAYLOAD_ENTRIES) {
+    const path = join(payloadRoot, ...segments)
+    const entry = statSync(path, { throwIfNoEntry: false })
+    if (entry === undefined || !entry.isFile()) {
+      throw new Error(`${label} is missing from the bundled primary runtime: ${path}`)
+    }
+    if (executable && (entry.mode & 0o111) === 0) {
+      throw new Error(`${label} is not executable: ${path}`)
+    }
+  }
+}
+
 function defaultOptions(): LinuxArtifactVerificationOptions {
   const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
   return {
@@ -134,18 +177,23 @@ export function verifyLinuxArtifacts(
   const appImagePath = join(distDir, `DSH-Desktop-Next-${options.version}-x86_64.AppImage`)
   const debPath = join(distDir, `DSH-Desktop-Next-${options.version}-amd64.deb`)
   const applicationPath = join(distDir, 'linux-unpacked', 'dsh-desktop-next')
+  const payloadPath = join(distDir, 'linux-unpacked', 'resources', 'runtime')
 
   assertAppImage(appImagePath, 'Linux AppImage')
   assertDebArchive(debPath, 'Linux Debian package')
   assertElfExecutable(applicationPath, 'unpacked Linux application')
-  return { appImagePath, debPath, applicationPath }
+  assertPrimaryRuntimePayload(payloadPath)
+  return { appImagePath, debPath, applicationPath, payloadPath }
 }
 
 const invokedPath = process.argv[1]
 if (invokedPath !== undefined && resolve(invokedPath) === fileURLToPath(import.meta.url)) {
   try {
     const verified = verifyLinuxArtifacts()
-    console.log(`Linux artifact verification passed: ${verified.appImagePath}, ${verified.debPath}`)
+    console.log(
+      `Linux artifact verification passed: ${verified.appImagePath}, ${verified.debPath}, `
+      + `bundled primary runtime at ${verified.payloadPath}`,
+    )
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))
     process.exitCode = 1

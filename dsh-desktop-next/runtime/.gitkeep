@@ -1,0 +1,2 @@
+# Prepared primary runtime payload (Node.js, Python, pnpm and Office skills).
+# Run `yarn dist:linux:next` or `yarn prepare:primary-runtime --desktop dsh-desktop-next`.

@@ -15,7 +15,7 @@
     "dsh-community-market"
   ],
   "resolutions": {
-    "@agents-anywhere/dsh-bridge-next": "patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.c3b71979f7ac8.r1188e1a1.tgz#./patches/agents-anywhere-connector-httpx.patch",
+    "@agents-anywhere/dsh-bridge-next": "patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.cb6fe36366e2a.r1188e1a1.tgz#./patches/agents-anywhere-connector-httpx.patch",
     "app-builder-lib@npm:26.15.7": "patch:app-builder-lib@npm%3A26.15.7#./patches/app-builder-lib@26.15.7.patch",
     "open@npm:11.0.1": "patch:open@npm%3A11.0.1#./patches/open@11.0.1.patch",
     "open@npm:^11.0.0": "patch:open@npm%3A11.0.1#./patches/open@11.0.1.patch",
@@ -654,7 +654,7 @@
     "@deepseek-ai/dsh-web-search-perplexity@npm:^0.1.7-rc.2": "file:vendor/dsh-runtime/0.1.7-rc.2/deepseek-ai-dsh-web-search-perplexity-0.1.7-rc.2.tgz",
     "sharp@npm:^0.35.3": "patch:sharp@npm%3A0.35.3#~/.yarn/patches/sharp-npm-0.35.3-dfa206213d.patch",
     "sharp@npm:0.35.3": "patch:sharp@npm%3A0.35.3#~/.yarn/patches/sharp-npm-0.35.3-dfa206213d.patch",
-    "dshmarket@npm:1.66.1": "patch:dshmarket@npm%3A1.66.1#./.yarn/patches/dshmarket-desktop.patch"
+    "dshmarket@npm:1.66.2": "patch:dshmarket@npm%3A1.66.2#./.yarn/patches/dshmarket-desktop.patch"
   },
   "dependenciesMeta": {
     "@deepseek-ai/dsh-subprocess-local": {
@@ -685,6 +685,10 @@
       "built": false
     }
   },
+  "devDependencies": {
+    "adm-zip": "^0.6.0",
+    "tar": "^7.5.0"
+  },
   "scripts": {
     "build": "yarn market:prepare && yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop build && yarn workspace dsh-plugin-desktop-beta build && yarn workspace dsh-desktop-next build",
     "typecheck": "yarn workspace dsh-plugin-desktop typecheck && yarn workspace dsh-plugin-desktop-beta typecheck && yarn workspace dsh-community-market typecheck && yarn workspace dsh-desktop-next typecheck",
@@ -706,6 +710,7 @@
     "dist:linux": "yarn market:prepare && yarn aa:prepare-release && yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop dist:linux",
     "dist:linux:next": "yarn market:prepare && yarn aa:prepare-release && yarn workspace dsh-community-market build && yarn workspace dsh-desktop-next dist:linux",
     "dist:win-portable": "yarn market:prepare && yarn aa:prepare-release && yarn aa:prepare-release --verify-release && yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop dist:win-portable",
+    "prepare:primary-runtime": "node scripts/prepare-primary-runtime.mjs",
     "upstream:version": "cd deepseek-harness && corepack pnpm --version",
     "upstream:install": "cd deepseek-harness && CI=true corepack pnpm install --frozen-lockfile",
     "upstream:build": "cd deepseek-harness && corepack pnpm run build",

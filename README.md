@@ -57,6 +57,10 @@ Linux 版 Electron 会向进程空间泄漏 glib 符号，与 sharp/libvips 的 
 
 具体实现见 `.yarn/patches/`、`patches/` 与提交历史。
 
+### 6. 内置官方运行时载荷（Python / Node.js / pnpm + Office 技能）
+
+打包版随应用携带与官方桌面端同源的第一方运行时载荷：Python 3.12（含 numpy、pandas、python-docx、python-pptx、openpyxl、Pillow、lxml、XlsxWriter）、Node.js 24、pnpm 11，以及默认启用的 `office-docx` / `office-pptx` / `office-xlsx` 三个技能。载荷按上游 pin 的 `lock.json` 锁定并逐个校验 SHA-256，位于 `resources/runtime/`，由 `load_workspace_dependencies` 工具暴露解释器与库路径。它不替代 sharp 桥接：sharp 仍使用系统真实 Node（见第 2 项）。
+
 ## 下载与运行
 
 从 [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases) 获取 Linux x64 包，提供 **AppImage**、**便携包（tar.gz）** 与 **Debian 包** 三种形式。下面命令中的 `<version>` 请替换为 Release 页面上的实际版本号（稳定版形如 `2.0.14`，Next 通道形如 `2.0.14-next`）。
@@ -96,7 +100,7 @@ Next 通道对应 `DSH-Desktop-Next-<version>-amd64.deb`（包名 `dsh-desktop-n
 两种形式都要求：
 
 - Linux x64，且具备可运行 Electron 的桌面会话
-- 系统需安装**真实 Node**（sharp 桥接使用；默认依次查找 `/usr/bin/node`、`/usr/local/bin/node`、`/opt/homebrew/bin/node`，可用环境变量 `DSH_SHARP_NODE` 指定）
+- 系统需安装**真实 Node**（sharp 桥接使用；默认依次查找 `/usr/bin/node`、`/usr/local/bin/node`、`/opt/homebrew/bin/node`，可用环境变量 `DSH_SHARP_NODE` 指定）。打包版另内置 Node 24 供 Office 与工作区依赖载荷使用，sharp 桥接**不会**使用该内置副本
 - 用户数据写入 `~/.config/DSH Desktop`
 
 ### 校验签名

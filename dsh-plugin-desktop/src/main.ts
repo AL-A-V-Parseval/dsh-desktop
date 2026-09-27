@@ -39,6 +39,7 @@ import {
   installDesktopPnpmRuntime,
 } from './desktop-runtime-environment.ts'
 import { desktopProductVersion, ElectronDesktopRuntime } from './electron-runtime.ts'
+import { publishBundledPrimaryRuntime } from './primary-runtime-payload.ts'
 import { getOrCreateDesktopInstallationId } from './desktop-installation-id.ts'
 import {
   createDesktopFailLoudProcess,
@@ -757,6 +758,13 @@ async function start(): Promise<void> {
       platform: process.platform,
     })
     for (const [name, value] of Object.entries(shellEnvironmentResolution.updates)) process.env[name] = value
+    const bundledPrimaryRuntime = publishBundledPrimaryRuntime({
+      isPackaged: app.isPackaged,
+      resourcesPath: process.resourcesPath,
+    })
+    if (bundledPrimaryRuntime !== undefined) {
+      electronLogger.info(`${BIN_NAME}: bundled primary runtime = ${bundledPrimaryRuntime}`)
+    }
     const profileUserDataDir = safeModePaths?.userDataDir ?? desktopUserDataDir
     prepareSafeMode = safeModePaths === undefined
       ? () => {

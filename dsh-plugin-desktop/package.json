@@ -147,7 +147,7 @@
     "icons:export": "node ../scripts/export-app-icons.mjs --channel stable"
   },
   "dependencies": {
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.c3b71979f7ac8.r1188e1a1.tgz",
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.cb6fe36366e2a.r1188e1a1.tgz",
     "@deepseek-ai/cordis": "4.0.4",
     "@deepseek-ai/cordis-plugin-group": "1.0.4",
     "@deepseek-ai/cordis-plugin-include": "1.0.9",
@@ -269,6 +269,7 @@
     "@deepseek-ai/dsh-shell-env": "0.1.7-rc.2",
     "@deepseek-ai/dsh-skill": "0.1.7-rc.2",
     "@deepseek-ai/dsh-skill-filesystem": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-skill-office": "0.1.7-rc.2",
     "@deepseek-ai/dsh-spill": "0.1.7-rc.2",
     "@deepseek-ai/dsh-storage": "0.1.7-rc.2",
     "@deepseek-ai/dsh-storage-domain": "0.1.7-rc.2",
@@ -291,6 +292,7 @@
     "@deepseek-ai/dsh-tool-skill": "0.1.7-rc.2",
     "@deepseek-ai/dsh-tool-todo": "0.1.7-rc.2",
     "@deepseek-ai/dsh-tool-workflow": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-tool-workspace-dependencies": "0.1.7-rc.2",
     "@deepseek-ai/dsh-tools": "0.1.7-rc.2",
     "@deepseek-ai/dsh-typert-protocol": "0.1.7-rc.2",
     "@deepseek-ai/dsh-typert-registry": "0.1.7-rc.2",
@@ -308,7 +310,7 @@
     "@deepseek-ai/schemastery": "^3.18.4",
     "adm-zip": "^0.6.0",
     "dsh-community-market": "0.1.0-dev.0",
-    "dshmarket": "1.66.1",
+    "dshmarket": "1.66.2",
     "fs-ext": "2.1.1",
     "koffi": "3.1.5",
     "node-addon-require-builtin": "^0.1.6",
@@ -374,6 +376,12 @@
     "toolsets": {
       "nsis": "1.2.1"
     },
+    "extraResources": [
+      {
+        "from": "runtime",
+        "to": "runtime"
+      }
+    ],
     "files": [
       "build/app-icon.ico",
       "build/app-icon.png",

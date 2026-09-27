@@ -2,7 +2,7 @@
 
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
-import { dirname, resolve } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { prepareFsExtForElectron } from './prepare-fs-ext.ts'
 import { electronBuilderEnvironment } from './electron-builder-environment.ts'
@@ -91,12 +91,62 @@ export function createLinuxPackageOptions(verifier = './verify-linux-artifacts.t
     builderCli: require.resolve('electron-builder/cli.js'),
     prepareRuntime: () => {
       prepareFsExtForElectron({ platform: 'linux', arch: 'x64', desktopRoot })
+      preparePrimaryRuntimePayload({
+        workspaceRoot,
+        desktopRoot,
+        env: process.env,
+        nodeExecutable: process.execPath,
+        run,
+        log: message => { console.log(message) },
+      })
     },
     verifier: fileURLToPath(new URL(verifier, import.meta.url)),
     nodeExecutable: process.execPath,
     run,
     log: message => console.log(message),
   }
+}
+
+/**
+ * Prepare the bundled primary runtime payload for the Linux x64 target.
+ *
+ * The payload is assembled from the lock pinned by the upstream checkout and
+ * cached by digest, so repeated packaging runs do not download it again. An
+ * unchanged payload is copied into `runtime/`, which Electron Builder then
+ * publishes to `resources/runtime` through `build.extraResources`.
+ */
+export function preparePrimaryRuntimePayload(options: {
+  /** Repository root containing the preparation script and the upstream checkout. */
+  readonly workspaceRoot: string
+  /** Desktop package root receiving `runtime/`. */
+  readonly desktopRoot: string
+  /** Environment inherited by the preparation command. */
+  readonly env: NodeJS.ProcessEnv
+  /** Node executable running package-local scripts. */
+  readonly nodeExecutable: string
+  /** Execute one packaging command. */
+  readonly run: (
+    command: string,
+    args: readonly string[],
+    cwd: string,
+    env: NodeJS.ProcessEnv,
+  ) => void
+  /** Report non-secret packaging progress. */
+  readonly log: (message: string) => void
+}): void {
+  options.log('Preparing the bundled primary runtime payload (Node.js, Python, pnpm and Office skills).')
+  options.run(
+    options.nodeExecutable,
+    [
+      join(options.workspaceRoot, 'scripts', 'prepare-primary-runtime.mjs'),
+      '--target',
+      'linux-x64',
+      '--desktop',
+      relative(options.workspaceRoot, options.desktopRoot),
+    ],
+    options.workspaceRoot,
+    options.env,
+  )
 }
 
 /** Run the shared host and Node release gates before packaging. */

@@ -57,6 +57,10 @@ Both `tests/package.spec.ts` editions update the RunAsNode cases and add a sharp
 
 See `.yarn/patches/`, `patches/`, and the commit history for details.
 
+### 6. Bundled official runtime payload (Python / Node.js / pnpm + Office skills)
+
+Packaged builds carry the same first-party runtime payload the official Harness desktop ships: Python 3.12 with numpy, pandas, python-docx, python-pptx, openpyxl, Pillow, lxml and XlsxWriter, Node.js 24, pnpm 11, and the `office-docx` / `office-pptx` / `office-xlsx` skills enabled by default. Every archive is locked by the pinned upstream `lock.json` and verified by SHA-256; the payload lives in `resources/runtime/` and the `load_workspace_dependencies` tool exposes its interpreter and library paths. It does not replace the sharp bridge, which still uses a real system Node (see item 2).
+
 ## Download and run
 
 Grab the Linux x64 build from [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases). Three forms are provided: an **AppImage**, a **portable archive (tar.gz)** and a **Debian package**. Replace `<version>` in the commands below with the actual version on the Release page (stable is shaped like `2.0.14`, the Next channel like `2.0.14-next`).
@@ -96,7 +100,7 @@ Uninstall with `sudo apt remove dsh-desktop` (or `dsh-desktop-next`); user data 
 Both forms require:
 
 - Linux x64 with a desktop session able to run Electron
-- A **real Node** installation (used by the sharp bridge; searched in `/usr/bin/node`, `/usr/local/bin/node`, `/opt/homebrew/bin/node`, overridable via `DSH_SHARP_NODE`)
+- A **real Node** installation (used by the sharp bridge; searched in `/usr/bin/node`, `/usr/local/bin/node`, `/opt/homebrew/bin/node`, overridable via `DSH_SHARP_NODE`). Packaged builds also bundle Node 24 for the Office and workspace-dependency payload; the sharp bridge does **not** use that bundled copy
 - User data is written to `~/.config/DSH Desktop`
 
 ### Verify signatures

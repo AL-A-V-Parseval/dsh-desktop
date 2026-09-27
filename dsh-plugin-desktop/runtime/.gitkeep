@@ -1,0 +1,2 @@
+# Prepared primary runtime payload (Node.js, Python, pnpm and Office skills).
+# Run `yarn workspace dsh-plugin-desktop dist:linux` or `yarn prepare:primary-runtime`.
