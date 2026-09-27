@@ -652,7 +652,13 @@
     "@deepseek-ai/dsh-web-search-exa@npm:^0.1.7-rc.2": "file:vendor/dsh-runtime/0.1.7-rc.2/deepseek-ai-dsh-web-search-exa-0.1.7-rc.2.tgz",
     "@deepseek-ai/dsh-web-search-perplexity@npm:0.1.7-rc.2": "file:vendor/dsh-runtime/0.1.7-rc.2/deepseek-ai-dsh-web-search-perplexity-0.1.7-rc.2.tgz",
     "@deepseek-ai/dsh-web-search-perplexity@npm:^0.1.7-rc.2": "file:vendor/dsh-runtime/0.1.7-rc.2/deepseek-ai-dsh-web-search-perplexity-0.1.7-rc.2.tgz",
-    "dshmarket@npm:1.66.3": "patch:dshmarket@npm%3A1.66.3#./.yarn/patches/dshmarket-desktop.patch"
+    "dshmarket@npm:1.66.3": "patch:dshmarket@npm%3A1.66.3#./.yarn/patches/dshmarket-desktop.patch",
+    "@deepseek-ai/dsh-otel@npm:0.1.7-rc.2": "file:vendor/dsh-runtime/0.1.7-rc.2/deepseek-ai-dsh-otel-0.1.7-rc.2.tgz",
+    "@deepseek-ai/dsh-otel@npm:^0.1.7-rc.2": "file:vendor/dsh-runtime/0.1.7-rc.2/deepseek-ai-dsh-otel-0.1.7-rc.2.tgz",
+    "@deepseek-ai/dsh-experimental-schedule-bundle@npm:0.1.7-rc.2": "file:vendor/dsh-runtime/0.1.7-rc.2/deepseek-ai-dsh-experimental-schedule-bundle-0.1.7-rc.2.tgz",
+    "@deepseek-ai/dsh-experimental-schedule-bundle@npm:^0.1.7-rc.2": "file:vendor/dsh-runtime/0.1.7-rc.2/deepseek-ai-dsh-experimental-schedule-bundle-0.1.7-rc.2.tgz",
+    "@deepseek-ai/dsh-client-product-analytics@npm:0.1.7-rc.2": "file:vendor/dsh-runtime/0.1.7-rc.2/deepseek-ai-dsh-client-product-analytics-0.1.7-rc.2.tgz",
+    "@deepseek-ai/dsh-client-product-analytics@npm:^0.1.7-rc.2": "file:vendor/dsh-runtime/0.1.7-rc.2/deepseek-ai-dsh-client-product-analytics-0.1.7-rc.2.tgz"
   },
   "dependenciesMeta": {
     "@deepseek-ai/dsh-subprocess-local": {
