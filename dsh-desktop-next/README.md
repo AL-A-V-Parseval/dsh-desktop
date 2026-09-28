@@ -62,6 +62,8 @@ Markets, remote control and Computer Use appear above the ordinary plugin list, 
 
 Sidebar extension entries reuse the original Desktop footer layout: entries stack vertically above Settings, with bounded scrolling to preserve the workspace list.
 
+**Automation tasks** appears in the official Plugins group with upstream artwork, its experimental badge, the native enable switch, and component details. It is optional and disabled by default. Next preserves existing Schedule choices and their legacy Profile migration; it adds no separate Scheduled Tasks card.
+
 ### Browser and LAN access
 
 Browser access is disabled by default. Enabling local access provides an authenticated loopback login link; enabling LAN access adds an HTTPS/WSS edge while the Host stays bound to `127.0.0.1`. Ports default to `0` (automatic). Access toggles do not restart the Host. Disabling browser access also disconnects existing browser WebSockets while preserving native streams and running tasks. Port changes require a Host restart. LAN addresses are sampled at startup; restart after a network change.
