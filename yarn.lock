@@ -2051,7 +2051,7 @@ __metadata:
 
 "@deepseek-ai/dsh-client-ui-plugin-manager@patch:@deepseek-ai/dsh-client-ui-plugin-manager@file%3Avendor/dsh-runtime/0.1.7-rc.2/deepseek-ai-dsh-client-ui-plugin-manager-0.1.7-rc.2.tgz#./patches/dsh-client-ui-plugin-manager@0.1.7-rc.2.patch::locator=deepseek-harness-desktop%40workspace%3A.":
   version: 0.1.7-rc.2
-  resolution: "@deepseek-ai/dsh-client-ui-plugin-manager@patch:@deepseek-ai/dsh-client-ui-plugin-manager@file%3Avendor/dsh-runtime/0.1.7-rc.2/deepseek-ai-dsh-client-ui-plugin-manager-0.1.7-rc.2.tgz%23vendor/dsh-runtime/0.1.7-rc.2/deepseek-ai-dsh-client-ui-plugin-manager-0.1.7-rc.2.tgz%3A%3Ahash=0d89b1&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/dsh-client-ui-plugin-manager@0.1.7-rc.2.patch::version=0.1.7-rc.2&hash=237bc2&locator=deepseek-harness-desktop%40workspace%3A."
+  resolution: "@deepseek-ai/dsh-client-ui-plugin-manager@patch:@deepseek-ai/dsh-client-ui-plugin-manager@file%3Avendor/dsh-runtime/0.1.7-rc.2/deepseek-ai-dsh-client-ui-plugin-manager-0.1.7-rc.2.tgz%23vendor/dsh-runtime/0.1.7-rc.2/deepseek-ai-dsh-client-ui-plugin-manager-0.1.7-rc.2.tgz%3A%3Ahash=0d89b1&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/dsh-client-ui-plugin-manager@0.1.7-rc.2.patch::version=0.1.7-rc.2&hash=660033&locator=deepseek-harness-desktop%40workspace%3A."
   dependencies:
     "@deepseek-ai/dsh-timeout": "npm:0.1.7-rc.2"
     "@deepseek-ai/dsh-typert-protocol": "npm:0.1.7-rc.2"
@@ -2059,7 +2059,7 @@ __metadata:
     zod: "npm:^4.4.3"
   peerDependencies:
     "@deepseek-ai/cordis": ~4.0.4
-  checksum: 10c0/4a36e42b66bf74e1133b330aa82afa88e1cf7cb47aba34610f758386f14bc12d8db674f65b18fb9265f1e82b33536626a19176fa341d17b372f35d409d66dbd4
+  checksum: 10c0/eb46db168f01df785ac7b00cd658b413b1e4494ecc3cb1599211979e5f36c940e8d75001d7d3103fca1a3f40b00eb3fbc70b67679d69794b126f3b886d96d2e8
   languageName: node
   linkType: hard
 
