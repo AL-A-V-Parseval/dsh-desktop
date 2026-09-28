@@ -36,8 +36,8 @@ const NOTIFICATION_COPY: Record<DesktopLocale, Record<NotificationOutcome, Deskt
     'turn-failed': { title: 'User Turn Failed', body: 'A user-initiated turn could not finish. Open DSH Desktop for details.' },
     'job-completed': { title: 'Background Job Completed', body: 'A background job has finished.' },
     'job-failed': { title: 'Background Job Failed', body: 'A background job could not finish. Open DSH Desktop for details.' },
-    'schedule-completed': { title: 'Automation Task Completed', body: 'A automation task has finished.' },
-    'schedule-failed': { title: 'Automation Task Failed', body: 'A automation task could not finish. Open DSH Desktop for details.' },
+    'schedule-completed': { title: 'Automation Task Completed', body: 'An automation task has finished.' },
+    'schedule-failed': { title: 'Automation Task Failed', body: 'An automation task could not finish. Open DSH Desktop for details.' },
   },
   zh: {
     'turn-completed': { title: '用户回合已完成', body: '一个由你发起的回合已完成。' },

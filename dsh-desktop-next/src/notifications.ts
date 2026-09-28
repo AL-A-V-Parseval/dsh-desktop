@@ -2,13 +2,34 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
+import type { Nodes } from 'mdast'
+import { fromMarkdown } from 'mdast-util-from-markdown'
+import { gfmFromMarkdown } from 'mdast-util-gfm'
+import { toString } from 'mdast-util-to-string'
+import { gfm } from 'micromark-extension-gfm'
 import type { DesktopNotification, DesktopPreferences, NotificationOutcome } from './desktop-contract.ts'
 
 const TITLE_LIMIT = 160
 const BODY_LIMIT = 1000
 
+/** The native notification API accepts plain text, so project the Web client's GFM grammar before truncating. */
+function plainText(node: Nodes): string {
+  if (node.type === 'root' || node.type === 'list' || node.type === 'listItem'
+    || node.type === 'blockquote' || node.type === 'table' || node.type === 'tableRow') {
+    return node.children.map(plainText).filter(Boolean).join(' ')
+  }
+  return toString(node, { includeHtml: false })
+}
+
 function preview(content: readonly ContentBlock[], limit: number): string {
-  const text = content.flatMap(block => block.type === 'text' ? [block.text] : []).join('\n').replace(/\s+/g, ' ').trim()
+  const markdown = content.flatMap(block => block.type === 'text' ? [block.text] : []).join('\n')
+  let text: string
+  try {
+    text = plainText(fromMarkdown(markdown, { extensions: [gfm()], mdastExtensions: [gfmFromMarkdown()] }))
+      .replace(/\s+/g, ' ').trim()
+  } catch {
+    return ''
+  }
   return text.length <= limit ? text : `${text.slice(0, limit - 1).replace(/[\uD800-\uDBFF]$/u, '')}…`
 }
 
@@ -25,7 +46,7 @@ export function notificationCopy(notification: DesktopNotification, language: st
   const zh = language.startsWith('zh')
   if (notification.outcome === 'schedule-completed') return {
     title: zh ? '自动化任务完成' : 'Automation task completed',
-    body: zh ? '一个自动化任务已完成。' : 'A automation task has finished.',
+    body: zh ? '一个自动化任务已完成。' : 'An automation task has finished.',
   }
   if (notification.outcome === 'schedule-failed') return {
     title: zh ? '自动化任务失败' : 'Automation task failed',

@@ -70,6 +70,19 @@ it('uses the actual user prompt and final visible assistant reply from the same 
   expect(notificationCopy(notify.mock.calls[0]![0], 'zh')).toEqual({ title: '帮我检查 这段代码', body: '检查完成。 已经修复。' })
 })
 
+it('projects Markdown previews to plain text before sending native notifications', () => {
+  const notify = vi.fn()
+  const tracker = new TurnAttention(notify)
+  tracker.event(session, event('turn/start', { turn: 1 }))
+  tracker.event(session, user('**Check** [docs](https://example.com)'))
+  tracker.event(session, assistant(1, '# Result\n\n- **Done**\n- `code`'))
+  tracker.event(session, end(1))
+  expect(notify).toHaveBeenCalledWith({
+    outcome: 'turn-completed', userMessage: 'Check docs', assistantMessage: 'Result Done code',
+  })
+  expect(notificationCopy(notify.mock.calls[0]![0], 'en')).toEqual({ title: 'Check docs', body: 'Result Done code' })
+})
+
 it('keeps sessions and turns separate and sends generic failures', () => {
   const notify = vi.fn()
   const tracker = new TurnAttention(notify)
