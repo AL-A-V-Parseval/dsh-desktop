@@ -14,9 +14,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@agents-anywhere/dsh-bridge-next@file:vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.1-desktop.c1fc7d964982b.r27dbe9f7.tgz::locator=deepseek-harness-desktop%40workspace%3A.":
-  version: 2.0.1-desktop.c1fc7d964982b.r27dbe9f7
-  resolution: "@agents-anywhere/dsh-bridge-next@file:vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.1-desktop.c1fc7d964982b.r27dbe9f7.tgz#vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.1-desktop.c1fc7d964982b.r27dbe9f7.tgz::hash=01a6ce&locator=deepseek-harness-desktop%40workspace%3A."
+"@agents-anywhere/dsh-bridge-next@file:vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.2-desktop.ce31fb749ef60.r27dbe9f7.tgz::locator=deepseek-harness-desktop%40workspace%3A.":
+  version: 2.0.2-desktop.ce31fb749ef60.r27dbe9f7
+  resolution: "@agents-anywhere/dsh-bridge-next@file:vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.2-desktop.ce31fb749ef60.r27dbe9f7.tgz#vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.2-desktop.ce31fb749ef60.r27dbe9f7.tgz::hash=e16724&locator=deepseek-harness-desktop%40workspace%3A."
   dependencies:
     "@dataiku/uv": "npm:0.12.0"
     clsx: "npm:2.1.1"
@@ -29,13 +29,13 @@ __metadata:
     "@deepseek-ai/dsh-typert-protocol": 0.2.0-rc.1
     "@deepseek-ai/schemastery": 3.18.4
     react: ^18.3.1
-  checksum: 10c0/34f88d8ac0d088a82edf2acf087991acdbe05b52d9b99b8ff0375d6f0fcb5e4ad9c8a1c182fb048c1b5bb344794b52b945d8a7cebbd82dae9d0363a72099e558
+  checksum: 10c0/7b82039cded93296ccdfe789af6d8481360076a16f95246539667cbdfce4663bd0e41ddc28b6d90604bfdc45fbc421d523e4ad363065e016d6820df1c9b7e3ac
   languageName: node
   linkType: hard
 
-"@agents-anywhere/dsh-bridge-next@patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.1-desktop.c1fc7d964982b.r27dbe9f7.tgz#./patches/agents-anywhere-connector-httpx.patch::locator=deepseek-harness-desktop%40workspace%3A.":
-  version: 2.0.1-desktop.c1fc7d964982b.r27dbe9f7
-  resolution: "@agents-anywhere/dsh-bridge-next@patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.1-desktop.c1fc7d964982b.r27dbe9f7.tgz%23vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.1-desktop.c1fc7d964982b.r27dbe9f7.tgz%3A%3Ahash=01a6ce&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/agents-anywhere-connector-httpx.patch::version=2.0.1-desktop.c1fc7d964982b.r27dbe9f7&hash=a0dfbd&locator=deepseek-harness-desktop%40workspace%3A."
+"@agents-anywhere/dsh-bridge-next@patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.2-desktop.ce31fb749ef60.r27dbe9f7.tgz#./patches/agents-anywhere-connector-httpx.patch::locator=deepseek-harness-desktop%40workspace%3A.":
+  version: 2.0.2-desktop.ce31fb749ef60.r27dbe9f7
+  resolution: "@agents-anywhere/dsh-bridge-next@patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.2-desktop.ce31fb749ef60.r27dbe9f7.tgz%23vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.2-desktop.ce31fb749ef60.r27dbe9f7.tgz%3A%3Ahash=e16724&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/agents-anywhere-connector-httpx.patch::version=2.0.2-desktop.ce31fb749ef60.r27dbe9f7&hash=55f270&locator=deepseek-harness-desktop%40workspace%3A."
   dependencies:
     "@dataiku/uv": "npm:0.12.0"
     clsx: "npm:2.1.1"
@@ -48,7 +48,7 @@ __metadata:
     "@deepseek-ai/dsh-typert-protocol": 0.2.0-rc.1
     "@deepseek-ai/schemastery": 3.18.4
     react: ^18.3.1
-  checksum: 10c0/471a8ad70a8bfb5c40391d9a63176119c710136ca8b74d61393eba9f48d24e1bc191f40e0ea6ef9e08f0d4f3cc63c7fba0e797cbc72ce07423777a0e5a2a5ed5
+  checksum: 10c0/b7de4b222319d3d472db61a6eac76cc12c9dc8f769bdb21765e86954ce7ad79a260c121b110aea5a6dd15891e3280363ac6da51d4c710f24948e191231b0e8c1
   languageName: node
   linkType: hard
 
@@ -10583,7 +10583,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dsh-desktop-next@workspace:dsh-desktop-next"
   dependencies:
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.1-desktop.c1fc7d964982b.r27dbe9f7.tgz"
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.2-desktop.ce31fb749ef60.r27dbe9f7.tgz"
     "@base-ui/react": "npm:^1.7.0"
     "@deepseek-ai/cordis": "npm:4.0.4"
     "@deepseek-ai/cordis-plugin-group": "npm:1.0.4"
@@ -10802,7 +10802,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dsh-plugin-desktop-beta@workspace:dsh-plugin-desktop-beta"
   dependencies:
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.1-desktop.c1fc7d964982b.r27dbe9f7.tgz"
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.2-desktop.ce31fb749ef60.r27dbe9f7.tgz"
     "@base-ui/react": "npm:^1.7.0"
     "@deepseek-ai/cordis": "npm:4.0.4"
     "@deepseek-ai/cordis-plugin-group": "npm:1.0.4"
@@ -11018,7 +11018,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dsh-plugin-desktop@workspace:dsh-plugin-desktop"
   dependencies:
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.1-desktop.c1fc7d964982b.r27dbe9f7.tgz"
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.2-desktop.ce31fb749ef60.r27dbe9f7.tgz"
     "@base-ui/react": "npm:^1.7.0"
     "@deepseek-ai/cordis": "npm:4.0.4"
     "@deepseek-ai/cordis-plugin-group": "npm:1.0.4"
