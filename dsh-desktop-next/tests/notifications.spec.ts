@@ -11,7 +11,7 @@ const user = (message: string, kind = 'user') => event('user/message', { source:
 const assistant = (turn: number, message: string) => event('assistant/message', { turn, message: { content: [text(message)] } })
 const end = (turn: number, kind = 'completed') => event('turn/end', { turn, reason: { kind } })
 
-it('notifies for the initiating user turn, not subagents, automation, or duplicate endings', () => {
+it('notifies for the initiating user turn, not subagents, unknown automation, or duplicate endings', () => {
   const notify = vi.fn()
   const tracker = new TurnAttention(notify)
   tracker.event(session, event('turn/start', { turn: 1 }))
@@ -29,6 +29,27 @@ it('notifies for the initiating user turn, not subagents, automation, or duplica
   expect(notificationEnabled({ ...DEFAULT_PREFERENCES, notifications: false }, 'turn-completed')).toBe(false)
   expect(notificationEnabled({ ...DEFAULT_PREFERENCES, turnFailed: false }, 'turn-failed')).toBe(false)
   expect(notificationEnabled({ ...DEFAULT_PREFERENCES }, 'turn-completed')).toBe(true)
+})
+
+it('notifies for scheduled turn outcomes without exposing the reminder or reply', () => {
+  const notify = vi.fn()
+  const tracker = new TurnAttention(notify)
+  tracker.event(session, event('turn/start', { turn: 1 }))
+  tracker.event(session, user('Private reminder', 'schedule'))
+  tracker.event(session, assistant(1, 'Private result'))
+  tracker.event(session, end(1))
+  tracker.event(session, end(1))
+  tracker.event(session, event('turn/start', { turn: 2 }))
+  tracker.event(session, user('Another private reminder', 'schedule'))
+  tracker.event(session, end(2, 'error'))
+  expect(notify.mock.calls.map(([value]) => value)).toEqual([
+    { outcome: 'schedule-completed' }, { outcome: 'schedule-failed' },
+  ])
+  expect(notificationCopy({ outcome: 'schedule-completed' }, 'zh')).toEqual({ title: '定时任务完成', body: '一个定时任务已完成。' })
+  expect(notificationEnabled({ ...DEFAULT_PREFERENCES, scheduleCompleted: false }, 'schedule-completed')).toBe(false)
+  expect(notificationEnabled({ ...DEFAULT_PREFERENCES, scheduleFailed: false }, 'schedule-failed')).toBe(false)
+  expect(isDesktopNotification({ outcome: 'schedule-completed' })).toBe(true)
+  expect(isDesktopNotification({ outcome: 'schedule-failed' })).toBe(true)
 })
 
 it('uses the actual user prompt and final visible assistant reply from the same turn', () => {
