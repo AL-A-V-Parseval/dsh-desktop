@@ -39,11 +39,17 @@ interface MarketCommandRuntime {
 
 type MarketRoute = (request: object, response: object) => void | Promise<void>
 
-const originalFetch = globalThis.fetch
+const { registryFetch } = vi.hoisted(() => ({ registryFetch: vi.fn<typeof fetch>() }))
+// Market uses undici's fetch with its own dispatcher, bypassing global fetch.
+// Mock that transport so version lookups cannot escape to the live registry.
+vi.mock('undici', async importOriginal => ({
+  ...await importOriginal<Record<string, unknown>>(),
+  fetch: registryFetch,
+}))
 const temporaryProfiles: string[] = []
 
 afterEach(() => {
-  globalThis.fetch = originalFetch
+  registryFetch.mockReset()
   for (const profile of temporaryProfiles.splice(0)) rmSync(profile, { recursive: true, force: true })
   vi.unstubAllEnvs()
   vi.restoreAllMocks()
@@ -161,7 +167,7 @@ describe('dsh-market Desktop install compatibility', () => {
     for (const name of ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'all_proxy']) {
       vi.stubEnv(name, '')
     }
-    globalThis.fetch = vi.fn(async () => new Response(
+    registryFetch.mockImplementation(async () => new Response(
       JSON.stringify({ version: '9999.0.0' }),
       { status: 200, headers: { 'content-type': 'application/json' } },
     ))
@@ -227,7 +233,7 @@ describe('dsh-market Desktop install compatibility', () => {
     for (const name of ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']) {
       vi.stubEnv(name, '')
     }
-    globalThis.fetch = vi.fn(async () => new Response(
+    registryFetch.mockImplementation(async () => new Response(
       JSON.stringify({ version: '3.18.1' }),
       { status: 200, headers: { 'content-type': 'application/json' } },
     ))
@@ -307,7 +313,7 @@ describe('dsh-market Desktop install compatibility', () => {
   })
 
   it.each([undefined, '9999.0.0'])('does not reject a host-provided market update for a pre-existing missing bundle (compatVersion=%s)', async (compatVersion) => {
-    globalThis.fetch = vi.fn(async () => new Response(
+    registryFetch.mockImplementation(async () => new Response(
       JSON.stringify({ version: '9999.0.0' }),
       { status: 200, headers: { 'content-type': 'application/json' } },
     ))
@@ -420,7 +426,7 @@ describe('dsh-market Desktop install compatibility', () => {
   })
 
   it('restores dependencies and the bundle stack when an update introduces a trial failure', async () => {
-    globalThis.fetch = vi.fn(async () => new Response(
+    registryFetch.mockImplementation(async () => new Response(
       JSON.stringify({ version: '9999.0.0' }),
       { status: 200, headers: { 'content-type': 'application/json' } },
     ))

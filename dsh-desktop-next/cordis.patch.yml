@@ -26,3 +26,12 @@
       config:
         assetRoot: !!js "process.getBuiltinModule('node:path').resolve(process.env.DSH_PRIMARY_RUNTIME ?? process.env.DSH_BUNDLED_PRIMARY_RUNTIME ?? '', '..', 'office-skills')"
         node: !!js "process.getBuiltinModule('node:path').resolve(process.env.DSH_PRIMARY_RUNTIME ?? process.env.DSH_BUNDLED_PRIMARY_RUNTIME ?? '', 'dependencies', 'node', 'bin', process.platform === 'win32' ? 'node.exe' : 'node')"
+
+# Upstream mounts its Desktop product analytics for every Profile named
+# `desktop` and reports to DeepSeek's collector by default. DSH Desktop does
+# not take part in that collection. Its exporter also requires the upstream
+# Electron shell's DSH_CLIENT_VERSION, which Next never provides.
+- id: desktop-product-telemetry
+  disabled: true
+- id: product-analytics
+  disabled: true

@@ -42,7 +42,7 @@
     "check:linux-package": "yarn check"
   },
   "dependencies": {
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.cb6fe36366e2a.r1188e1a1.tgz",
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.1-desktop.c17d7bc3592b7.r1188e1a1.tgz",
     "@deepseek-ai/cordis": "4.0.4",
     "@deepseek-ai/cordis-plugin-group": "1.0.4",
     "@deepseek-ai/cordis-plugin-include": "1.0.9",
@@ -109,6 +109,7 @@
     "@deepseek-ai/dsh-experimental-agent-team-profile": "0.1.7-rc.2",
     "@deepseek-ai/dsh-experimental-auto-review": "0.1.7-rc.2",
     "@deepseek-ai/dsh-experimental-computer-use-cua-driver-native": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-experimental-schedule-bundle": "0.1.7-rc.2",
     "@deepseek-ai/dsh-experimental-voice-input-bundle": "0.1.7-rc.2",
     "@deepseek-ai/dsh-file-reference": "0.1.7-rc.2",
     "@deepseek-ai/dsh-fs": "0.1.7-rc.2",
@@ -205,7 +206,7 @@
     "@deepseek-ai/dsh-workspace": "0.1.7-rc.2",
     "@deepseek-ai/schemastery": "^3.18.4",
     "dsh-community-market": "0.1.0-dev.0",
-    "dshmarket": "1.66.2",
+    "dshmarket": "1.66.3",
     "pnpm": "11.8.0",
     "react": "18.3.1",
     "selfsigned": "5.5.0",

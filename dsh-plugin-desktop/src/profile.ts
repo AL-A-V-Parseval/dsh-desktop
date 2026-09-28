@@ -102,6 +102,8 @@ const PWSH_SANDBOX_ROW_ID = 'pwsh-sandbox'
 const UPSTREAM_PWSH_SANDBOX_PACKAGE = '@deepseek-ai/dsh-pwsh-sandbox'
 const DESKTOP_WINDOWS_PWSH_SANDBOX_ROW_ID = 'desktop-windows-pwsh-sandbox'
 const DESKTOP_WINDOWS_PWSH_SANDBOX_PACKAGE = `${DESKTOP_PACKAGE_NAME}/windows-pwsh-sandbox`
+/** Upstream Web rows that exist only to send Desktop product analytics to DeepSeek. */
+export const UPSTREAM_PRODUCT_ANALYTICS_ROW_IDS = ['desktop-product-telemetry', 'product-analytics'] as const
 const DEFAULT_DESKTOP_SHELL_MODE: DesktopShellMode = 'compatibility'
 const DEFAULT_DESKTOP_PORT = DESKTOP_DEFAULT_WEB_PORT
 const DESKTOP_WEB_SERVER_ROW_ID = 'desktop-webserver'
@@ -1561,6 +1563,14 @@ export function prepareDesktopProfile(
   }
   if ((telemetryDisabled ?? '') !== '' && rows.has('session-telemetry-otel')) {
     patches.push({ id: 'session-telemetry-otel', disabled: true })
+  }
+  // Upstream mounts its Desktop product analytics for every Profile named
+  // `desktop` and reports to DeepSeek's collector by default. DSH Desktop does
+  // not take part in that collection, so both rows stay off after every bundle
+  // and user layer. The exporter also requires the upstream Electron shell's
+  // DSH_CLIENT_VERSION, which this launcher never provides.
+  for (const id of UPSTREAM_PRODUCT_ANALYTICS_ROW_IDS) {
+    if (rows.has(id)) patches.push({ id, disabled: true })
   }
   // Keep the shell row enabled, but pin none of its configuration.
   //
