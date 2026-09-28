@@ -46,7 +46,10 @@ describe('desktop client environment', () => {
     } as unknown as ClientContext
     try {
       apply(ctx)
-      expect(inject.mock.calls.map(([name]) => name)).toEqual(['settings.section', 'settings.action', 'plugins.bundle.hidden'])
+      expect(inject.mock.calls.map(([name]) => name)).toEqual([
+        'settings.section', 'settings.action', 'plugins.bundle.hidden',
+        'plugins.bundle.actions', 'plugins.detail.actions',
+      ])
       expect(effect.mock.calls.map(([, label]) => label)).not.toContain('desktop: independent compatibility frame styles')
     } finally {
       vi.unstubAllGlobals()

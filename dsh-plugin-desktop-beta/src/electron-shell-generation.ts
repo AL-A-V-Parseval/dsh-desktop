@@ -2,6 +2,7 @@ import {
   app,
   BrowserWindow,
   dialog,
+  desktopCapturer,
   Menu,
   nativeImage,
   nativeTheme,
@@ -9,6 +10,7 @@ import {
   screen,
   session,
   shell,
+  systemPreferences,
   Tray,
   type WebContents,
 } from 'electron'
@@ -25,6 +27,8 @@ import {
 } from './launch-workspace-contract.ts'
 import { DESKTOP_RENDERER_ACTION_CHANNEL } from './renderer-actions-contract.ts'
 import { DESKTOP_NATIVE_DIRECTORY_PICKER_CHANNEL } from './directory-picker-contract.ts'
+import { DESKTOP_PERMISSIONS_CHANNEL } from './desktop-permissions-contract.ts'
+import { NativePermissions } from './native-permissions.ts'
 import { createDesktopRendererActionDispatcher } from './renderer-actions-dispatch.ts'
 import type { DesktopNotification, DesktopShellSpec } from './runtime.ts'
 import { prepareTrayIcon } from './tray-icons.ts'
@@ -358,6 +362,28 @@ export class ElectronShellGeneration {
       await dispatchRendererAction(action)
     })
 
+    const permissions = new NativePermissions({
+      platform: platform.platform,
+      status: permission => permission === 'accessibility'
+        ? platform.platform === 'darwin' && systemPreferences.isTrustedAccessibilityClient(false) ? 'granted' : 'unknown'
+        : systemPreferences.getMediaAccessStatus(permission),
+      microphone: () => systemPreferences.askForMediaAccess('microphone'),
+      screen: async () => { await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 0, height: 0 } }) },
+      accessibility: async () => { systemPreferences.isTrustedAccessibilityClient(true) },
+      openSettings: url => shell.openExternal(url),
+    })
+    renderer.ipc.handle(DESKTOP_PERMISSIONS_CHANNEL, async (event, action: unknown, permission: unknown) => {
+      if (this.released || event.sender !== renderer
+        || event.senderFrame === null || event.senderFrame !== renderer.mainFrame
+        || !sameOriginFrame(event.senderFrame.url, origin)) {
+        throw new Error('dsh-plugin-desktop: untrusted permission sender')
+      }
+      if (action === 'query') return permissions.query(permission)
+      if (action === 'request') return permissions.request(permission)
+      if (action === 'open-settings') return permissions.openSettings(permission)
+      throw new Error('Unsupported Desktop permission action')
+    })
+
     if (platform.platform === 'darwin') {
       renderer.ipc.handle(DESKTOP_NATIVE_DIRECTORY_PICKER_CHANNEL, async event => {
         if (this.released || event.sender !== renderer
@@ -639,6 +665,7 @@ export class ElectronShellGeneration {
       renderer.off('did-finish-load', loaded)
       if (!renderer.isDestroyed()) {
         renderer.ipc.removeHandler(DESKTOP_RENDERER_ACTION_CHANNEL)
+        renderer.ipc.removeHandler(DESKTOP_PERMISSIONS_CHANNEL)
         if (platform.platform === 'darwin') renderer.ipc.removeHandler(DESKTOP_NATIVE_DIRECTORY_PICKER_CHANNEL)
         renderer.ipc.removeHandler(SETUP_ONBOARDING_CHANNEL)
       }

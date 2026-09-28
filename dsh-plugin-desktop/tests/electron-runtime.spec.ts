@@ -284,6 +284,12 @@ const electron = vi.hoisted(() => {
         workArea: { x: 0, y: 0, width: 1920, height: 1080 },
       })),
     },
+    desktopCapturer: { getSources: vi.fn(async () => []) },
+    systemPreferences: {
+      getMediaAccessStatus: vi.fn(() => 'not-determined'),
+      askForMediaAccess: vi.fn(async () => true),
+      isTrustedAccessibilityClient: vi.fn(() => false),
+    },
     shell: {
       openExternal: vi.fn(async () => {}),
       openPath: vi.fn(async () => ''),
@@ -315,6 +321,8 @@ vi.mock('electron', () => ({
   BrowserWindow: electron.BrowserWindow,
   WebContentsView: electron.WebContentsView,
   dialog: electron.dialog,
+  desktopCapturer: electron.desktopCapturer,
+  systemPreferences: electron.systemPreferences,
   Menu: electron.Menu,
   nativeImage: electron.nativeImage,
   nativeTheme: electron.nativeTheme,
@@ -895,6 +903,36 @@ describe('Electron desktop runtime', () => {
       frame.url = previousUrl
       await release()
     }
+  })
+
+  it('shares Next microphone consent through a trusted native renderer and removes its handler', async () => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
+    const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
+    const runtime = new ElectronDesktopRuntime(async () => {})
+    const release = runtime.schedule(spec)
+    await runtime.mountScheduled()
+    const handler = electron.webContents.ipc.handle.mock.calls
+      .find(([name]) => name === 'dsh-desktop:permissions')?.[1]
+    expect(handler).toEqual(expect.any(Function))
+    const frame = electron.webContents.mainFrame
+    const previousUrl = frame.url
+    frame.url = spec.url
+    const event = { sender: electron.webContents, senderFrame: frame }
+    try {
+      await expect(handler(event, 'query', 'microphone')).resolves.toMatchObject({ status: 'not-determined', canRequest: true })
+      expect(electron.systemPreferences.askForMediaAccess).not.toHaveBeenCalled()
+      await handler(event, 'request', 'microphone')
+      expect(electron.systemPreferences.askForMediaAccess).toHaveBeenCalledExactlyOnceWith('microphone')
+      await handler(event, 'open-settings', 'microphone')
+      expect(electron.shell.openExternal).toHaveBeenCalledWith('x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone')
+      await expect(handler({ ...event, senderFrame: { url: spec.url } }, 'request', 'microphone')).rejects.toThrow('untrusted permission sender')
+      await expect(handler(event, 'query', 'camera')).rejects.toThrow('Unsupported Desktop permission')
+      await expect(handler(event, 'invalid', 'microphone')).rejects.toThrow('Unsupported Desktop permission action')
+    } finally {
+      frame.url = previousUrl
+      await release()
+    }
+    expect(electron.webContents.ipc.removeHandler).toHaveBeenCalledWith('dsh-desktop:permissions')
   })
 
   it('blocks unsupported workspace volumes without returning a risky path', async () => {
