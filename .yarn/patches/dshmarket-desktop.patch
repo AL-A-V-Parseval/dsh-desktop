@@ -152,15 +152,3 @@ index 26764a0..fae652d 100644
          const normalizedSpec = spec.toLowerCase();
          if (normalizedSpec.startsWith('file:')) {
              const onlineSource = onlineSourceFor.get(name);
-diff --git a/package.json b/package.json
---- a/package.json
-+++ b/package.json
-@@ -41,7 +41,7 @@
-   },
-   "peerDependencies": {
-     "@deepseek-ai/cordis": "^4.0.1",
--    "@deepseek-ai/dsh-settings": "^0.1.0-rc.7 || ^0.1.1-rc.2 || ^0.1.2-alpha.2",
-+    "@deepseek-ai/dsh-settings": "^0.1.0-rc.7 || ^0.1.1-rc.2 || ^0.1.2-alpha.2 || 0.2.0-rc.1",
-     "@deepseek-ai/schemastery": "^3.18.1"
-   },
-   "dsh": {
