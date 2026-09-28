@@ -49,7 +49,7 @@ export class NextSettingsAdapter {
       this.current = state
       const p = state.preferences
       this.shellSnapshot = this.snapshot({ mode: 'compatibility', macosMaterial: p.macosMaterial, windowsMaterial: p.windowsMaterial, linuxMaterial: p.linuxMaterial, port: p.port, openBrowser: p.browserAccess, networkExposure: p.networkExposure, logLevel: p.logLevel }, !state.busy && !state.safeMode)
-      this.notificationSnapshot = this.snapshot({ enabled: p.notifications, notifyOnTurnCompletion: p.turnCompleted, notifyOnTurnFailure: p.turnFailed, notifyOnJobCompletion: p.jobCompleted, notifyOnJobFailure: p.jobFailed }, !state.busy && state.notificationsAvailable)
+      this.notificationSnapshot = this.snapshot({ enabled: p.notifications, notifyOnTurnCompletion: p.turnCompleted, notifyOnTurnFailure: p.turnFailed, notifyOnJobCompletion: p.jobCompleted, notifyOnJobFailure: p.jobFailed }, !state.busy && !state.safeMode && state.notificationsAvailable)
       for (const listener of this.listeners) listener()
     }
     return state

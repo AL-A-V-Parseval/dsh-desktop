@@ -37,6 +37,13 @@ export const DEFAULT_PREFERENCES: Readonly<DesktopPreferences> = Object.freeze({
   notifications: true, turnCompleted: true, turnFailed: true, jobCompleted: false, jobFailed: false,
 })
 
+/** Fixed startup defaults matching Beta's disposable Safe Mode settings. */
+export const SAFE_MODE_PREFERENCES: Readonly<DesktopPreferences> = Object.freeze({
+  ...DEFAULT_PREFERENCES, macosMaterial: 'off', windowsMaterial: 'off', linuxMaterial: 'off',
+  browserAccess: false, networkExposure: 'loopback', port: 0, lanPort: 0, logLevel: 'info',
+  notifications: false, turnCompleted: false, turnFailed: false, jobCompleted: false, jobFailed: false,
+})
+
 export interface DesktopState {
   selected: string
   profiles: string[]
