@@ -4,6 +4,8 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { SETUP_ONBOARDING_CHANNEL } from './setup-onboarding-bridge.ts'
 import { DESKTOP_FILE_PATH_BRIDGE } from './file-path-bridge-contract.ts'
 import { DESKTOP_NATIVE_DIRECTORY_PICKER_CHANNEL } from './directory-picker-contract.ts'
+import { DESKTOP_PERMISSIONS_BRIDGE, DESKTOP_PERMISSIONS_CHANNEL } from './desktop-permissions-contract.ts'
+import type { DesktopPermissions } from './permissions.ts'
 import {
   DESKTOP_RENDERER_ACTION_CHANNEL,
   DESKTOP_RENDERER_ACTIONS_BRIDGE,
@@ -23,6 +25,16 @@ const actions: DesktopRendererActionsBridge = {
   invoke: (action: DesktopRendererAction) => ipcRenderer.invoke(DESKTOP_RENDERER_ACTION_CHANNEL, action),
 }
 contextBridge.exposeInMainWorld(DESKTOP_RENDERER_ACTIONS_BRIDGE, actions)
+
+function permissionUserGesture(): void {
+  if (!navigator.userActivation.isActive) throw new Error('Desktop permission requests require a user gesture')
+}
+const permissions: DesktopPermissions = {
+  query: permission => ipcRenderer.invoke(DESKTOP_PERMISSIONS_CHANNEL, 'query', permission),
+  request: async permission => { permissionUserGesture(); return ipcRenderer.invoke(DESKTOP_PERMISSIONS_CHANNEL, 'request', permission) },
+  openSettings: async permission => { permissionUserGesture(); await ipcRenderer.invoke(DESKTOP_PERMISSIONS_CHANNEL, 'open-settings', permission) },
+}
+contextBridge.exposeInMainWorld(DESKTOP_PERMISSIONS_BRIDGE, permissions)
 
 // The official native directory-flow plugin captures this seam at apply time.
 // Install it before any client plugin runs; the Host's macOS osascript chooser

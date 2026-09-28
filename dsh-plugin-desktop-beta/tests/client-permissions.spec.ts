@@ -35,7 +35,7 @@ afterEach(() => { hooks.effects = []; hooks.states = []; hooks.cursor = 0; vi.un
 
 it.each([true, false])('offers microphone settings for voice enabled=%s without requesting access', enabled => {
   const permissions = service()
-  vi.stubGlobal('window', { desktopNext: { permissions } })
+  vi.stubGlobal('window', { dshDesktopPermissions: permissions })
   const action = VoicePermissionsAction({ subject: subject(enabled), t: () => 'zh' } as Parameters<typeof VoicePermissionsAction>[0])!
   expect(action.type).toBe(DesktopPermissionsButton)
   expect(action.props).toMatchObject({ permission: 'microphone', label: '权限设置', language: 'zh' })
@@ -50,10 +50,10 @@ it.each([true, false])('offers microphone settings for voice enabled=%s without 
 
 it('registers only the voice bundle card and a filtered detail action', () => {
   const register = vi.fn((_options: unknown, _component: unknown) => () => {})
-  registerVoicePermissions({ slots: { inject: (_: string, callback: () => unknown) => callback(), register } } as unknown as Context)
+  registerVoicePermissions({ effect: vi.fn(), slots: { inject: (_: string, callback: () => unknown) => callback(), register } } as unknown as Context)
   expect(register.mock.calls.map(call => call[0])).toEqual([
-    { name: 'plugins.bundle.actions', key: voice, locale: 'desktop-next' },
-    { name: 'plugins.detail.actions', id: 'desktop-next-voice-permissions', locale: 'desktop-next' },
+    { name: 'plugins.bundle.actions', key: voice, locale: 'desktop.voicePermissions' },
+    { name: 'plugins.detail.actions', id: 'desktop-voice-permissions', locale: 'desktop.voicePermissions' },
   ])
 })
 
