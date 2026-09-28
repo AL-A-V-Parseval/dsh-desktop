@@ -28,27 +28,7 @@ diff --git a/lib/client.js b/lib/client.js
  							bundles: keysOf("plugins.bundle.config"),
  							rows: keysOf("plugins.row.config")
  						};
-@@ -615,10 +621,18 @@
- 		* @param resolveText - current-locale package text resolver.
- 		* @returns the row's display title and optional description.
- 		*/
-+		const DESKTOP_ROW_DESCRIPTIONS = new Map([
-+			["@deepseek-ai/dsh-time-context", { en: "Durable per-step context with the current time and elapsed time", zh: "为每一步提供可持久化的时间上下文，包含当前时间和已用时间。" }],
-+			["@deepseek-ai/dsh-schedule", { en: "Host-wide durable reminders with shared management and original-Session delivery", zh: "统一管理后台服务中的持久化提醒，到期后在原对话中继续执行。" }],
-+			["@deepseek-ai/dsh-client-ui-schedule", { en: "Host task management page and Session reminder catalog", zh: "提供自动化任务管理页面和对话内的提醒列表。" }]
-+		]);
- 		function rowText(row, resolveText) {
-+			const original = row.meta?.description;
-+			const translation = DESKTOP_ROW_DESCRIPTIONS.get(row.moduleName);
-+			const description = translation?.en === original ? translation : original;
- 			return {
- 				title: row.meta?.title === void 0 ? row.moduleName : resolveText(row.meta.title),
--				description: row.meta?.description === void 0 ? void 0 : resolveText(row.meta.description) || void 0
-+				description: description === void 0 ? void 0 : resolveText(description) || void 0
- 			};
- 		}
- 		/**
-@@ -2195,9 +2209,15 @@
+@@ -2195,9 +2201,15 @@
  			});
  		}
  		/** The top every page shares: the crumb that leads back, then the icon with the page's actions at its right. */
@@ -64,7 +44,7 @@ diff --git a/lib/client.js b/lib/client.js
  				"data-window-drag": true,
  				children: [(0, react_jsx_runtime.jsxs)("button", {
  					type: "button",
-@@ -2219,7 +2239,7 @@
+@@ -2219,7 +2231,7 @@
  			});
  		}
  		/** One package as a card that opens its page: its name, its one-liner, its tags, and its bundle switch. */
@@ -73,7 +53,7 @@ diff --git a/lib/client.js b/lib/client.js
  			const { title, description, beta } = packageText(pkg, resolveText);
  			const status = packageStatus(pkg);
  			return (0, react_jsx_runtime.jsxs)("li", {
-@@ -2242,13 +2262,15 @@
+@@ -2242,13 +2254,15 @@
  						children: t("statusProblem")
  					}) : null] }),
  					description,
@@ -91,7 +71,7 @@ diff --git a/lib/client.js b/lib/client.js
  				}), (0, react_jsx_runtime.jsx)(MetadataError, {
  					error: pkg.meta?.error,
  					t
-@@ -2295,7 +2317,7 @@
+@@ -2295,7 +2309,7 @@
  		* contributed actions, its title with the contributed badges over its
  		* one-liner, the form the entry renders, and the contributed sections.
  		*/
@@ -100,7 +80,7 @@ diff --git a/lib/client.js b/lib/client.js
  			const subject = {
  				kind: "item",
  				id: item.id
-@@ -2334,7 +2356,7 @@
+@@ -2334,7 +2348,7 @@
  							"data-plugin-config": true,
  							children: renderSlot("plugins.item", {
  								view: "page",
@@ -109,7 +89,7 @@ diff --git a/lib/client.js b/lib/client.js
  							}, { only: item.id })
  						}), renderSlot("plugins.detail.section", { subject })]
  					})
-@@ -3358,12 +3380,13 @@
+@@ -3358,12 +3372,13 @@
  				};
  			}, [highlight, clearHighlight]);
  			const noticeLine = state.notice === null || state.notice.kind === "refresh-failed" ? null : noticeText(state.notice, t);
@@ -125,7 +105,7 @@ diff --git a/lib/client.js b/lib/client.js
  			const openItem = view.kind === "item" ? ledger.items.find((item) => item.id === view.id) : void 0;
  			const openRow = view.kind === "row" && openPkg !== void 0 ? openPkg.rows.find((row) => row.rowId === view.rowId) : void 0;
  			const showsCards = openPkg === void 0 && openItem === void 0;
-@@ -3382,8 +3405,24 @@
+@@ -3382,8 +3397,24 @@
  					});
  				}
  			});
@@ -150,7 +130,7 @@ diff --git a/lib/client.js b/lib/client.js
  				t,
  				resolveText,
  				busy: state.busy.includes(pkg.name),
-@@ -3400,7 +3439,7 @@
+@@ -3400,7 +3431,7 @@
  					props.setEnabled(pkg.name, enabled);
  				}
  			}, pkg.name);
@@ -159,7 +139,7 @@ diff --git a/lib/client.js b/lib/client.js
  				item,
  				t,
  				renderSlot,
-@@ -3435,8 +3474,10 @@
+@@ -3435,8 +3466,10 @@
  				"data-plugin-panel": true,
  				"aria-busy": state.status === "loading" || refreshing,
  				children: [
@@ -170,7 +150,7 @@ diff --git a/lib/client.js b/lib/client.js
  						"data-window-drag": true,
  						children: [(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("h1", {
  							className: PluginManagerPage_module_css_default.pageTitle,
-@@ -3497,6 +3538,18 @@
+@@ -3497,6 +3530,18 @@
  							})]
  						})]
  					}) : null,
@@ -189,7 +169,7 @@ diff --git a/lib/client.js b/lib/client.js
  					showsCards && state.status === "loading" ? (0, react_jsx_runtime.jsx)(ListSkeleton, { label: t("loading") }) : null,
  					showsCards && state.status === "unavailable" ? (0, react_jsx_runtime.jsxs)("p", {
  						className: `${PluginManagerPage_module_css_default.status} ${PluginManagerPage_module_css_default.statusWithDot}`,
-@@ -3558,6 +3611,7 @@
+@@ -3558,6 +3603,7 @@
  					}) : null,
  					loaded && openItem !== void 0 ? (0, react_jsx_runtime.jsx)(ItemDetail, {
  						form: formFor(openItem.id),
@@ -197,7 +177,7 @@ diff --git a/lib/client.js b/lib/client.js
  						item: openItem,
  						t,
  						renderSlot,
-@@ -3741,6 +3795,11 @@
+@@ -3741,6 +3787,11 @@
  					store,
  					inject: () => face,
  					children: {
@@ -209,7 +189,7 @@ diff --git a/lib/client.js b/lib/client.js
  						"plugins.item": {
  							kind: "list",
  							scope: "root"
-@@ -3802,4 +3861,4 @@
+@@ -3802,4 +3853,4 @@
  	}
  });
  
