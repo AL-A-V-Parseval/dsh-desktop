@@ -45,7 +45,7 @@ it('notifies for scheduled turn outcomes without exposing the reminder or reply'
   expect(notify.mock.calls.map(([value]) => value)).toEqual([
     { outcome: 'schedule-completed' }, { outcome: 'schedule-failed' },
   ])
-  expect(notificationCopy({ outcome: 'schedule-completed' }, 'zh')).toEqual({ title: '定时任务完成', body: '一个定时任务已完成。' })
+  expect(notificationCopy({ outcome: 'schedule-completed' }, 'zh')).toEqual({ title: '自动化任务完成', body: '一个自动化任务已完成。' })
   expect(notificationEnabled({ ...DEFAULT_PREFERENCES, scheduleCompleted: false }, 'schedule-completed')).toBe(false)
   expect(notificationEnabled({ ...DEFAULT_PREFERENCES, scheduleFailed: false }, 'schedule-failed')).toBe(false)
   expect(isDesktopNotification({ outcome: 'schedule-completed' })).toBe(true)

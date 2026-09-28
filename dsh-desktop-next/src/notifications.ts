@@ -24,11 +24,11 @@ export function isDesktopNotification(value: unknown): value is DesktopNotificat
 export function notificationCopy(notification: DesktopNotification, language: string): { title: string; body: string } {
   const zh = language.startsWith('zh')
   if (notification.outcome === 'schedule-completed') return {
-    title: zh ? '定时任务完成' : 'Scheduled task completed',
-    body: zh ? '一个定时任务已完成。' : 'A scheduled task has finished.',
+    title: zh ? '自动化任务完成' : 'Automation task completed',
+    body: zh ? '一个自动化任务已完成。' : 'A automation task has finished.',
   }
   if (notification.outcome === 'schedule-failed') return {
-    title: zh ? '定时任务失败' : 'Scheduled task failed',
+    title: zh ? '自动化任务失败' : 'Automation task failed',
     body: zh ? '打开 DSH NEXT 查看详情。' : 'Open DSH NEXT for details.',
   }
   return notification.outcome === 'turn-completed' ? {

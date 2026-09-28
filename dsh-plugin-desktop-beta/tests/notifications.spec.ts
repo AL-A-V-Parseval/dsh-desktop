@@ -358,7 +358,7 @@ describe('desktop notifications Host plugin', () => {
     await harness.sessionEvent(active, event('turn/start', { turn: 1 }, 1))
     await harness.sessionEvent(active, userMessage('schedule', 2))
     await harness.sessionEvent(active, event('turn/end', { turn: 1, reason: { kind: 'completed' } }, 3))
-    expect(harness.notifyAttention).toHaveBeenCalledWith({ title: 'Scheduled Task Completed', body: 'A scheduled task has finished.' })
+    expect(harness.notifyAttention).toHaveBeenCalledWith({ title: 'Automation Task Completed', body: 'A automation task has finished.' })
     expect(JSON.stringify(harness.notifyAttention.mock.calls)).not.toContain('secret')
     harness.notifyAttention.mockClear()
 
@@ -370,7 +370,7 @@ describe('desktop notifications Host plugin', () => {
     await harness.sessionEvent(active, userMessage('schedule', 8))
     await harness.sessionEvent(active, event('turn/end', { turn: 3, reason: { kind: 'error', error: { code: 'UNKNOWN', message: 'private error' } } }, 9))
     expect(harness.notifyAttention.mock.calls).toEqual([[
-      { title: 'Scheduled Task Failed', body: 'A scheduled task could not finish. Open DSH Desktop for details.' },
+      { title: 'Automation Task Failed', body: 'A automation task could not finish. Open DSH Desktop for details.' },
     ]])
     harness.notifyAttention.mockClear()
     await harness.updateSettings({ ...DesktopNotificationSettingsSchema({} as DesktopNotificationSettings), notifyOnScheduleFailure: false })

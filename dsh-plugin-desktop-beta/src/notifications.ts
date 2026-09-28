@@ -36,16 +36,16 @@ const NOTIFICATION_COPY: Record<DesktopLocale, Record<NotificationOutcome, Deskt
     'turn-failed': { title: 'User Turn Failed', body: 'A user-initiated turn could not finish. Open DSH Desktop for details.' },
     'job-completed': { title: 'Background Job Completed', body: 'A background job has finished.' },
     'job-failed': { title: 'Background Job Failed', body: 'A background job could not finish. Open DSH Desktop for details.' },
-    'schedule-completed': { title: 'Scheduled Task Completed', body: 'A scheduled task has finished.' },
-    'schedule-failed': { title: 'Scheduled Task Failed', body: 'A scheduled task could not finish. Open DSH Desktop for details.' },
+    'schedule-completed': { title: 'Automation Task Completed', body: 'A automation task has finished.' },
+    'schedule-failed': { title: 'Automation Task Failed', body: 'A automation task could not finish. Open DSH Desktop for details.' },
   },
   zh: {
     'turn-completed': { title: '用户回合已完成', body: '一个由你发起的回合已完成。' },
     'turn-failed': { title: '用户回合失败', body: '一个由你发起的回合未能完成，请打开 DSH Desktop 查看详情。' },
     'job-completed': { title: '后台任务已完成', body: '有一个后台任务已结束。' },
     'job-failed': { title: '后台任务失败', body: '一个后台任务未能完成，请打开 DSH Desktop 查看详情。' },
-    'schedule-completed': { title: '定时任务完成', body: '一个定时任务已完成。' },
-    'schedule-failed': { title: '定时任务失败', body: '一个定时任务未能完成，请打开 DSH Desktop 查看详情。' },
+    'schedule-completed': { title: '自动化任务完成', body: '一个自动化任务已完成。' },
+    'schedule-failed': { title: '自动化任务失败', body: '一个自动化任务未能完成，请打开 DSH Desktop 查看详情。' },
   },
 }
 
