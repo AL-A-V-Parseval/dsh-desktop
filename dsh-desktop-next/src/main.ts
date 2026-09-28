@@ -66,7 +66,8 @@ let recoveryRunner: ReturnType<typeof createPackageRunner> | undefined
 let replacingWindow = false
 let diagnosticsFile: string | undefined
 let recoveryNotice: NonNullable<DesktopState['recovery']>['notice']
-let recoveryStopping: Promise<void> = Promise.resolve()
+let recoveryStopping: Promise<void> | undefined
+let recoveryRequest: Promise<void> | undefined
 let pendingSettings: DesktopSettingsPage | undefined
 let quitting = false
 let onboarding = false
@@ -251,8 +252,11 @@ function openControls(page: 'general' | 'profiles' | 'create-profile' | 'tools' 
     mainWindow = undefined
     replacingWindow = true
     try { previousMain?.destroy() } finally { replacingWindow = false }
-    recoveryStopping = runtime.backend.stop()
-    void recoveryStopping.catch(error => runtime.diagnostics.append(String(error), 'error'))
+    const stopping = runtime.backend.stop().finally(() => {
+      if (recoveryStopping === stopping) recoveryStopping = undefined
+    })
+    recoveryStopping = stopping
+    void stopping.catch(error => runtime.diagnostics.append(String(error), 'error'))
     native.refresh()
   }
   const locale = nativeLocale.resolve(runtime.selected, windowsLanguage)
@@ -363,6 +367,20 @@ async function command(value: unknown, source: 'app' | 'shell' | 'native' = 'app
   const input = value as Record<string, unknown>
   const type = input.type
   if (typeof type !== 'string') throw new Error('Invalid Next command')
+  // Match Stable's restartRequest lifetime: share an in-flight request and
+  // release it after success, cancellation or failure so recovery can retry.
+  if (['safe-mode', 'normal-mode', 'recover', 'restart', 'rollback', 'repair-global', 'restart-app', 'restart-recovery'].includes(type)) {
+    if (recoveryRequest !== undefined) return recoveryRequest
+    const request = performCommand(input, type, source).finally(() => {
+      if (recoveryRequest === request) recoveryRequest = undefined
+    })
+    recoveryRequest = request
+    return request
+  }
+  return performCommand(input, type, source)
+}
+
+async function performCommand(input: Record<string, unknown>, type: string, source: 'app' | 'shell' | 'native'): Promise<void> {
   if (type === 'controls') {
     if (input.page !== undefined && (typeof input.page !== 'string' || !['general', 'profiles', 'create-profile', 'tools', 'recovery', 'permissions'].includes(input.page))) throw new Error('Invalid controls page')
     openControls(input.page as Parameters<typeof openControls>[0]); return
