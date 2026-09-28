@@ -1,7 +1,7 @@
 {
   "repository": "https://github.com/deepseek-ai/deepseek-harness",
-  "commit": "21638c56315ae6a2b552d6091945d3144c9af32e",
-  "version": "0.1.7-rc.2",
+  "commit": "4878cdabd87d4041bdaff61d04c966883b9fd07a",
+  "version": "0.2.0-rc.1",
   "files": [
     {
       "upstream": "apps/desktop/src/host-process.ts",
@@ -71,7 +71,7 @@
     {
       "upstream": "apps/desktop/src/preload-platform.ts",
       "local": "src/preload-platform.ts",
-      "upstreamSha256": "ebcb8c921a16cc4b2aba61bf98329e5df7bcf13ffc55931736e88b422865335d"
+      "upstreamSha256": "ab7e89b0a65c650a264a611f2abf3cc43346be796e2dbc9d24b0d04f7b96212f"
     },
     {
       "upstream": "apps/desktop/src/preload-theme.ts",
