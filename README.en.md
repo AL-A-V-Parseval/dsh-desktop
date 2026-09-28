@@ -116,6 +116,19 @@ sha256sum -c SHA256SUMS
 debsigs --list DSH-Desktop-<version>-amd64.deb
 ```
 
+### Verify release integrity (immutable releases)
+
+This repository enables GitHub **immutable releases**: every release published after that setting took effect gets a GitHub-generated **release attestation** (Sigstore format, covering the tag, the commit SHA, and every asset). Anyone can verify it with the GitHub CLI, without importing the GPG key:
+
+```sh
+gh release verify v<version>                          # the release exists, is immutable, and its attestation verifies
+gh release verify-asset v<version> ./DSH-Desktop-<version>-x86_64.AppImage   # your local file matches the asset byte for byte
+```
+
+- Tags are **GPG-signed annotated tags** since `v2.0.15-linux.1`; verify locally with `git tag -v v<version>`.
+- `v2.0.15-linux.1`, `v2.0.15-next-linux.1` and earlier releases predate immutability and carry no attestation; use the GPG path above for those.
+- Once a release is immutable, its tag and assets can no longer be changed; publish a new version suffix (for example `-linux.2`) instead of replacing assets.
+
 ## Build from source
 
 ```sh

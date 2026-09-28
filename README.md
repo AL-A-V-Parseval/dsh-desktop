@@ -116,6 +116,19 @@ sha256sum -c SHA256SUMS
 debsigs --list DSH-Desktop-<version>-amd64.deb
 ```
 
+### 校验 Release 完整性（immutable releases）
+
+本仓库已开启 GitHub **immutable releases**：自该设置生效之后发布的新版本会由 GitHub 自动生成 **release attestation**（Sigstore 格式，覆盖 tag、commit SHA 与全部资产），任何人可用 GitHub CLI 验证，无需导入 GPG 公钥：
+
+```sh
+gh release verify v<version>                          # 该 release 存在、不可变、证明可验证
+gh release verify-asset v<version> ./DSH-Desktop-<version>-x86_64.AppImage   # 本地文件与资产逐字节一致
+```
+
+- 发布进度中的 tag 自 `v2.0.15-linux.1` 起为 **GPG 签名的注解 tag**，可 `git tag -v v<version>` 本地验证。
+- `v2.0.15-linux.1`、`v2.0.15-next-linux.1` 及更早的 release 生于开启 immutable 之前，没有 attestation，只能用上面的 GPG 方式验证。
+- 开启 immutable 之后，已发布的 tag 与资产**不可再修改**；需要变更时请发布新的版本后缀（例如 `-linux.2`）。
+
 ## 从源码构建
 
 ```sh
