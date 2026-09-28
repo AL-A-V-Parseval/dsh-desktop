@@ -128,7 +128,7 @@ function normalizedSelection(input: DesktopSetupWizardInput): DesktopSetupWizard
     windowsMaterial: input.windowsMaterial,
     openBrowser: browserAccess,
     networkExposure: browserAccess ? input.networkExposure : 'loopback',
-    market: input.market,
+    market: 'disabled',
     aaEnabled: input.aaEnabled === true,
     notifications: { ...input.notifications },
   }
