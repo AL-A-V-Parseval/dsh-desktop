@@ -905,34 +905,15 @@ describe('Electron desktop runtime', () => {
     }
   })
 
-  it('shares Next microphone consent through a trusted native renderer and removes its handler', async () => {
-    vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
+  it('uses Electron media consent without the microphone workaround or permission IPC', async () => {
     const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
     const runtime = new ElectronDesktopRuntime(async () => {})
     const release = runtime.schedule(spec)
     await runtime.mountScheduled()
-    const handler = electron.webContents.ipc.handle.mock.calls
-      .find(([name]) => name === 'dsh-desktop:permissions')?.[1]
-    expect(handler).toEqual(expect.any(Function))
-    const frame = electron.webContents.mainFrame
-    const previousUrl = frame.url
-    frame.url = spec.url
-    const event = { sender: electron.webContents, senderFrame: frame }
-    try {
-      await expect(handler(event, 'query', 'microphone')).resolves.toMatchObject({ status: 'not-determined', canRequest: true })
-      expect(electron.systemPreferences.askForMediaAccess).not.toHaveBeenCalled()
-      await handler(event, 'request', 'microphone')
-      expect(electron.systemPreferences.askForMediaAccess).toHaveBeenCalledExactlyOnceWith('microphone')
-      await handler(event, 'open-settings', 'microphone')
-      expect(electron.shell.openExternal).toHaveBeenCalledWith('x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone')
-      await expect(handler({ ...event, senderFrame: { url: spec.url } }, 'request', 'microphone')).rejects.toThrow('untrusted permission sender')
-      await expect(handler(event, 'query', 'camera')).rejects.toThrow('Unsupported Desktop permission')
-      await expect(handler(event, 'invalid', 'microphone')).rejects.toThrow('Unsupported Desktop permission action')
-    } finally {
-      frame.url = previousUrl
-      await release()
-    }
-    expect(electron.webContents.ipc.removeHandler).toHaveBeenCalledWith('dsh-desktop:permissions')
+    expect(electron.webContents.ipc.handle.mock.calls.map(([name]) => name)).not.toContain('dsh-desktop:permissions')
+    expect(electron.webContents.session.setPermissionCheckHandler).not.toHaveBeenCalled()
+    expect(electron.webContents.session.setPermissionRequestHandler).not.toHaveBeenCalled()
+    await release()
   })
 
   it('blocks unsupported workspace volumes without returning a risky path', async () => {

@@ -821,7 +821,7 @@ async function main(): Promise<void> {
   ipcMain.handle(IPC.permissionSettings, async (event, permission: unknown) => {
     await permissionGesture(event); await permissions.openSettings(permission)
   })
-  installMediaPermissions(session.defaultSession, permissions, {
+  installMediaPermissions(session.defaultSession, {
     window: () => mainWindow, language: () => windowsLanguage, warn: error => runtime.diagnostics.append(String(error), 'warn'),
   })
   ipcMain.handle(IPC.material, event => { assertSender(event, mainWindow, APP_URL); return windowMaterial(runtime.preferences) })

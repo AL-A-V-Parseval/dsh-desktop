@@ -339,8 +339,8 @@
         }
       },
       "hardenedRuntime": true,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist",
+      "entitlements": "../deepseek-harness/apps/desktop/scripts/macos-entitlements.plist",
+      "entitlementsInherit": "../deepseek-harness/apps/desktop/scripts/macos-entitlements.plist",
       "icon": "build/app-icon.icon",
       "mergeASARs": false,
       "notarize": true,
