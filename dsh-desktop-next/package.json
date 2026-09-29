@@ -42,7 +42,7 @@
     "check:linux-package": "yarn check"
   },
   "dependencies": {
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.2-desktop.cad572c00c3e5.r156e8f86.tgz",
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.2-desktop.c2db197b4760b.r156e8f86.tgz",
     "@deepseek-ai/cordis": "4.0.4",
     "@deepseek-ai/cordis-plugin-group": "1.0.4",
     "@deepseek-ai/cordis-plugin-include": "1.0.9",
@@ -397,9 +397,26 @@
     },
     "linux": {
       "target": [
-        "dir"
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "build/app-icon.png",
+      "artifactName": "DSH-Desktop-Next-${version}-${arch}.${ext}",
+      "category": "Development",
+      "synopsis": "Agentic coding desktop for the DeepSeek Harness (Next channel)",
+      "maintainer": "DeepSeek <dsh-desktop@deepseek.com>",
+      "executableName": "dsh-desktop-next",
+      "syncDesktopName": true,
       "asar": false
     },
     "dmg": {
