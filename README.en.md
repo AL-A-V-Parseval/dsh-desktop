@@ -172,6 +172,13 @@ corepack yarn dev
 
 Use `corepack yarn check` for the headless gate. The [architecture](docs/architecture.en.md) and package [`README`](dsh-plugin-desktop/README.md) describe the full build, test, and release boundaries. See [CONTRIBUTING.en.md](CONTRIBUTING.en.md) for how to contribute.
 
+### macOS microphone permission
+
+Stable, Beta, and Next sign the main application and the Electron Helpers directly with
+`deepseek-harness/apps/desktop/scripts/macos-entitlements.plist` from the pinned upstream checkout. After a submodule update, packaging picks up the matching entitlements automatically, so no local copy is maintained; initialize the submodule before packaging. Each edition's macOS configuration keeps its own product-specific microphone usage description.
+
+Voice input triggers system consent through the upstream recording flow. The voice plugin no longer has a separate permission button, and Stable/Beta no longer install a microphone permission request bridge or interceptor.
+
 ## Community
 
 Choose whichever platform you prefer to discuss usage, plugin development, and project updates.
