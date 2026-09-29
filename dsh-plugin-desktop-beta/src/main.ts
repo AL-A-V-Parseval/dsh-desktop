@@ -209,6 +209,7 @@ import {
   desktopRecoveryRelaunchArguments,
   desktopSafeModeRelaunchArguments,
   desktopSafeModeRequested,
+  relaunchDesktopApp,
 } from './relaunch-arguments.ts'
 import {
   cleanupDesktopSafeModeEnvironment,
@@ -582,7 +583,7 @@ async function start(): Promise<void> {
     {
       prepareToQuit: () => { runtime.prepareToQuit() },
       relaunch: args => {
-        app.relaunch({ args: [...(args ?? desktopDefaultRelaunchArguments())] })
+        relaunchDesktopApp(app, args ?? desktopDefaultRelaunchArguments())
       },
       exit: code => { app.exit(code) },
     },
@@ -1978,7 +1979,7 @@ async function handleFatalLauncherFailure(cause: unknown): Promise<void> {
     })
     const result = await recoveryWindow.run()
     if (result === 'restart') {
-      app.relaunch()
+      relaunchDesktopApp(app)
       app.exit(0)
     } else {
       app.exit(1)

@@ -30,6 +30,8 @@ it('uses notification switches saved by the settings form on every native delive
   })
   const completed = { outcome: 'turn-completed', userMessage: 'Prompt', assistantMessage: 'Reply' } as const
   const failed = { outcome: 'turn-failed' } as const
+  const scheduled = { outcome: 'schedule-completed' } as const
+  const scheduledFailed = { outcome: 'schedule-failed' } as const
   show.mockClear()
   try {
     native.notify(completed)
@@ -51,6 +53,14 @@ it('uses notification switches saved by the settings form on every native delive
     await adapter.notificationSettings.set('notifyOnTurnCompletion', true)
     native.notify(completed)
     expect(show).toHaveBeenCalledTimes(3)
+    await adapter.notificationSettings.set('notifyOnScheduleCompletion', false)
+    native.notify(scheduled)
+    expect(show).toHaveBeenCalledTimes(3)
+    native.notify(scheduledFailed)
+    expect(show).toHaveBeenCalledTimes(4)
+    await adapter.notificationSettings.set('notifyOnScheduleFailure', false)
+    native.notify(scheduledFailed)
+    expect(show).toHaveBeenCalledTimes(4)
     expect(command.mock.calls.every(([command]) => command.type === 'preferences')).toBe(true)
   } finally { native.close() }
 })

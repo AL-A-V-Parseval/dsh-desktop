@@ -7,9 +7,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import { Button, PluginArtworkDefault, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
 import { Choice, MARKET_OPTIONS, marketBody, marketTitle } from '../../../dsh-plugin-desktop-beta/src/client/DesktopSettingsSection.tsx'
 import { en as desktopEn, zh as desktopZh, type DesktopSettingsLocaleKey } from '../../../dsh-plugin-desktop-beta/src/client/desktop-settings-locales.ts'
-import { SCHEDULE_BUNDLE, ScheduleSettings } from './schedule.tsx'
 import { ComputerUseSettings } from './computer-use.tsx'
-import { registerVoicePermissions } from './voice-permissions.tsx'
 import { COMMUNITY_MARKET as COMMUNITY, DSH_MARKET as MARKET, marketToggleTargets, type MarketName } from './market-toggle.ts'
 
 const REMOTE = '@agents-anywhere/dsh-bridge-next'
@@ -18,13 +16,12 @@ const COMPUTER_ITEM = 'desktop-next-computer-use'
 type Translate = (cn: string, en: string) => string
 
 export function registerPluginControls(ctx: Context): void {
-  registerVoicePermissions(ctx)
   ctx.inject(['remote', 'remote.pluginManager'], inner => {
     inner.slots.inject('plugins.overview', () => {
       const dispose = inner.slots.register({ name: 'plugins.overview', id: 'desktop-next', order: 0,
         locale: 'desktop-next', inject: () => ({ context: inner }),
       }, PluginControls)
-      const hidden = [COMMUNITY, MARKET, REMOTE, SCHEDULE_BUNDLE].map(key => inner.slots.register({ name: 'plugins.bundle.hidden', key }, () => null))
+      const hidden = [COMMUNITY, MARKET, REMOTE].map(key => inner.slots.register({ name: 'plugins.bundle.hidden', key }, () => null))
       const item = inner.slots.register({ name: 'plugins.item', id: COMPUTER_ITEM, label: 'Computer Use',
         locale: 'desktop-next', inject: () => ({ context: inner }),
       }, ComputerUseItem)
@@ -126,10 +123,6 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: Pro
         icon={<PluginArtworkDefault size={36} />} onOpen={() => { onOpenItem(COMPUTER_ITEM) }}>
         <ComputerUseSettings context={context} zh={zh} />
       </PluginCard>
-      <PluginCard title={t('定时任务', 'Scheduled Tasks')} description={scheduleDescription(t)}
-        icon={<PluginArtworkDefault size={36} />} onOpen={() => { onOpenBundle(SCHEDULE_BUNDLE) }}>
-        <ScheduleSettings context={context} zh={zh} />
-      </PluginCard>
     </div>
     {notice && <p role="status" className="dshDesktopSettingsHint">{notice}</p>}
     {error && <div role="alert" className="dshDesktopSettingsError">{error} <Button variant="outline" size="sm" disabled={loading || busy} onClick={() => { setError(''); refresh(value => value + 1) }}>{t('重试', 'Retry')}</Button></div>}
@@ -144,11 +137,6 @@ const remoteDescription = (t: Translate): string => t(
 const computerDescription = (t: Translate): string => t(
   '让 AI 查看屏幕、操作鼠标和键盘。截图理解需要支持图片输入的模型。',
   'Let AI view the screen and control the mouse and keyboard. Understanding screenshots requires a model with image input.',
-)
-
-const scheduleDescription = (t: Translate): string => t(
-  '让 AI 按指定时间或周期执行任务，并在原对话中继续。',
-  'Let AI run tasks at a scheduled time or interval and continue in the original conversation.',
 )
 
 function ComputerUseItem({ context, t, view }: PropsLocale<'desktop-next'> & PropsRuntime<'plugins.item'> & { context: Context }) {

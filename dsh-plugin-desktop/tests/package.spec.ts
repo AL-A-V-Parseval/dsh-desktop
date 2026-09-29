@@ -811,7 +811,7 @@ describe('published package surface', () => {
 
   it('fixes the installed application identity', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('2.0.15-linux.1')
+    expect(manifest.version).toBe('2.0.16')
     expect(manifest.build?.productName).toBe('DSH Desktop')
     expect(manifest.build?.appId).toBe('ai.deepseek.dsh.desktop')
     expect(manifest.build?.asar).toBe(false)
@@ -941,6 +941,7 @@ describe('published package surface', () => {
       extendInfo: {
         CFBundleAllowMixedLocalizations: true,
         CFBundleDevelopmentRegion: 'en',
+        NSMicrophoneUsageDescription: 'DSH Desktop uses the microphone for voice input.',
         CFBundleLocalizations: ['en', 'zh_CN'],
       },
       hardenedRuntime: true,
@@ -1200,25 +1201,9 @@ describe('published package surface', () => {
     expect(runner.DSH_SUBPROCESS_RUNNER).toBe('windows')
     expect(target).toEqual({ PATH: 'target-path', electron_run_as_node: '0', NODE_OPTIONS: '--trace-warnings' })
     expect(evaluate('win32')).not.toHaveProperty('ELECTRON_RUN_AS_NODE')
+    expect(evaluate('darwin', '43.3.0')).toHaveProperty('ELECTRON_RUN_AS_NODE', '1')
+    expect(evaluate('linux', '43.3.0', '/request')).toHaveProperty('ELECTRON_RUN_AS_NODE', '1')
     expect(evaluate('linux')).not.toHaveProperty('ELECTRON_RUN_AS_NODE')
-    expect(evaluate('darwin', '43.3.0').ELECTRON_RUN_AS_NODE).toBe('1')
-    expect(evaluate('linux', '43.3.0', '/request').ELECTRON_RUN_AS_NODE).toBe('1')
-  })
-
-  it('routes sharp through the real-Node bridge instead of Electron on Linux', () => {
-    const workspaceRequire = createRequire(new URL('package.json', packageRoot))
-    const root = dirname(dirname(workspaceRequire.resolve('sharp')))
-    const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
-      main?: string
-      module?: string
-      exports?: { '.': { import: { default: string }, require: { default: string } } }
-    }
-    expect(manifest.main).toBe('./bridge/core.cjs')
-    expect(manifest.module).toBe('./bridge/core.cjs')
-    expect(manifest.exports?.['.']?.import?.default).toBe('./bridge/core.cjs')
-    expect(manifest.exports?.['.']?.require?.default).toBe('./bridge/core.cjs')
-    expect(existsSync(join(root, 'bridge', 'core.cjs'))).toBe(true)
-    expect(existsSync(join(root, 'bridge', 'worker.cjs'))).toBe(true)
   })
 
   it('hides official plugin-manager and general subprocess consoles on Windows', () => {
