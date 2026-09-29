@@ -103,31 +103,41 @@ Both forms require:
 - A **real Node** installation (used by the sharp bridge; searched in `/usr/bin/node`, `/usr/local/bin/node`, `/opt/homebrew/bin/node`, overridable via `DSH_SHARP_NODE`). Packaged builds also bundle Node 24 for the Office and workspace-dependency payload; the sharp bridge does **not** use that bundled copy
 - User data is written to `~/.config/DSH Desktop`
 
-### Verify signatures
+### Verify downloads and provenance
 
-- `SHA256SUMS` ships with a detached GPG signature, `SHA256SUMS.asc` (key `Jic2007 <ji070122@outlook.com>`, fingerprint `7B0C 9365 5F35 FA86 48AC 58BC 8E97 ED35 D906 329C`, public key `Jic2007-release-key.asc`).
-- The `.deb` also carries an internal `debsigs` origin signature.
+**1. Provenance and integrity (online, zero configuration, recommended)**
 
-```sh
-gpg --import Jic2007-release-key.asc
-gpg --verify SHA256SUMS.asc SHA256SUMS
-sha256sum -c SHA256SUMS
-# optional: list the internal .deb signatures (debsigs 0.1.26 has no --verify yet)
-debsigs --list DSH-Desktop-<version>-amd64.deb
-```
-
-### Verify release integrity (immutable releases)
-
-This repository enables GitHub **immutable releases**: every release published after that setting took effect gets a GitHub-generated **release attestation** (Sigstore format, covering the tag, the commit SHA, and every asset). Anyone can verify it with the GitHub CLI, without importing the GPG key:
+This repository enables GitHub **immutable releases**: since `v2.0.16-linux.1` every release gets a GitHub-generated **release attestation** (Sigstore format, covering the tag, the commit SHA and every asset). Verify it with the GitHub CLI, without importing any public key:
 
 ```sh
 gh release verify v<version>                          # the release exists, is immutable, and its attestation verifies
 gh release verify-asset v<version> ./DSH-Desktop-<version>-x86_64.AppImage   # your local file matches the asset byte for byte
 ```
 
-- Tags are **GPG-signed annotated tags** since `v2.0.15-linux.1`; verify locally with `git tag -v v<version>`.
-- `v2.0.15-linux.1`, `v2.0.15-next-linux.1` and earlier releases predate immutability and carry no attestation; use the GPG path above for those.
-- Once a release is immutable, its tag and assets can no longer be changed; publish a new version suffix (for example `-linux.2`) instead of replacing assets.
+**2. Checksums (offline, for mirrors and air-gapped hosts)**
+
+Every release ships `SHA256SUMS`:
+
+```sh
+sha256sum -c SHA256SUMS
+```
+
+**3. Tag and .deb signatures**
+
+- Release tags are **GPG-signed annotated tags** since `v2.0.15-linux.1`; verify locally with `git tag -v v<version>`. Public key: `Jic2007-release-key.asc`, fingerprint `7B0C 9365 5F35 FA86 48AC 58BC 8E97 ED35 D906 329C`.
+- The `.deb` also carries an internal `debsigs` **origin** signature (`debsigs --list DSH-Desktop-<version>-amd64.deb`).
+
+**4. About `SHA256SUMS.asc`**
+
+To keep release assets lean (the GitHub attestation covers online provenance and `SHA256SUMS` covers offline verification), **newer releases no longer ship `SHA256SUMS.asc`**. `v2.0.16-linux.1` and earlier still carry it, and it remains valid to run:
+
+```sh
+gpg --import Jic2007-release-key.asc && gpg --verify SHA256SUMS.asc SHA256SUMS
+```
+
+**5. Immutable releases**
+
+Published tags and assets can no longer be changed; publish a new version suffix (for example `-linux.2`) instead of replacing assets. `v2.0.15-linux.1`, `v2.0.15-next-linux.1` and earlier predate immutability and carry no attestation.
 
 ## Build from source
 
@@ -143,7 +153,7 @@ For development: `corepack yarn dev`
 ## Known limitations
 
 - Linux only. For Windows / macOS use the [upstream project](https://github.com/anywhere-labs/dsh-desktop).
-- Builds are signed (`SHA256SUMS.asc` plus the internal `.deb` signature); Linux tray and native integration details are not additionally polished.
+- Release provenance and integrity come from the GitHub release attestation (`gh release verify`) and `SHA256SUMS`, plus GPG-signed tags and the internal `.deb` signature; Linux tray and native integration details are not additionally polished.
 - The sharp bridge starts a real Node process per operation, which adds a small process-startup cost; market icons and attachments are low-frequency, so this is acceptable.
 
 ## Documentation

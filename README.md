@@ -103,31 +103,41 @@ Next 通道对应 `DSH-Desktop-Next-<version>-amd64.deb`（包名 `dsh-desktop-n
 - 系统需安装**真实 Node**（sharp 桥接使用；默认依次查找 `/usr/bin/node`、`/usr/local/bin/node`、`/opt/homebrew/bin/node`，可用环境变量 `DSH_SHARP_NODE` 指定）。打包版另内置 Node 24 供 Office 与工作区依赖载荷使用，sharp 桥接**不会**使用该内置副本
 - 用户数据写入 `~/.config/DSH Desktop`
 
-### 校验签名
+### 校验下载完整性与来源
 
-- `SHA256SUMS` 随附 GPG 分离签名 `SHA256SUMS.asc`（密钥 `Jic2007 <ji070122@outlook.com>`，指纹 `7B0C 9365 5F35 FA86 48AC 58BC 8E97 ED35 D906 329C`，公钥 `Jic2007-release-key.asc`）。
-- `.deb` 另含 `debsigs` origin 内部签名。
+**一、来源与完整性证明（在线，零配置，推荐）**
 
-```sh
-gpg --import Jic2007-release-key.asc
-gpg --verify SHA256SUMS.asc SHA256SUMS
-sha256sum -c SHA256SUMS
-# 可选：列出 .deb 内部签名（debsigs 0.1.26 的 --verify 尚未实现）
-debsigs --list DSH-Desktop-<version>-amd64.deb
-```
-
-### 校验 Release 完整性（immutable releases）
-
-本仓库已开启 GitHub **immutable releases**：自该设置生效之后发布的新版本会由 GitHub 自动生成 **release attestation**（Sigstore 格式，覆盖 tag、commit SHA 与全部资产），任何人可用 GitHub CLI 验证，无需导入 GPG 公钥：
+本仓库已开启 GitHub **immutable releases**：自 `v2.0.16-linux.1` 起，每个版本都会由 GitHub 自动生成 **release attestation**（Sigstore 格式，覆盖 tag、commit SHA 与全部资产），用 GitHub CLI 即可验证，无需导入任何公钥：
 
 ```sh
 gh release verify v<version>                          # 该 release 存在、不可变、证明可验证
 gh release verify-asset v<version> ./DSH-Desktop-<version>-x86_64.AppImage   # 本地文件与资产逐字节一致
 ```
 
-- 发布进度中的 tag 自 `v2.0.15-linux.1` 起为 **GPG 签名的注解 tag**，可 `git tag -v v<version>` 本地验证。
-- `v2.0.15-linux.1`、`v2.0.15-next-linux.1` 及更早的 release 生于开启 immutable 之前，没有 attestation，只能用上面的 GPG 方式验证。
-- 开启 immutable 之后，已发布的 tag 与资产**不可再修改**；需要变更时请发布新的版本后缀（例如 `-linux.2`）。
+**二、校验和（离线可用，适用于镜像 / 内网）**
+
+每个 Release 提供 `SHA256SUMS`：
+
+```sh
+sha256sum -c SHA256SUMS
+```
+
+**三、tag 与 .deb 的签名**
+
+- release tag 是 **GPG 签名的注解 tag**（自 `v2.0.15-linux.1` 起），可 `git tag -v v<version>` 本地验证；公钥为 `Jic2007-release-key.asc`，指纹 `7B0C 9365 5F35 FA86 48AC 58BC 8E97 ED35 D906 329C`。
+- `.deb` 另含 `debsigs` **origin** 内部签名（`debsigs --list DSH-Desktop-<version>-amd64.deb`）。
+
+**四、关于 `SHA256SUMS.asc`**
+
+为精简发布资产（GitHub attestation 已覆盖在线来源验证，`SHA256SUMS` 覆盖离线校验），**较新的版本不再附带 `SHA256SUMS.asc`**。`v2.0.16-linux.1` 及更早的版本仍带该文件，可继续用：
+
+```sh
+gpg --import Jic2007-release-key.asc && gpg --verify SHA256SUMS.asc SHA256SUMS
+```
+
+**五、不可变发布**
+
+已发布的 tag 与资产**不可再修改**；需要变更时请发布新的版本后缀（例如 `-linux.2`）。`v2.0.15-linux.1`、`v2.0.15-next-linux.1` 及更早的版本生于开启 immutable 之前，没有 attestation。
 
 ## 从源码构建
 
@@ -143,7 +153,7 @@ DSH_AA_SOURCE_REF=pinned corepack yarn package:dir
 ## 已知限制
 
 - 仅适配 Linux。Windows / macOS 请使用[上游项目](https://github.com/anywhere-labs/dsh-desktop)。
-- 构建产物已签名（`SHA256SUMS.asc` + `.deb` 内部签名）；Linux 的托盘与原生集成等平台细节未额外打磨。
+- 发布来源与完整性由 GitHub release attestation（`gh release verify`）与 `SHA256SUMS` 共同保证，另有 GPG 签名 tag 与 `.deb` 内部签名；Linux 的托盘与原生集成等平台细节未额外打磨。
 - sharp 桥接按需为每次操作启动真实 Node 进程，会有少量进程启动开销；市场图标与附件处理频率低，可接受。
 
 ## 文档
