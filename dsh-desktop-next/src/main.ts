@@ -27,7 +27,7 @@ import { auxiliaryWindowChromeOptions, auxiliaryWindowHasCustomFrame } from '../
 import { cleanupDisposableTree } from '../../dsh-plugin-desktop-beta/src/disposable-tree.ts'
 import { atomicJson, privateDirectory } from './private-files.ts'
 import { windowMaterial } from './window-material.ts'
-import { ONBOARDING_ARGUMENT, RECOVERY_ARGUMENT, SAFE_ARGUMENT, relaunchArguments } from './relaunch.ts'
+import { ONBOARDING_ARGUMENT, RECOVERY_ARGUMENT, SAFE_ARGUMENT, relaunchApp, relaunchArguments } from './relaunch.ts'
 import { createNativePermissions, installMediaPermissions } from './electron-permissions.ts'
 import { defaultDataDirectory, readDataDirectory, validateDataDirectory } from './data-directory.ts'
 import { maskSecrets } from './mask-secrets.ts'
@@ -946,12 +946,12 @@ app.on('before-quit', event => {
       catch (error) {
         runtime.diagnostics.append(String(error), 'error')
         dialog.showErrorBox(t('更新未能安装', 'Update could not be installed'), t('应用将重新打开，请在设置中重试更新。', 'The application will reopen. Retry the update in Settings.'))
-        app.relaunch({ args: relaunchArguments(process.argv.slice(1), false, false) })
+        relaunchApp(app, relaunchArguments(process.argv.slice(1), false, false))
         app.quit()
       }
       if (process.platform === 'darwin') return
     }
-    if (relaunch) app.relaunch({ args: relaunch })
+    if (relaunch) relaunchApp(app, relaunch)
     app.quit()
   }, error => { console.error(error); app.exit(1) })
 })
