@@ -7,6 +7,7 @@ import { createRequire } from 'node:module'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, net, Notification, protocol, safeStorage, session, shell, type IpcMainInvokeEvent, type MenuItemConstructorOptions } from 'electron'
 import { appRequestHeaders, forwardWebRequest, serveWebDocument } from './web-document.ts'
+import { installAppDownloads } from './app-downloads.ts'
 import { claimDesktopSingleInstance } from './single-instance.ts'
 import { NEXT_PACKAGE, parseFeatures, profileName } from './profiles.ts'
 import { APP_URL, IPC, SHELL_URL } from './ipc.ts'
@@ -823,6 +824,16 @@ async function main(): Promise<void> {
   })
   installMediaPermissions(session.defaultSession, {
     window: () => mainWindow, language: () => windowsLanguage, warn: error => runtime.diagnostics.append(String(error), 'warn'),
+  })
+  installAppDownloads(session.defaultSession, {
+    window: () => mainWindow, language: () => windowsLanguage, downloads: () => app.getPath('downloads'),
+    warn: error => runtime.diagnostics.append(String(error), 'warn'),
+    // The same gate as renderer fetches; the marker is supplied here because the download bypassed webRequest.
+    forward: async url => {
+      const auth = runtime.auth
+      if (!runtime.backend.host || !auth) return new Response(null, { status: 503 })
+      return forwardWebRequest(new Request(url, { headers: { [NATIVE_ACCESS_HEADER]: auth.token } }), auth.url, auth.cookie, auth.token)
+    },
   })
   ipcMain.handle(IPC.material, event => { assertSender(event, mainWindow, APP_URL); return windowMaterial(runtime.preferences) })
   ipcMain.handle(IPC.command, (event, value: unknown) => { assertDesktopSender(event); return command(value, event.sender === shellWindow?.webContents ? 'shell' : 'app') })
