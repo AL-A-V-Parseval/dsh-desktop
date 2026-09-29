@@ -94,7 +94,7 @@ export async function record(ctx: Context) {
 
 客户端请求必须由当前前台窗口中的用户操作触发。Host 请求不能模拟用户点击：它会在主窗口显示授权弹窗，并返回当前系统状态，插件应在用户授权后重新查询。在前端挂载前发出的原生设置请求会保留，待界面就绪后交付。Host IPC 关联请求与响应，设置超时，并在卸载时拒绝尚未完成的请求。每次查询都会重新读取系统状态。
 
-屏幕共享应在用户点击“共享”时直接调用 `navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })`。macOS 15 及以上使用 Electron 的系统选择器，其余系统使用原生菜单选择来源，不自动选择屏幕。系统选择器的单次共享授权可能不同于全局屏幕录制权限。权限服务本身不录制媒体，屏幕共享也不授予电脑输入控制能力。开发使用的 Electron 应用已经在 Info.plist 中声明麦克风用途；将来打包 Next 时必须保留 `NSMicrophoneUsageDescription`，并填写产品用途说明。
+屏幕共享应在用户点击“共享”时直接调用 `navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })`。macOS 15 及以上使用 Electron 的系统选择器，其余系统使用原生菜单选择来源，不自动选择屏幕。系统选择器的单次共享授权可能不同于全局屏幕录制权限。权限服务本身不录制媒体，屏幕共享也不授予电脑输入控制能力。打包 Next 时保留产品自己的 `NSMicrophoneUsageDescription`，主应用和 Helper 签名直接使用固定上游 checkout 中的 `apps/desktop/scripts/macos-entitlements.plist`。语音输入通过 `getUserMedia` 触发 Chromium/macOS 的录音授权，语音插件旁不再提供额外权限按钮。
 
 内置官方 `@deepseek-ai/dsh-experimental-computer-use-cua-driver-native@0.1.6-alpha.2`，**默认停用**。在**插件**页顶部的 Computer Use 分区中启用，并查看实际加载状态。入口复用官方插件槽位、开关和插件管理服务；Profile 条目 ID 为 `computer-use-cua-driver-native`。共享的 `computer-use` 注册服务已提供。操作和截图沿用现有对话工具卡片及图片附件；理解截图需要模型路由声明支持图片输入。开关左侧的齿轮打开授权弹窗。
 
