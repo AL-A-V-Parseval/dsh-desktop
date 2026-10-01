@@ -19,7 +19,7 @@
   <img src="https://img.shields.io/badge/Linux-x64-4493F8?style=flat-square" alt="Target platform: Linux x64">
 </p>
 
-<p align="center"><sub>This repository is a community fork of <a href="https://github.com/anywhere-labs/dsh-desktop">anywhere-labs/dsh-desktop</a> (upstream master manifest version <strong>2.0.15</strong>, latest release <strong>2.0.15</strong>; runtime <code>0.1.7-rc.2</code>). It is independent of DeepSeek and the upstream project, with no affiliation, partnership, authorization, or endorsement.</sub></p>
+<p align="center"><sub>This repository is a community fork of <a href="https://github.com/anywhere-labs/dsh-desktop">anywhere-labs/dsh-desktop</a> (upstream master manifest version <strong>2.0.17</strong>, latest release <strong>2.0.17</strong>; runtime <code>0.2.0-rc.2</code>). It is independent of DeepSeek and the upstream project, with no affiliation, partnership, authorization, or endorsement.</sub></p>
 
 ## What this is
 
@@ -27,9 +27,9 @@ DSH Desktop integrates the local Web UI, Host service, and plugin system of [Dee
 
 This fork is **Linux-focused**: it fixes the upstream desktop's inability to run stably on Linux, restoring subprocess tools (`bash` / `glob` / `grep`), the plugin market, and attachments.
 
-- Upstream baseline: the latest `master` of [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) (build base `faefc5b850`, manifest version 2.0.15, latest release tag `v2.0.15`)
+- Upstream baseline: the latest `master` of [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) (build base `1030515b43`, manifest version 2.0.17, latest release tag `v2.0.17`)
 - Target platform: **Linux x64**
-- Artifacts: an AppImage, a portable archive (tar.gz) and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships with a detached GPG signature, and the `.deb` also carries an internal `debsigs` signature
+- Artifacts: an AppImage, a portable archive (tar.gz) and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships alongside them, and the `.deb` also carries an internal `debsigs` signature
 
 ## Changes in this fork
 
@@ -63,7 +63,7 @@ Packaged builds carry the same first-party runtime payload the official Harness 
 
 ## Download and run
 
-Grab the Linux x64 build from [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases). Three forms are provided: an **AppImage**, a **portable archive (tar.gz)** and a **Debian package**. Replace `<version>` in the commands below with the actual version on the Release page (stable is shaped like `2.0.14`, the Next channel like `2.0.14-next`).
+Grab the Linux x64 build from [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases). Three forms are provided: an **AppImage**, a **portable archive (tar.gz)** and a **Debian package**. Replace `<version>` in the commands below with the actual version on the Release page (stable is shaped like `2.0.17-linux.1`, the Next channel like `2.0.17-next-linux.1`).
 
 ### AppImage (no installation)
 
