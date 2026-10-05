@@ -311,6 +311,7 @@
     "@deepseek-ai/dsh-workspace": "0.2.0-rc.2",
     "@deepseek-ai/schemastery": "^3.18.4",
     "adm-zip": "^0.6.0",
+    "dsh-codex-signin": "0.1.0",
     "dsh-community-market": "0.1.0-dev.0",
     "dshmarket": "1.66.8",
     "fs-ext": "2.1.1",

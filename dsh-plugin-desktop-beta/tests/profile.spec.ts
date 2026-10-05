@@ -376,6 +376,11 @@ virtualStoreDirMaxLength: 60
       expect(matching[0]).toEqual(expect.objectContaining({ name }))
       expect(matching[0]?.disabled).toBeFalsy()
     }
+    // Desktop-bundled plugin rows ship inside the app (not in the profile
+    // manifest), so the launcher composes their Loader row itself.
+    const signIn = rows.filter(row => row.id === 'codex-signin')
+    expect(signIn).toHaveLength(1)
+    expect(signIn[0]).toEqual(expect.objectContaining({ name: 'dsh-codex-signin' }))
     expect(rows.find(row => row.id === 'directory-picker')).toEqual(expect.objectContaining({
       name: '@deepseek-ai/dsh-host-directory-picker-auto',
     }))

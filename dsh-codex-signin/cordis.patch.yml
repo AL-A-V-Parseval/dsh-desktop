@@ -1,0 +1,10 @@
+# Local bundle patch: inserts this plugin's Loader row into the web roster.
+#
+# The row id is the same one the launcher composes for Desktop-bundled plugins
+# (`DESKTOP_BUNDLED_PLUGIN_IDENTITIES.codexSignin.rowId` in dsh-plugin-desktop),
+# so the two layers compose to exactly one row naming this package — the shape
+# `dsh-community-market` uses. Two different ids for one package would mount it
+# twice.
+- insert:
+    - id: codex-signin
+      name: 'dsh-codex-signin'

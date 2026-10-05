@@ -52,6 +52,22 @@ const IMMUTABLE_BUNDLES = new Set([
   'dsh-community-market',
 ])
 
+/**
+ * Desktop-bundled plugin rows the launcher composes into every Desktop profile.
+ *
+ * These packages ship inside the app (a dependency of this package, resolved
+ * through the Desktop install anchor) rather than in the profile manifest, so
+ * the launcher seats their Loader rows itself — the same mechanism the Market
+ * rows use. Each row id must equal the id the package's own
+ * `dsh.bundle.patch` inserts, or one package would mount twice.
+ */
+export const DESKTOP_BUNDLED_PLUGIN_IDENTITIES = Object.freeze({
+  codexSignin: Object.freeze({
+    rowId: 'codex-signin',
+    packageName: 'dsh-codex-signin',
+  }),
+})
+
 /** One direct bundle declared by the active profile. */
 export interface DesktopPluginBundle {
   /** Generation-local opaque identifier; never a path or package name. */

@@ -1,0 +1,30 @@
+{
+  "name": "dsh-codex-signin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ChatGPT/Codex (OAuth) sign-in entry for the Desktop Models settings page, driving the authorization flow dsh-llm-pi-ai registers for openai-codex.",
+  "type": "module",
+  "main": "host/index.js",
+  "exports": {
+    ".": "./host/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [],
+      "platform": "web"
+    }
+  },
+  "files": [
+    "cordis.patch.yml",
+    "host/**",
+    "lib/**",
+    "README.md"
+  ],
+  "license": "MIT"
+}

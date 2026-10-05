@@ -65,6 +65,7 @@ import {
   activeDesktopProfileLayers,
   desktopPluginBundleMutable,
   readDesktopDisabledBundles,
+  DESKTOP_BUNDLED_PLUGIN_IDENTITIES,
 } from './desktop-plugins.ts'
 import {
   DESKTOP_MARKET_IDENTITIES,
@@ -1161,6 +1162,19 @@ function validateMarketPackage(name: string, profilePackageUrl: string): string 
   }
 }
 
+/** Whether a Desktop-owned package resolves through the selected profile fallback. */
+function desktopPackageResolvable(name: string, profilePackageUrl: string): boolean {
+  try {
+    resolveOverlayPackage(name, {
+      installPackageUrl: pathToFileURL(INSTALL_ANCHOR).href,
+      profilePackageUrl,
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** Assert the final graph contains only the provider selected by the launcher. */
 function assertEffectiveMarketRows(
   rows: readonly EntryOptions[],
@@ -1340,9 +1354,19 @@ export function prepareDesktopProfile(
       }
     }
   }
+  // Desktop-bundled plugins: packages that ship inside the app rather than in the
+  // profile manifest, so their Loader rows are composed here (the Market's own
+  // resolution path). Best effort: a build without the package offers no entry
+  // rather than failing the boot.
+  const bundledPluginPatches: PatchOptions[] = []
+  for (const identity of Object.values(DESKTOP_BUNDLED_PLUGIN_IDENTITIES)) {
+    if (!desktopPackageResolvable(identity.packageName, bareModuleBaseUrl)) continue
+    bundledPluginPatches.push({ insert: [{ id: identity.rowId, name: identity.packageName }] })
+  }
   const ordinary = filterMarketProviderPatches([
     ...filteredBundles.patches,
     ...providerPatches,
+    ...bundledPluginPatches,
     ...filteredProfile.patches,
     ...filteredHome.patches,
   ], isAaEntry)
