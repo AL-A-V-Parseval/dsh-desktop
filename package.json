@@ -27,6 +27,7 @@
     "@vscode/ripgrep@npm:^1.18.0": "patch:@vscode/ripgrep@npm%3A1.18.0#./patches/vscode-ripgrep@1.18.0.patch",
     "sharp@npm:^0.35.3": "patch:sharp@npm%3A0.35.3#~/.yarn/patches/sharp-npm-0.35.3-dfa206213d.patch",
     "sharp@npm:0.35.3": "patch:sharp@npm%3A0.35.3#~/.yarn/patches/sharp-npm-0.35.3-dfa206213d.patch",
+    "@earendil-works/pi-ai@npm:^0.87.1": "1.0.4",
     "@deepseek-ai/dsh-brand@npm:0.2.0-rc.2": "file:vendor/dsh-runtime/0.2.0-rc.2/deepseek-ai-dsh-brand-0.2.0-rc.2.tgz",
     "@deepseek-ai/dsh-brand@npm:^0.2.0-rc.2": "file:vendor/dsh-runtime/0.2.0-rc.2/deepseek-ai-dsh-brand-0.2.0-rc.2.tgz",
     "@deepseek-ai/dsh-invariants@npm:0.2.0-rc.2": "file:vendor/dsh-runtime/0.2.0-rc.2/deepseek-ai-dsh-invariants-0.2.0-rc.2.tgz",
