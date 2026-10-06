@@ -264,11 +264,16 @@ it('composes optional AA and Market while retaining the official Web layout', ()
   expect(rows.some(row => row.name === '@deepseek-ai/dsh-experimental-computer-use-cua-driver-native' && row.disabled)).toBe(true)
   // Client module discovery requires a package root, not the previous /extensions subpath.
   expect(rows.find(row => row.id === 'desktop-next-capabilities')?.name).toBe('dsh-desktop-next')
+  // Desktop-bundled plugins are composed without a profile manifest entry, so
+  // the Next channel offers the Codex sign-in seat too.
+  expect(profile.layers.map(layer => layer.packageName)).toContain('dsh-codex-signin')
+  expect(rows.find(row => row.id === 'codex-signin')?.name).toBe('dsh-codex-signin')
   const overlays = [fileURLToPath(new URL('../host.cordis.patch.yml', import.meta.url)),
     join(dir, 'desktop-next.cordis.patch.json')]
   const reread = readNextProfilePatches(dir, manager.home, overlays)
   const reconciled = composeEntries([reread])
   expect(reconciled.some(row => row.name === 'dsh-community-market' && !row.disabled)).toBe(true)
+  expect(reconciled.find(row => row.id === 'codex-signin')?.name).toBe('dsh-codex-signin')
   expect(reconciled.find(row => row.id === 'webserver')?.disabled).toBe(true)
   expect(reconciled.some(row => row.name === 'dsh-desktop-next/webserver' && !row.disabled)).toBe(true)
   writeFileSync(profile.patchPath, '- id: ui-sidebar-browser\n  disabled: true\n- id: computer-use-cua-driver-native\n  disabled: false\n')

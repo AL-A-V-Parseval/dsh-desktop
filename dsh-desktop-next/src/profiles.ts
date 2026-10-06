@@ -2,7 +2,7 @@
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, realpathSync, symlinkSync, unlinkSync } from 'node:fs'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { initProfile, loadOverlayPatches, loadProfileDirectory, PROFILE_TEMPLATES, readProfilePatches, type Profile, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
+import { bundlePatchPaths, initProfile, loadOverlayPatches, loadProfileDirectory, PROFILE_TEMPLATES, readProfilePatches, resolveBundleDir, type Profile, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
 import { withFileLock } from '@deepseek-ai/dsh-atomic-write'
 import { atomicJson, atomicText, readPrivateFile } from './private-files.ts'
 import { NextRecovery } from './recovery.ts'
@@ -17,6 +17,13 @@ const NEXT_BUNDLE_PATCH = fileURLToPath(new URL('../cordis.patch.yml', import.me
 export const AA_PACKAGE = '@agents-anywhere/dsh-bridge-next'
 export const COMMUNITY_MARKET_PACKAGE = 'dsh-community-market'
 export const DSH_MARKET_PACKAGE = 'dshmarket'
+/**
+ * Packages that ship inside this application rather than in a profile manifest.
+ * The launcher composes their Loader rows itself, the way Stable and Beta seat
+ * the Market rows, so no profile has to name them; each needs a dependency edge
+ * in this package for the installation anchor to resolve it.
+ */
+export const BUNDLED_PLUGIN_PACKAGES = Object.freeze(['dsh-codex-signin'])
 /** Legacy shell shape, now projected from the standard Profile bundle selection. */
 export interface Features { remoteControl: boolean; market: boolean; dshMarket?: boolean }
 export interface OnboardingChoices { features: Features; computerUse: boolean }
@@ -272,6 +279,31 @@ function retireLinkProjections(projectDir: string): void {
   }
 }
 
+/**
+ * One layer per resolvable Desktop-bundled plugin, composed exactly like this
+ * application's own layer so `readProfilePatches` picks it up on every launch
+ * and on every manager/HMR read. A build that does not carry the package
+ * contributes no layer instead of failing the boot.
+ */
+function bundledPluginLayers(installAnchor: string, projectDir: string): Profile['layers'] {
+  const layers: Profile['layers'] = []
+  for (const packageName of BUNDLED_PLUGIN_PACKAGES) {
+    try {
+      const packageDir = resolveBundleDir('dsh-desktop-next', packageName, installAnchor, projectDir)
+      const manifest = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')) as {
+        dsh?: { bundle?: { patch: string | string[] } }
+      }
+      if (manifest.dsh?.bundle === undefined) continue
+      const patchPaths = bundlePatchPaths(packageDir, manifest.dsh.bundle)
+      layers.push({ packageName, packageDir, patchPaths,
+        patches: patchPaths.flatMap(patchPath => loadOverlayPatches('dsh-desktop-next', patchPath)) })
+    } catch {
+      // Bundled plugins are additive: their absence must not fail the boot.
+    }
+  }
+  return layers
+}
+
 /** Add product capabilities without replacing the upstream Web presentation. */
 export function loadNextProfile(projectDir: string, home: string, installAnchor = NEXT_PACKAGE): Profile {
   const manager = new NextProfiles(home)
@@ -294,6 +326,7 @@ export function loadNextProfile(projectDir: string, home: string, installAnchor 
   const profile = loadProfileDirectory('dsh-desktop-next', projectDir, installAnchor)
   profile.layers.push({ packageName: 'dsh-desktop-next', packageDir: target,
     patchPaths: [NEXT_BUNDLE_PATCH], patches: loadOverlayPatches('dsh-desktop-next', NEXT_BUNDLE_PATCH) })
+  profile.layers.push(...bundledPluginLayers(installAnchor, projectDir))
   const overlay = [
     { id: 'agents-anywhere-bridge-next', config: {
       dshHome: home,
@@ -311,6 +344,7 @@ export function readNextProfilePatches(projectDir: string, home: string, overlay
   const profile = loadProfileDirectory('dsh-desktop-next', projectDir, NEXT_PACKAGE, { userLayer: false })
   profile.layers.push({ packageName: 'dsh-desktop-next', packageDir: dirname(NEXT_PACKAGE),
     patchPaths: [NEXT_BUNDLE_PATCH], patches: loadOverlayPatches('dsh-desktop-next', NEXT_BUNDLE_PATCH) })
+  profile.layers.push(...bundledPluginLayers(NEXT_PACKAGE, projectDir))
   profile.patches = profilePatches === undefined
     ? existsSync(profile.patchPath) ? loadOverlayPatches('dsh-desktop-next', profile.patchPath) : []
     : [...profilePatches]

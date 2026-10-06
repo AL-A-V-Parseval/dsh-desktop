@@ -15736,6 +15736,7 @@ __metadata:
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
     diff: "npm:^9.0.0"
+    dsh-codex-signin: "npm:0.1.0"
     dsh-community-market: "npm:0.1.0-dev.0"
     dshmarket: "npm:1.66.8"
     electron: "npm:44.0.0"
