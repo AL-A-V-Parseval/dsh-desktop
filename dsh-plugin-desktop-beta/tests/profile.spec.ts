@@ -298,6 +298,26 @@ virtualStoreDirMaxLength: 120
     expect(prepared.requiresDependencyMigration).toBe(true)
   })
 
+  it('seats its bundled plugin row once, whatever profile layer also names it', () => {
+    const home = temporaryHome()
+    const dir = ensureDesktopProfile(home)
+    const manifestPath = join(dir, 'package.json')
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { dsh: { profile: { bundles: string[] } } }
+    manifest.dsh.profile.bundles.push('dsh-codex-signin')
+    writeFileSync(manifestPath, JSON.stringify(manifest, undefined, 2) + '\n')
+    installBundle(home, 'dsh-codex-signin', '- insert:\n    - id: codex-signin\n      name: dsh-codex-signin\n')
+    writeFileSync(join(home, 'cordis.patch.yml'), '- insert:\n    - id: codex-signin\n      name: dsh-codex-signin\n')
+
+    // The launcher composes the canonical row itself. A profile copy (the package
+    // listed in dsh.profile.bundles, and a user patch that re-seats it) must not
+    // repeat the Loader id: a duplicate fails the whole composition.
+    const rows = composeEntries([prepareDesktopProfile(undefined, home, 'darwin').patches])
+
+    expect(rows.filter(row => row.id === 'codex-signin')).toEqual([
+      expect.objectContaining({ name: 'dsh-codex-signin' }),
+    ])
+  })
+
   it('leaves current Windows Profile dependency metadata untouched', () => {
     const home = temporaryHome()
     const dir = ensureDesktopProfile(home)

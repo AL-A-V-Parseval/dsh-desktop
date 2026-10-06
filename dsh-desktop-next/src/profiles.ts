@@ -280,14 +280,17 @@ function retireLinkProjections(projectDir: string): void {
 }
 
 /**
- * One layer per resolvable Desktop-bundled plugin, composed exactly like this
- * application's own layer so `readProfilePatches` picks it up on every launch
- * and on every manager/HMR read. A build that does not carry the package
- * contributes no layer instead of failing the boot.
+ * One layer per resolvable Desktop-bundled plugin that the profile does not
+ * already declare, composed exactly like this application's own layer so
+ * `readProfilePatches` picks it up on every launch and on every manager/HMR
+ * read. Selecting one package twice would duplicate its Loader row, so a
+ * profile copy wins and the launcher seats only what is missing; a build that
+ * does not carry the package contributes no layer instead of failing the boot.
  */
-function bundledPluginLayers(installAnchor: string, projectDir: string): Profile['layers'] {
+function bundledPluginLayers(installAnchor: string, projectDir: string, present: ReadonlySet<string>): Profile['layers'] {
   const layers: Profile['layers'] = []
   for (const packageName of BUNDLED_PLUGIN_PACKAGES) {
+    if (present.has(packageName)) continue
     try {
       const packageDir = resolveBundleDir('dsh-desktop-next', packageName, installAnchor, projectDir)
       const manifest = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')) as {
@@ -326,7 +329,7 @@ export function loadNextProfile(projectDir: string, home: string, installAnchor 
   const profile = loadProfileDirectory('dsh-desktop-next', projectDir, installAnchor)
   profile.layers.push({ packageName: 'dsh-desktop-next', packageDir: target,
     patchPaths: [NEXT_BUNDLE_PATCH], patches: loadOverlayPatches('dsh-desktop-next', NEXT_BUNDLE_PATCH) })
-  profile.layers.push(...bundledPluginLayers(installAnchor, projectDir))
+  profile.layers.push(...bundledPluginLayers(installAnchor, projectDir, new Set(profile.layers.map(layer => layer.packageName))))
   const overlay = [
     { id: 'agents-anywhere-bridge-next', config: {
       dshHome: home,
@@ -344,7 +347,7 @@ export function readNextProfilePatches(projectDir: string, home: string, overlay
   const profile = loadProfileDirectory('dsh-desktop-next', projectDir, NEXT_PACKAGE, { userLayer: false })
   profile.layers.push({ packageName: 'dsh-desktop-next', packageDir: dirname(NEXT_PACKAGE),
     patchPaths: [NEXT_BUNDLE_PATCH], patches: loadOverlayPatches('dsh-desktop-next', NEXT_BUNDLE_PATCH) })
-  profile.layers.push(...bundledPluginLayers(NEXT_PACKAGE, projectDir))
+  profile.layers.push(...bundledPluginLayers(NEXT_PACKAGE, projectDir, new Set(profile.layers.map(layer => layer.packageName))))
   profile.patches = profilePatches === undefined
     ? existsSync(profile.patchPath) ? loadOverlayPatches('dsh-desktop-next', profile.patchPath) : []
     : [...profilePatches]

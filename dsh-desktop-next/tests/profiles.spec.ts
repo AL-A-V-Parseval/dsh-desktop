@@ -288,6 +288,24 @@ it('composes optional AA and Market while retaining the official Web layout', ()
   expect(disabled.some(row => !row.disabled && (row.name === AA_PACKAGE || row.name === 'dsh-community-market'))).toBe(false)
 })
 
+it('seats a bundled plugin row once when the profile already lists the package', () => {
+  const manager = profiles()
+  const dir = manager.ensure('desktop')
+  const manifestPath = join(dir, 'package.json')
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { dsh: { profile: { bundles: string[] } } }
+  manifest.dsh.profile.bundles.push('dsh-codex-signin')
+  writeFileSync(manifestPath, JSON.stringify(manifest, undefined, 2) + '\n')
+
+  // A profile copy wins: the launcher only seats what the manifest does not
+  // already select, because selecting one package twice repeats its Loader row.
+  const profile = loadNextProfile(dir, manager.home)
+  const rows = composeEntries([...profile.layers.map(layer => layer.patches),
+    loadOverlayPatches('next', join(dir, 'desktop-next.cordis.patch.json'))])
+
+  expect(profile.layers.filter(layer => layer.packageName === 'dsh-codex-signin')).toHaveLength(1)
+  expect(rows.filter(row => row.id === 'codex-signin')).toHaveLength(1)
+})
+
 it('shares AA defaults across Profiles and replaces legacy generated state overrides', () => {
   const manager = profiles()
   for (const name of ['desktop', 'work']) {

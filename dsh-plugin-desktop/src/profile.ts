@@ -1089,6 +1089,29 @@ function isMarketProviderEntry(entry: { readonly id?: unknown, readonly name?: u
     || (typeof entry.name === 'string' && MARKET_PACKAGE_NAMES.has(entry.name))
 }
 
+const BUNDLED_PLUGIN_ROW_IDS: ReadonlySet<string> = new Set(
+  Object.values(DESKTOP_BUNDLED_PLUGIN_IDENTITIES).map(identity => identity.rowId),
+)
+const BUNDLED_PLUGIN_PACKAGE_NAMES: ReadonlySet<string> = new Set(
+  Object.values(DESKTOP_BUNDLED_PLUGIN_IDENTITIES).map(identity => identity.packageName),
+)
+
+/** A Loader row the launcher seats itself, so no profile copy may repeat its id. */
+function isBundledPluginEntry(entry: { readonly id?: unknown, readonly name?: unknown }): boolean {
+  return (typeof entry.id === 'string' && BUNDLED_PLUGIN_ROW_IDS.has(entry.id))
+    || (typeof entry.name === 'string' && BUNDLED_PLUGIN_PACKAGE_NAMES.has(entry.name))
+}
+
+/**
+ * Drop Desktop-seated bundled-plugin rows from one profile layer. The launcher
+ * composes each canonical row once below; a profile that also lists the package
+ * (or a user patch that re-seats it) would otherwise duplicate its Loader id and
+ * make the whole composition fail.
+ */
+function withoutBundledPluginRows(patches: PatchOptions[]): PatchOptions[] {
+  return filterMarketProviderPatches(patches, isBundledPluginEntry).patches
+}
+
 /** Remove provider rows recursively before an untrusted patch can activate either implementation. */
 function filterMarketProviderRows(rows: EntryOptions[], matches = isMarketProviderEntry): {
   rows: EntryOptions[]
@@ -1314,9 +1337,9 @@ export function prepareDesktopProfile(
     loadedHomePatches,
     bareModuleBaseUrl,
   )
-  const filteredBundles = filterMarketProviderPatches(bundlePatches)
-  const filteredProfile = filterMarketProviderPatches(profile.patches)
-  const filteredHome = filterMarketProviderPatches(homePatches)
+  const filteredBundles = filterMarketProviderPatches(withoutBundledPluginRows(bundlePatches))
+  const filteredProfile = filterMarketProviderPatches(withoutBundledPluginRows(profile.patches))
+  const filteredHome = filterMarketProviderPatches(withoutBundledPluginRows(homePatches))
   const hasProviderConflict = filteredBundles.removedProviderReference
     || filteredProfile.removedProviderReference
     || filteredHome.removedProviderReference
