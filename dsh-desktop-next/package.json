@@ -1,6 +1,6 @@
 {
   "name": "dsh-desktop-next",
-  "version": "2.0.17-next-linux.1",
+  "version": "2.0.17-next-linux.2",
   "private": true,
   "desktopName": "dsh-desktop-next.desktop",
   "description": "Experimental upstream-inspired DSH Desktop with Profiles, recovery, remote control and Community Market",
