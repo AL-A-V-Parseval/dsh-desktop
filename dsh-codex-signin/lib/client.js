@@ -1,16 +1,18 @@
 /**
- * Client half of the Codex sign-in entry.
+ * Client half of the subscription sign-in entry.
  *
- * The entry lives inside the Models settings page's "add provider" dialog,
- * under the provider `openai-codex`. That dialog is a bundled React component
- * with no slot of its own, so a one-line local patch to
- * `@deepseek-ai/dsh-client-ui-settings-models` renders an empty mount node:
+ * The entry lives inside the Models settings page's provider editor, under each
+ * provider that ships an OAuth login. That editor is a bundled React component
+ * with no slot of its own, so a local patch to
+ * `@deepseek-ai/dsh-client-ui-settings-models` renders an empty mount node
+ * carrying the provider id:
  *
- *     <div data-dsh-codex-signin="mount" />
+ *     <div data-dsh-codex-signin="mount" data-provider="openai-codex" />
  *
- * (see scripts/patch-models-dialog-codex-signin.sh). This half watches for that
- * node and mounts a plain-DOM card into it — no ReactDOM needed, and the card
- * disappears with the dialog because it lives inside the dialog's own subtree.
+ * (see patches/dsh-client-ui-settings-models@*.patch). This half watches for
+ * those nodes and mounts a plain-DOM card into each — no ReactDOM needed, and a
+ * card disappears with the editor because it lives inside the editor's own
+ * subtree.
  *
  * Everything stateful comes from the host half's `/dsh-codex-signin/*` routes.
  */
@@ -26,9 +28,20 @@ window.__ModuleLoader__.load({
     const BASE = '/dsh-codex-signin'
     const POLL_MS = 2500
 
+    /** Mirror of the host's provider labels; the host sends its own back as `label`. */
+    const PROVIDERS = {
+      anthropic: 'Claude Pro/Max',
+      'openai-codex': 'ChatGPT Plus/Pro',
+      'github-copilot': 'GitHub Copilot',
+      xai: 'SuperGrok / X Premium',
+      'kimi-coding': 'Kimi Code',
+      meta: 'Meta',
+      openrouter: 'OpenRouter',
+      radius: 'Radius',
+    }
+
     const COPY = {
-      title: '用 ChatGPT 订阅登录',
-      description: '走 OpenAI 官方 OAuth（设备码），凭据由 DSH 存到 llm-pi-ai/openai-codex。登录后再点下面的「保存」把该提供商加入配置。',
+      description: '走提供商官方 OAuth，凭据由 DSH 存到 llm-pi-ai/{provider}。登录后该提供商即可使用。',
       start: '开始登录',
       restart: '重新登录',
       cancel: '取消',
@@ -38,6 +51,8 @@ window.__ModuleLoader__.load({
       signedIn: '已登录',
       working: '处理中…',
       stale: '授权已返回，等待凭据落盘…',
+      submit: '提交',
+      placeholder: '在此粘贴…',
     }
 
     const style = {
@@ -53,6 +68,13 @@ window.__ModuleLoader__.load({
       title: { fontSize: '13px', fontWeight: '600' },
       muted: { color: 'var(--dsw-alias-label-tertiary, #8f8a7e)', fontSize: '12px', lineHeight: '18px' },
       row: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
+      input: {
+        appearance: 'none', font: 'inherit', minWidth: '220px', flex: '1 1 220px',
+        padding: '4px 9px', borderRadius: '8px',
+        border: '1px solid var(--dsw-alias-border-l1, rgba(128,128,128,0.3))',
+        background: 'var(--dsw-alias-bg-layer-2, rgba(128,128,128,0.12))',
+        color: 'inherit',
+      },
       button: {
         appearance: 'none', cursor: 'pointer', font: 'inherit',
         padding: '4px 11px', borderRadius: '8px',
@@ -84,43 +106,59 @@ window.__ModuleLoader__.load({
       return node
     }
 
-    async function request(path, init) {
-      const response = await fetch(`${BASE}${path}`, { credentials: 'same-origin', ...init })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    async function request(provider, path, init) {
+      const response = await fetch(`${BASE}${path}?provider=${encodeURIComponent(provider)}`, {
+        credentials: 'same-origin',
+        ...init,
+      })
+      if (!response.ok && response.status !== 409) throw new Error(`HTTP ${response.status}`)
       return await response.json()
     }
 
     /**
-     * One card instance. Disposes itself once its node leaves the document, so
-     * a dialog that closes and reopens cannot leave a poller behind.
+     * One card instance for one provider. Disposes itself once its node leaves
+     * the document, so an editor that closes and reopens cannot leave a poller
+     * behind.
+     * @param provider - the pi-ai route id read off the mount node.
      * @returns the card node.
      */
-    function createCard() {
+    function createCard(provider) {
       let state = { status: 'loading' }
       let busy = false
       let copied = false
       let localError = null
+      let draft = ''
       let disposed = false
+      // The poller re-reads state every few seconds; repainting unconditionally
+      // would rebuild the answer field under the human's cursor, so a paint only
+      // happens when something visible actually changed.
+      let painted = null
+      let paintedPrompt = 'null'
 
+      const label = PROVIDERS[provider] ?? provider
       const root = el('div', style.card)
       root.setAttribute(ROOT_ATTR, '')
 
-      const title = el('div', style.title, COPY.title)
-      const description = el('div', style.muted, COPY.description)
+      const title = el('div', style.title, `用 ${label} 登录`)
+      const description = el('div', style.muted, COPY.description.replace('{provider}', provider))
       const status = el('div', style.row)
       const actions = el('div', style.row)
       const extra = el('div', style.row)
       root.append(title, description, status, actions, extra)
 
-      const cancelTimer = started => {
-        const button = el('button', style.button, COPY.cancel)
-        button.type = 'button'
-        button.disabled = busy
-        button.onclick = async () => { await post('/cancel') }
-        return button
-      }
-
       const render = () => {
+        const promptJson = JSON.stringify(state.prompt ?? null)
+        const signature = JSON.stringify({
+          status: state.status, message: state.message ?? null, url: state.url ?? null,
+          code: state.code ?? null, prompt: state.prompt ?? null,
+          stored: state.stored ?? null, error: state.error ?? null,
+          localError, busy, copied,
+        })
+        if (signature === painted) return
+        const focusPrompt = promptJson !== 'null' && promptJson !== paintedPrompt
+        painted = signature
+        paintedPrompt = promptJson
+
         status.replaceChildren()
         actions.replaceChildren()
         extra.replaceChildren()
@@ -159,6 +197,26 @@ window.__ModuleLoader__.load({
             }
             extra.append(el('code', style.code, code), copy)
           }
+          if (state.prompt !== null && state.prompt !== undefined) {
+            // Something only the human holds: a pasted redirect URL, or the
+            // GitHub Enterprise domain (blank for github.com).
+            const question = el('div', style.muted, state.prompt.message || '请填写后继续')
+            const row = el('div', style.row)
+            const input = el('input', style.input)
+            input.type = state.prompt.kind === 'secret' ? 'password' : 'text'
+            input.value = draft
+            if (typeof state.prompt.placeholder === 'string') input.placeholder = state.prompt.placeholder
+            else input.placeholder = COPY.placeholder
+            input.oninput = () => { draft = input.value }
+            input.onkeydown = event => { if (event.key === 'Enter') submit() }
+            const send = el('button', style.primary, COPY.submit)
+            send.type = 'button'
+            send.disabled = busy
+            send.onclick = () => submit()
+            row.append(input, send)
+            extra.append(question, row)
+            if (focusPrompt) queueMicrotask(() => { if (input.isConnected) input.focus() })
+          }
           actions.append(cancelTimer())
         } else {
           const button = el('button', style.primary, busy ? COPY.working : (signedIn ? COPY.restart : COPY.start))
@@ -173,9 +231,17 @@ window.__ModuleLoader__.load({
         if (localError !== null) status.append(el('div', style.error, localError))
       }
 
+      const cancelTimer = () => {
+        const button = el('button', style.button, COPY.cancel)
+        button.type = 'button'
+        button.disabled = busy
+        button.onclick = async () => { await post('/cancel') }
+        return button
+      }
+
       const load = async () => {
         try {
-          state = await request('/state')
+          state = await request(provider, '/state')
           localError = null
         } catch (error) {
           localError = error instanceof Error ? error.message : String(error)
@@ -183,11 +249,13 @@ window.__ModuleLoader__.load({
         render()
       }
 
-      const post = async path => {
+      const post = async (path, body) => {
         busy = true
         render()
         try {
-          state = await request(path, { method: 'POST' })
+          state = await request(provider, path, body === undefined
+            ? { method: 'POST' }
+            : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
           localError = null
         } catch (error) {
           localError = error instanceof Error ? error.message : String(error)
@@ -196,6 +264,8 @@ window.__ModuleLoader__.load({
           render()
         }
       }
+
+      const submit = () => { void post('/answer', { value: draft }) }
 
       const timer = setInterval(() => {
         if (disposed) return
@@ -209,14 +279,16 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * Mount a card into every sign-in node the (patched) provider dialog
-     * renders, and keep doing it as the dialog re-renders.
+     * Mount a card into every sign-in node the (patched) provider editor
+     * renders, and keep doing it as the editor re-renders.
      */
     function apply() {
       const sweep = () => {
         for (const mount of document.querySelectorAll(MOUNT_SELECTOR)) {
           if (mount.querySelector(`[${ROOT_ATTR}]`) !== null) continue
-          mount.appendChild(createCard())
+          const provider = mount.getAttribute('data-provider')
+          if (typeof provider !== 'string' || provider.length === 0) continue
+          mount.appendChild(createCard(provider))
         }
       }
       const observer = new MutationObserver(sweep)

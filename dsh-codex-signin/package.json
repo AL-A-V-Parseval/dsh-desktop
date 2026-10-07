@@ -2,7 +2,7 @@
   "name": "dsh-codex-signin",
   "version": "0.1.0",
   "private": true,
-  "description": "ChatGPT/Codex (OAuth) sign-in entry for the Desktop Models settings page, driving the authorization flow dsh-llm-pi-ai registers for openai-codex.",
+  "description": "Subscription (OAuth) sign-in entries for the Desktop Models settings page, driving the authorization flows dsh-llm-pi-ai registers for anthropic / openai-codex / github-copilot / xai / kimi-coding / meta / openrouter / radius.",
   "type": "module",
   "main": "host/index.js",
   "exports": {

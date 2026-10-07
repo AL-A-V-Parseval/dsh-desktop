@@ -1,13 +1,14 @@
 diff --git a/lib/client.js b/lib/client.js
 --- a/lib/client.js
 +++ b/lib/client.js
-@@ -1707,7 +1707,9 @@ window.__ModuleLoader__.load({
+@@ -1707,7 +1707,10 @@ window.__ModuleLoader__.load({
  							children: t(shownKeyFailure)
  						})
  					]
 -				}), props.credentialOnly === true ? null : (0, react_jsx_runtime.jsxs)("details", {
-+				}), props.provider === "openai-codex" ? (0, react_jsx_runtime.jsx)("div", {
-+					"data-dsh-codex-signin": "mount"
++				}), ["anthropic","openai-codex","github-copilot","xai","kimi-coding","meta","openrouter","radius"].includes(props.provider) ? (0, react_jsx_runtime.jsx)("div", {
++					"data-dsh-codex-signin": "mount",
++					"data-provider": props.provider
 +				}) : null, props.credentialOnly === true ? null : (0, react_jsx_runtime.jsxs)("details", {
  					className: ModelsSection_module_css_default["customized"],
  					children: [(0, react_jsx_runtime.jsx)("summary", {
