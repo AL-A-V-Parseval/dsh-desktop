@@ -154,7 +154,7 @@ Packaging entry points and the Next update client are implemented. Releases stil
 
 ## Packaging and updates
 
-The product version is `2.0.14-next`. Run from the repository root:
+The product version is `2.0.17-next`. Run from the repository root:
 
 ```sh
 corepack yarn package:dir:next
@@ -163,7 +163,9 @@ corepack yarn dist:mac:next
 corepack yarn dist:win:next
 ```
 
-Packaging reuses Beta's directory builds, universal macOS DMGs, signing/notarization preflight and Windows x64 NSIS flow, including its unsigned Windows build policy. Runtime layout remains `asar: false`, with `RunAsNode`, a complete dependency closure and both macOS native architectures. Next does not require the legacy shell's fs-ext lock binding. These commands build artifacts without publishing or opening a GUI; release gates still require the latest AA preparation and repository checks.
+Packaging reuses Beta's directory builds, universal macOS DMGs, signing/notarization preflight and Windows x64 NSIS flow, including its unsigned Windows build policy. The runtime layout stays `asar: false` like Stable and Beta, with `RunAsNode`, a complete dependency closure and both macOS native architectures: Profile links cannot traverse into a virtual archive, and the Host and CLI turn off Electron's archive view for user workspaces. Next does not require the legacy shell's fs-ext lock binding. These commands build artifacts without publishing or opening a GUI; release gates still require the latest AA preparation and repository checks.
+
+The copied payload follows the upstream Desktop file policy before it is signed. The `afterPack` hook removes source maps, TypeScript declarations and build caches, package-manager metadata, node-pty prebuilds and LibreOffice kits for other platforms, and fs-ext compiler output, then seals `desktop-runtime.json` beside `package.json`: the Next, dsh, Electron and pnpm versions, the platform and the architectures whose native files the payload carries (both Darwin CPUs, Windows x64), every direct dependency as a shared package record, and the bytes, SHA-256, executable bit and Mach-O flag of every file. The descriptor is verified against the tree as soon as it is written. Universal macOS builds run the hook once per CPU and once on the merged application; the pruned trees and descriptors are identical, which the merge requires. After all artifacts are built, the final payload is verified again with code-signing tolerance, because electron-builder signs Mach-O files and nested bundles after sealing and `verify-mac-release.ts` validates those signatures; the packaged Electron then imports the shell modules in Node mode and boots the real Host from the payload with a private home, failing a Host that exposes the application to ordinary browsers. At startup a packaged application compares the descriptor with its own version, the installed `@deepseek-ai/dsh`, the platform and the CPU; a mismatch opens the recovery assistant instead of the workspace.
 
 Settings and the tray expose update checks. Packaged builds check shortly after startup and every six hours; downloads start only on a user click. The tray displays bytes or a percentage, then Install and restart. Installation hides windows and stops the Host before handing off. macOS verifies Next identity, version and signing team, packages the application from the downloaded DMG into a local ZIP, and hands it to Electron's Squirrel.Mac for signature validation and replacement, without implementing our own application replacement or weakening signing. Windows verifies the Next installer identity/version and hands off to NSIS for a silent update and relaunch. Development runs can check but cannot replace the source tree or development Electron runtime.
 

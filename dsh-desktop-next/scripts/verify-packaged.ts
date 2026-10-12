@@ -1,8 +1,14 @@
-/** Check the actual unpacked payload, including runtime-only dependencies, without a GUI. */
+/** Check, prune and seal the actual unpacked payload, including runtime-only dependencies, without a GUI. */
 import { existsSync, readFileSync, realpathSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { dirname, join, relative } from 'node:path'
+import { formatPrunedPayload, nextPackagingTarget, nextPayloadRelease, pruneNextPayload, sealNextPayload } from './packaged-payload.ts'
 
-interface PackContext { appOutDir: string; electronPlatformName: string }
+interface PackContext {
+  appOutDir: string
+  electronPlatformName: string
+  packager: { projectDir: string }
+}
 export function verifyNextPayload(root: string): void {
   // `host.cordis.patch.yml` and `scripts/node-bin` are read from the packaged application by the
   // Host: the overlay swaps the official webserver for Next's private loopback one, and the shims
@@ -47,8 +53,31 @@ export function verifyNextPayload(root: string): void {
   const frontend = join(root, 'node_modules/@deepseek-ai/dsh-web-frontend/dist/index.html')
   if (!existsSync(frontend)) throw new Error('Official Web frontend was not packaged')
 }
-export default function afterPack(context: PackContext): void {
+
+/** Electron release the package embeds, read from the packaging workspace. */
+function packagedElectronVersion(projectDir: string): string {
+  const require = createRequire(join(projectDir, 'package.json'))
+  return (JSON.parse(readFileSync(require.resolve('electron/package.json'), 'utf8')) as { version: string }).version
+}
+
+/**
+ * Electron Builder's afterPack hook: the payload must be complete and resolvable, then the
+ * Desktop file policy prunes it and the descriptor seals it before signing. Universal macOS
+ * builds run this once per CPU and once more on the merged application; the pruned trees and
+ * descriptors are identical, which the merge requires.
+ * @param context - Electron Builder's afterPack context.
+ */
+export default async function afterPack(context: PackContext): Promise<void> {
   const resources = context.electronPlatformName === 'darwin' ? join(context.appOutDir, 'DSH NEXT.app/Contents/Resources') : join(context.appOutDir, 'resources')
   if (existsSync(join(resources, 'app.asar'))) throw new Error('Next must use the same asar:false runtime layout as Stable/Beta')
-  verifyNextPayload(join(resources, 'app'))
+  const root = join(resources, 'app')
+  verifyNextPayload(root)
+  const target = nextPackagingTarget(context.electronPlatformName as NodeJS.Platform)
+  const pruned = pruneNextPayload(root, target)
+  console.log(`Pruned the Next payload: ${formatPrunedPayload(pruned)}`)
+  verifyNextPayload(root)
+  const release = nextPayloadRelease(root, packagedElectronVersion(context.packager.projectDir))
+  const descriptor = await sealNextPayload(root, release, target)
+  console.log(`Sealed the Next payload: ${String(descriptor.files.length)} files for ${descriptor.platform} ${descriptor.archs.join('/')}; `
+    + `DSH NEXT ${release.version}, dsh ${release.dshVersion}, Electron ${release.electronVersion}, pnpm ${release.pnpmVersion}`)
 }

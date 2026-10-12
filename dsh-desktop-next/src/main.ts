@@ -29,6 +29,7 @@ import { cleanupDisposableTree } from '../../dsh-plugin-desktop-beta/src/disposa
 import { atomicJson, privateDirectory } from './private-files.ts'
 import { windowMaterial } from './window-material.ts'
 import { ONBOARDING_ARGUMENT, RECOVERY_ARGUMENT, SAFE_ARGUMENT, relaunchApp, relaunchArguments } from './relaunch.ts'
+import { readInstalledPackageVersion, verifyPackagedRuntimeIdentity } from './runtime-tree.ts'
 import { createNativePermissions, installMediaPermissions } from './electron-permissions.ts'
 import { defaultDataDirectory, readDataDirectory, validateDataDirectory } from './data-directory.ts'
 import { maskSecrets } from './mask-secrets.ts'
@@ -101,6 +102,9 @@ let windowsLanguage = 'en'
 const require = createRequire(NEXT_PACKAGE)
 const webRoot = dirname(require.resolve('@deepseek-ai/dsh-web-frontend/dist/index.html'))
 const version = (JSON.parse(readFileSync(NEXT_PACKAGE, 'utf8')) as { version: string }).version
+/** The dsh runtime beside this shell; a development tree may hoist it elsewhere, and the packaged check then reports it. */
+let dshVersion: string | undefined
+try { dshVersion = readInstalledPackageVersion(root, '@deepseek-ai/dsh') } catch { /* Not installed beside the shell; only diagnostics lose the field. */ }
 const t = (zh: string, en: string): string => windowsLanguage.toLowerCase().startsWith('zh') ? zh : en
 const runtime = new NextDesktopRuntime({
   home, root, executable: process.execPath, addresses: () => [...desktopLanAddresses()], systemProxy: () => systemProxy,
@@ -910,6 +914,11 @@ async function main(): Promise<void> {
   runtime.recoveryMode = process.argv.includes(RECOVERY_ARGUMENT)
   runtime.initialize()
   if (dataLocation.error && !runtime.safeMode) { runtime.recoveryMode = true; runtime.report(dataLocation.error) }
+  if (app.isPackaged) {
+    // Packaging sealed the payload with the shell, dsh, platform and architectures it was released for.
+    try { verifyPackagedRuntimeIdentity(root, { version, dshVersion: readInstalledPackageVersion(root, '@deepseek-ai/dsh'), platform: process.platform, arch: process.arch }) }
+    catch (error) { runtime.recoveryMode = true; runtime.report(error) }
+  }
   if (!runtime.safeMode && !runtime.recoveryMode) {
     try {
       runtime.profiles.ensure(runtime.selected)
@@ -1031,6 +1040,7 @@ if (ownsInstance) {
   app.on('child-process-gone', (_event, details) => runtime.diagnostics.record({ source: 'electron', event: 'child-process-gone', level: 'error',
     fields: { type: details.type, reason: details.reason, exitCode: details.exitCode, service: details.serviceName ?? null } }))
   app.once('will-quit', () => runtime.diagnostics.flush())
-  runtime.diagnostics.begin({ version, platform: process.platform, electron: process.versions.electron ?? '', node: process.version, safeMode: safeModeRequested })
+  runtime.diagnostics.begin({ version, platform: process.platform, electron: process.versions.electron ?? '', node: process.version, safeMode: safeModeRequested,
+    ...(dshVersion === undefined ? {} : { dsh: dshVersion }) })
   void main().catch(error => runtime.report(error))
 }

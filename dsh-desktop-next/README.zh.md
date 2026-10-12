@@ -154,7 +154,7 @@ Next 是正式的 Profile bundle，因此上游插件管理器重新组合配置
 
 ## 打包与更新
 
-产品版本为 `2.0.14-next`。在仓库根目录运行：
+产品版本为 `2.0.17-next`。在仓库根目录运行：
 
 ```sh
 corepack yarn package:dir:next
@@ -163,7 +163,9 @@ corepack yarn dist:mac:next
 corepack yarn dist:win:next
 ```
 
-打包复用 Beta 的目录构建、macOS universal DMG、签名公证预检和 Windows x64 NSIS 流程；Windows 安装包遵循现有未签名构建策略。运行时保持 `asar: false`、`RunAsNode`、完整依赖和双架构原生文件。Next 无需旧壳的 fs-ext 锁模块。所有入口仅构建产物，不发布、不启动 GUI；正式发布仍须先通过 AA 最新构建和仓库检查。
+打包复用 Beta 的目录构建、macOS universal DMG、签名公证预检和 Windows x64 NSIS 流程；Windows 安装包遵循现有未签名构建策略。运行时与 Stable、Beta 一样保持 `asar: false`、`RunAsNode`、完整依赖和双架构原生文件：Profile 链接无法穿入虚拟归档，Host 与 CLI 也对用户工作区关闭了 Electron 的归档视图。Next 无需旧壳的 fs-ext 锁模块。所有入口仅构建产物，不发布、不启动 GUI；正式发布仍须先通过 AA 最新构建和仓库检查。
+
+复制后的载荷在签名前先按上游桌面端的文件策略处理。`afterPack` 钩子移除 source map、TypeScript 声明与构建缓存、包管理器元数据、其他平台的 node-pty 预构建文件与 LibreOffice kit，以及 fs-ext 编译中间物，然后在 `package.json` 旁封存 `desktop-runtime.json`：Next、dsh、Electron 与 pnpm 版本，平台及载荷所含原生文件的架构（macOS 为两种 Darwin CPU，Windows 为 x64），每个直接依赖的共享包记录，以及每个文件的字节数、SHA-256、可执行位和 Mach-O 标记。描述文件写入后立即对照目录校验。universal macOS 构建会对每个 CPU 各执行一次钩子，再对合并后的应用执行一次；修剪后的目录与描述文件完全相同，这是合并的前提。所有产物构建完成后，再以容忍代码签名的方式校验最终载荷，因为 electron-builder 在封存之后才签名 Mach-O 文件和嵌套 bundle，签名本身由 `verify-mac-release.ts` 验证；随后用打包好的 Electron 以 Node 模式导入壳模块，并用私有数据目录从载荷启动真实 Host，若 Host 向普通浏览器暴露应用则判定失败。安装版启动时将描述文件与自身版本、已安装的 `@deepseek-ai/dsh`、平台和 CPU 比对；不一致时打开恢复助手而不进入工作区。
 
 桌面设置和托盘均可检查更新。安装版启动后延迟检查，之后每 6 小时检查一次；只有用户点击下载才下载。托盘显示字节数或百分比，完成后点击“安装并重启”。安装前先隐藏窗口并停止 Host。macOS 校验 Next 身份、版本和签名团队，将已下载 DMG 中的应用封装为本地 ZIP，交给 Electron 的 Squirrel.Mac 原生更新器验证和替换；不会改写应用目录或降低签名要求。Windows 校验 Next 安装器身份和版本，交接给 NSIS 静默更新并重新启动。开发运行只允许检查，不替换源码或 Electron 开发运行时。
 

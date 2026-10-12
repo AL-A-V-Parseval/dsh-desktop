@@ -107,6 +107,31 @@
       "upstream": "apps/desktop/tests/keybindings.spec.ts",
       "local": "tests/keybindings.spec.ts",
       "upstreamSha256": "3d90e7dfde4733a9fec33b44a3347805404d4ba0a1a68ca4648ec5e94002a3ad"
+    },
+    {
+      "upstream": "apps/desktop/src/runtime-tree.ts",
+      "local": "src/runtime-tree.ts",
+      "upstreamSha256": "aaef471a94c1bb295c7aecd080f2bf9f4fa037a8fc3f2d76c63db9b367c80778"
+    },
+    {
+      "upstream": "apps/desktop/scripts/runtime-file-policy.ts",
+      "local": "scripts/runtime-file-policy.ts",
+      "upstreamSha256": "1b1318a52d315c10ca54c6e10c43cc0d3eacfe3051af89f09202e2858d961af6"
+    },
+    {
+      "upstream": "apps/desktop/tests/runtime-tree.spec.ts",
+      "local": "tests/runtime-tree.spec.ts",
+      "upstreamSha256": "b72793f4458b6ce36629fe4c26c17ac320051c75e2ac9a7a2493ec55ad959873"
+    },
+    {
+      "upstream": "apps/desktop/tests/runtime-file-policy.spec.ts",
+      "local": "tests/runtime-file-policy.spec.ts",
+      "upstreamSha256": "f51e7891a3d10a22ce9d36cead755aa41e66b325c2973d476db720bceabc125a"
+    },
+    {
+      "upstream": "apps/desktop/tests/runtime-fixture.ts",
+      "local": "tests/runtime-fixture.ts",
+      "upstreamSha256": "578b43a9b65f23627134f954c642f722dff52c09340860142a49f285bc7ddac1"
     }
   ]
 }
