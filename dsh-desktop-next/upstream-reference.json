@@ -132,6 +132,16 @@
       "upstream": "apps/desktop/tests/runtime-fixture.ts",
       "local": "tests/runtime-fixture.ts",
       "upstreamSha256": "578b43a9b65f23627134f954c642f722dff52c09340860142a49f285bc7ddac1"
+    },
+    {
+      "upstream": "apps/desktop-host/src/office-engine.ts",
+      "local": "src/host/office-engine.ts",
+      "upstreamSha256": "9e399122d163f92aca01c57c0f5fd207946ebd7b7a3f6967b7e2e262e7f46432"
+    },
+    {
+      "upstream": "apps/desktop-host/tests/office-engine.spec.ts",
+      "local": "tests/office-engine.spec.ts",
+      "upstreamSha256": "0ef9ae8b2de83cb00a19db96b11cab886672277582986346df4431df189f6344"
     }
   ]
 }

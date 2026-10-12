@@ -3,13 +3,13 @@ import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { expect, it } from 'vitest'
 import { nextRuntimeFileExclusion } from '../scripts/runtime-file-policy.ts'
-import { verifyDesktopRuntime } from '../src/runtime-tree.ts'
+import { DESKTOP_RUNTIME_FILE, physicalPayload, verifyPayload } from '../src/runtime-tree.ts'
 import { runtimeFixture } from './runtime-fixture.ts'
 
 const windows = { platform: 'win32' as const, archs: ['x64'] }
 const universal = { platform: 'darwin' as const, archs: ['arm64', 'x64'] }
 
-it('omits development artifacts while preserving executable modules, assets and license files', async () => {
+it('omits development artifacts while preserving executable modules, assets and license files', () => {
   const root = mkdtempSync(join(tmpdir(), 'desktop-file-policy-'))
   const source = join(root, 'source')
   const output = join(root, 'output')
@@ -65,7 +65,7 @@ it('omits development artifacts while preserving executable modules, assets and 
     for (const path of removed) expect(existsSync(join(output, 'node_modules', path)), path).toBe(false)
     for (const path of retained) expect(readFileSync(join(output, 'node_modules', path), 'utf8'), path).toBe(`payload:${path}`)
     const sealed = runtimeFixture(output)
-    expect(await verifyDesktopRuntime(output, sealed.release.version, { platform: process.platform, archs: [process.arch] })).toEqual(sealed)
+    expect(verifyPayload(physicalPayload(output), join(output, DESKTOP_RUNTIME_FILE), sealed.release.version, { platform: process.platform, archs: [process.arch] })).toEqual(sealed)
     expect(sealed.files.length).toBe(sealedSource.files.length + retained.length)
     expect(readFileSync(join(modules, removed[0]!), 'utf8')).toBe(`payload:${removed[0]}`)
   } finally {

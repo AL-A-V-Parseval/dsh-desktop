@@ -298,8 +298,9 @@
   "build": {
     "appId": "ai.deepseek.dsh.desktop.next",
     "productName": "DSH NEXT",
-    "asar": false,
+    "asar": true,
     "npmRebuild": false,
+    "beforePack": "./scripts/prepare-pack.ts",
     "afterPack": "./scripts/verify-packaged.ts",
     "afterAllArtifactBuild": "./scripts/verify-fuses.ts",
     "electronFuses": {
@@ -325,6 +326,10 @@
       "lib/**",
       "package.json",
       "scripts/node-bin/**",
+      "!**/*.{js,cjs,mjs,ts,cts,mts,css}.map",
+      "!**/*.d.{ts,cts,mts}",
+      "!**/*.tsbuildinfo",
+      "!**/.yarn-state.yml",
       "!node_modules/node-pty/build/**",
       "!node_modules/fs-ext/build/**"
     ],
@@ -352,13 +357,12 @@
       "entitlements": "../deepseek-harness/apps/desktop/scripts/macos-entitlements.plist",
       "entitlementsInherit": "../deepseek-harness/apps/desktop/scripts/macos-entitlements.plist",
       "icon": "build/app-icon.icon",
-      "mergeASARs": false,
+      "mergeASARs": true,
       "notarize": true,
       "signIgnore": [
         "\\.(?:pak|dat|wasm)$"
       ],
-      "x64ArchFiles": "**/node_modules/{@deepseek-ai/node-addon-system-darwin-*/**,node-pty/prebuilds/darwin-*/**,fs-ext/prebuilds/darwin-*/**,node-addon-require-builtin-darwin-*/**,@vscode/ripgrep-darwin-*/**,@img/sharp-darwin-*/**,@img/sharp-libvips-darwin-*/**,@koromix/koffi-darwin-*/**,@dataiku/uv-darwin-*/**,@deepseek-ai/libreoffice-kit-darwin-*/**,sherpa-onnx-darwin-*/**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**}",
-      "asar": false
+      "x64ArchFiles": "**/node_modules/{@deepseek-ai/node-addon-system-darwin-*/**,node-pty/prebuilds/darwin-*/**,fs-ext/prebuilds/darwin-*/**,node-addon-require-builtin-darwin-*/**,@vscode/ripgrep-darwin-*/**,@img/sharp-darwin-*/**,@img/sharp-libvips-darwin-*/**,@koromix/koffi-darwin-*/**,@dataiku/uv-darwin-*/**,@deepseek-ai/libreoffice-kit-darwin-*/**,sherpa-onnx-darwin-*/**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**}"
     },
     "win": {
       "compression": "normal",
@@ -371,8 +375,7 @@
         }
       ],
       "artifactName": "DSH-NEXT-${version}-${arch}-Portable.${ext}",
-      "icon": "build/app-icon.ico",
-      "asar": false
+      "icon": "build/app-icon.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -393,11 +396,25 @@
       "target": [
         "dir"
       ],
-      "icon": "build/app-icon.png",
-      "asar": false
+      "icon": "build/app-icon.png"
     },
     "dmg": {
       "icon": "build/app-icon.icns"
-    }
+    },
+    "asarUnpack": [
+      "**/*.{node,dylib,dll,so,exe}",
+      "**/*.so.*",
+      "**/spawn-helper",
+      "**/@vscode/ripgrep-*/bin/rg",
+      "**/@dataiku/uv-*/bin/uv",
+      "**/node_modules/@deepseek-ai/libreoffice-kit-*/**/*",
+      "**/node_modules/@trycua/cua-driver-*/**/*",
+      "**/node_modules/sherpa-onnx-*/**/*",
+      "**/node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**/*",
+      "**/node_modules/pnpm/**/*",
+      "scripts/node-bin/**/*",
+      "assets/**/*",
+      "build/**/*"
+    ]
   }
 }

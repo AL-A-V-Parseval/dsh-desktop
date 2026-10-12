@@ -12,6 +12,8 @@ import { verifyMacEntitlements } from './verify-mac-entitlements.ts'
 export interface MacReleaseVerificationOptions {
   /** Native inventory for shells which do not load legacy-only modules. */
   readonly nativeEntries?: readonly { readonly arch: string; readonly path: string }[]
+  /** Physical runtime root inside the application; the unpacked `Resources/app` layout by default. */
+  readonly unpackedRoot?: (appPath: string) => string
   /** Directory containing exactly one release DMG. */
   readonly distDir: string
   /** Installed application name inside the mounted image. */
@@ -85,7 +87,7 @@ export function verifyMacRelease(
     const executablePath = join(appPath, 'Contents', 'MacOS', options.productName)
     options.run('lipo', [executablePath, '-verify_arch', 'x86_64'])
     options.run('lipo', [executablePath, '-verify_arch', 'arm64'])
-    const unpackedRoot = join(appPath, 'Contents', 'Resources', 'app')
+    const unpackedRoot = options.unpackedRoot === undefined ? join(appPath, 'Contents', 'Resources', 'app') : options.unpackedRoot(appPath)
     for (const entry of options.nativeEntries ?? MACOS_UNIVERSAL_NATIVE_ENTRIES) {
       options.run('lipo', [join(unpackedRoot, entry.path), '-verify_arch', entry.arch])
       if (entry.path.endsWith('/bin/uv')) {

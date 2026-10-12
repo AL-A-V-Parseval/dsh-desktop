@@ -14,10 +14,11 @@ import { configureNextBrowserAccess } from '../desktop-browser-access.ts'
 import { parsePreferences } from '../desktop-preferences.ts'
 import { atomicJson } from '../private-files.ts'
 import type NextWebServer from '../webserver.ts'
-import { disableAsarArchiveView } from '../asar-archive-policy.ts'
+import { disableAsarArchiveView, unpackedPath } from '../asar-archive-policy.ts'
 import { maskSecrets } from '../mask-secrets.ts'
 import { parseSystemProxyProbe, SYSTEM_PROXY_ENV, withSystemProxy } from '../system-proxy.ts'
 import { watchPlatformLogin, type PlatformLoginAccount } from './platform-login.ts'
+import { installOfficeEngineResolution } from './office-engine.ts'
 
 export async function main(): Promise<void> {
   // The Host lists and reads user workspaces; see asar-archive-policy.ts.
@@ -26,6 +27,8 @@ export async function main(): Promise<void> {
   const projectDir = process.argv[3]
   const home = process.env.DSH_HOME
   if (!runtimeDir || !projectDir || !home || !process.send) throw new Error('Next Host requires runtime, profile, home and IPC')
+  // The Office engine runs as a native child process, so an archived payload resolves it to its unpacked copy.
+  installOfficeEngineResolution(runtimeDir)
   const preferences = parsePreferences(JSON.parse(process.env.DSH_NEXT_PREFERENCES ?? '{}'))
   configureHostLogging(preferences)
   hostLog({ source: 'host', event: 'process.start', fields: { profile: basename(projectDir), node: process.version } })
@@ -58,7 +61,8 @@ export async function main(): Promise<void> {
       env: {
         DSH_DESKTOP_NODE_EXECUTABLE: process.execPath,
         ...(process.versions.electron ? { ELECTRON_RUN_AS_NODE: '1' } : {}),
-        PATH: `${join(runtimeDir, 'scripts', 'node-bin')}${delimiter}${process.env.PATH ?? ''}`,
+        // Package scripts execute the shims through the shell, which cannot enter app.asar.
+        PATH: `${unpackedPath(join(runtimeDir, 'scripts', 'node-bin'))}${delimiter}${process.env.PATH ?? ''}`,
       },
     },
   })

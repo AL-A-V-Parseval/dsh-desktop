@@ -29,7 +29,8 @@ import { cleanupDisposableTree } from '../../dsh-plugin-desktop-beta/src/disposa
 import { atomicJson, privateDirectory } from './private-files.ts'
 import { windowMaterial } from './window-material.ts'
 import { ONBOARDING_ARGUMENT, RECOVERY_ARGUMENT, SAFE_ARGUMENT, relaunchApp, relaunchArguments } from './relaunch.ts'
-import { readInstalledPackageVersion, verifyPackagedRuntimeIdentity } from './runtime-tree.ts'
+import { DESKTOP_RUNTIME_FILE, readInstalledPackageVersion, verifyPackagedRuntimeIdentity } from './runtime-tree.ts'
+import { unpackedPath } from './asar-archive-policy.ts'
 import { createNativePermissions, installMediaPermissions } from './electron-permissions.ts'
 import { defaultDataDirectory, readDataDirectory, validateDataDirectory } from './data-directory.ts'
 import { maskSecrets } from './mask-secrets.ts'
@@ -229,7 +230,7 @@ const WINDOWS_CAPTION_FILL = '#00000000'
 function createWindow(preload: string, primary = false): BrowserWindow {
   const window = new BrowserWindow({ width: 1280, height: 840, minWidth: 800, minHeight: 580,
     show: false, title: 'DSH NEXT',
-    ...(process.platform !== 'darwin' ? { icon: join(root, 'build', process.platform === 'win32' ? 'app-icon.ico' : 'app-icon.png') } : {}),
+    ...(process.platform !== 'darwin' ? { icon: unpackedPath(join(root, 'build', process.platform === 'win32' ? 'app-icon.ico' : 'app-icon.png')) } : {}),
     ...(!primary ? auxiliaryWindowChromeOptions() : {}),
     ...(process.platform === 'win32' && primary ? {
       titleBarStyle: 'hidden' as const,
@@ -916,7 +917,7 @@ async function main(): Promise<void> {
   if (dataLocation.error && !runtime.safeMode) { runtime.recoveryMode = true; runtime.report(dataLocation.error) }
   if (app.isPackaged) {
     // Packaging sealed the payload with the shell, dsh, platform and architectures it was released for.
-    try { verifyPackagedRuntimeIdentity(root, { version, dshVersion: readInstalledPackageVersion(root, '@deepseek-ai/dsh'), platform: process.platform, arch: process.arch }) }
+    try { verifyPackagedRuntimeIdentity(join(process.resourcesPath, DESKTOP_RUNTIME_FILE), { version, dshVersion: readInstalledPackageVersion(root, '@deepseek-ai/dsh'), platform: process.platform, arch: process.arch }) }
     catch (error) { runtime.recoveryMode = true; runtime.report(error) }
   }
   if (!runtime.safeMode && !runtime.recoveryMode) {

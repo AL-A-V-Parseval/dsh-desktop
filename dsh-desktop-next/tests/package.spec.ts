@@ -14,11 +14,24 @@ it('declares every official optional bundle as a discoverable, version-aligned i
   }
 })
 
-it('keeps Next installer topology, native modules, fuses and Composer source aligned with Beta', () => {
+it('archives the application like upstream Desktop while keeping fuses and native inventory aligned with Beta', () => {
   const next = read('../package.json'); const beta = read('../../dsh-plugin-desktop-beta/package.json')
   expect(next.version).toBe('2.0.17-next')
   expect(next.build.appId).toBe('ai.deepseek.dsh.desktop.next')
-  expect(next.build.asar).toBe(false)
+  expect(next.build.asar).toBe(true)
+  for (const platform of ['mac', 'win', 'linux']) expect(next.build[platform].asar, platform).toBeUndefined()
+  expect(next.build.mac.mergeASARs).toBe(true)
+  // Electron's own fs and dlopen read the archive; child processes, shells and nativeImage need these physically.
+  expect(next.build.asarUnpack).toEqual(expect.arrayContaining(['**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper',
+    '**/@vscode/ripgrep-*/bin/rg', '**/@dataiku/uv-*/bin/uv', '**/node_modules/@deepseek-ai/libreoffice-kit-*/**/*', '**/node_modules/pnpm/**/*',
+    '**/node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**/*', 'scripts/node-bin/**/*', 'assets/**/*', 'build/**/*']))
+  // The Desktop file policy is applied by these globs; the afterPack audit rejects anything they miss.
+  expect(next.build.files).toEqual(expect.arrayContaining(['!**/*.{js,cjs,mjs,ts,cts,mts,css}.map', '!**/*.d.{ts,cts,mts}', '!**/*.tsbuildinfo']))
+  // Platform omissions join the single file set in beforePack; a platform-level files list would include everything else.
+  for (const platform of ['mac', 'win', 'linux']) expect(next.build[platform].files, platform).toBeUndefined()
+  expect(next.build.beforePack).toBe('./scripts/prepare-pack.ts')
+  expect(next.build.afterPack).toBe('./scripts/verify-packaged.ts')
+  expect(next.build.afterAllArtifactBuild).toBe('./scripts/verify-fuses.ts')
   expect(next.build.electronFuses).toEqual(beta.build.electronFuses)
   expect(next.build.mac.x64ArchFiles).toBe(beta.build.mac.x64ArchFiles.replace('**}', '**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**}'))
   expect(next.build.mac.icon).toBe('build/app-icon.icon')

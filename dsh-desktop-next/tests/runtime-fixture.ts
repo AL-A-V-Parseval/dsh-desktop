@@ -2,7 +2,7 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { writeDesktopRuntime, type DesktopRuntimeDescriptor, type NextRelease, type NextRuntimeTarget } from '../src/runtime-tree.ts'
+import { DESKTOP_RUNTIME_FILE, physicalPayload, sealPayload, type DesktopRuntimeDescriptor, type NextRelease, type NextRuntimeTarget } from '../src/runtime-tree.ts'
 
 /**
  * Write a package fixture with explicit runtime exports.
@@ -30,13 +30,11 @@ export const FIXTURE_TARGET: NextRuntimeTarget = { platform: process.platform, a
 export const FIXTURE_SHARED = ['@deepseek-ai/dsh', '@deepseek-ai/cordis', '@deepseek-ai/dsh-base', 'pnpm']
 
 /**
- * Seal a minimal Next payload: the application manifest, shell code, and shared packages.
- * @param root - New payload directory.
+ * Write a minimal Next application: the manifest, shell code and shared packages.
+ * @param root - New application directory.
  * @param release - Release facts; the dsh package takes `dshVersion`.
- * @param target - Platform and architectures recorded in the descriptor.
- * @returns Sealed descriptor.
  */
-export function runtimeFixture(root: string, release = FIXTURE_RELEASE, target = FIXTURE_TARGET): DesktopRuntimeDescriptor {
+export function writeApplication(root: string, release = FIXTURE_RELEASE): void {
   const modules = join(root, 'node_modules')
   for (const name of FIXTURE_SHARED) {
     writePackage(modules, name, { version: name === '@deepseek-ai/dsh' ? release.dshVersion : name === 'pnpm' ? release.pnpmVersion : '1.0.0' })
@@ -45,5 +43,16 @@ export function runtimeFixture(root: string, release = FIXTURE_RELEASE, target =
   writeFileSync(join(root, 'lib', 'main.js'), 'export {}\n')
   writeFileSync(join(root, 'package.json'), JSON.stringify({ name: 'dsh-desktop-next', version: release.version, type: 'module',
     dependencies: Object.fromEntries(FIXTURE_SHARED.map(name => [name, '*'])) }) + '\n')
-  return writeDesktopRuntime(root, release, FIXTURE_SHARED, target)
+}
+
+/**
+ * Seal a minimal unpacked Next application with its descriptor inside the directory.
+ * @param root - New application directory.
+ * @param release - Release facts; the dsh package takes `dshVersion`.
+ * @param target - Platform and architectures recorded in the descriptor.
+ * @returns Sealed descriptor.
+ */
+export function runtimeFixture(root: string, release = FIXTURE_RELEASE, target = FIXTURE_TARGET): DesktopRuntimeDescriptor {
+  writeApplication(root, release)
+  return sealPayload(physicalPayload(root), join(root, DESKTOP_RUNTIME_FILE), release, FIXTURE_SHARED, target)
 }

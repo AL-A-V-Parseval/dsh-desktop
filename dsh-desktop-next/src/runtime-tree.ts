@@ -1,11 +1,10 @@
 /** Relocatable, integrity-recorded production payload carried by one Next release. */
 
 import { createHash } from 'node:crypto'
-import { lstatSync, readdirSync, readFile, readFileSync, writeFileSync } from 'node:fs'
+import { lstatSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join, relative, sep } from 'node:path'
-import { promisify } from 'node:util'
 
-/** Descriptor at the root of the immutable Next application payload. */
+/** Descriptor written beside `app.asar` in the application resources. */
 export const DESKTOP_RUNTIME_FILE = 'desktop-runtime.json'
 
 /** Release facts shared by one Electron shell and the dsh runtime it carries. */
@@ -34,11 +33,13 @@ export interface DesktopSharedPackage {
   readonly path: string
 }
 
-/** Final bytes, executable permission and Mach-O identity of one payload file. */
+/** Final bytes, placement, executable permission and Mach-O identity of one payload file. */
 export interface DesktopRuntimeFile {
   readonly path: string
   readonly bytes: number
   readonly sha256: string
+  /** Physical file beside the archive rather than an archive entry. */
+  readonly unpacked: boolean
   readonly executable: boolean
   /** Mach-O image; macOS code signing rewrites these after the descriptor is sealed. */
   readonly machO: boolean
@@ -54,6 +55,24 @@ export interface DesktopRuntimeDescriptor {
   readonly files: readonly DesktopRuntimeFile[]
 }
 
+/** One payload file as the shipped application sees it, in archive or physical form. */
+export interface PayloadEntry {
+  /** Slash-separated path from the application root. */
+  readonly path: string
+  readonly unpacked: boolean
+  readonly executable: boolean
+  /** Final bytes. */
+  read(): Buffer
+}
+
+/** A complete payload: an unpacked directory, or an archive with its unpacked sibling. */
+export interface PayloadSource {
+  /** Every file, sorted by path, without the descriptor. */
+  list(): readonly PayloadEntry[]
+  /** One file by its slash-separated path. */
+  entry(path: string): PayloadEntry | undefined
+}
+
 /** Facts the running application compares with its sealed descriptor. */
 export interface PackagedRuntimeIdentity {
   readonly version: string
@@ -63,10 +82,11 @@ export interface PackagedRuntimeIdentity {
 }
 
 /** Verification options after Electron Builder signed the payload in place. */
-export interface VerifyDesktopRuntimeOptions {
+export interface VerifyPayloadOptions {
   /**
    * Accept code-signing rewrites: Mach-O files and `_CodeSignature` contents may differ from the
-   * sealed bytes, and new files may exist. Every recorded file must still exist with its permission.
+   * sealed bytes, and new files may exist. Every recorded file must still exist with its
+   * placement and permission.
    */
   readonly afterCodeSigning?: boolean
 }
@@ -75,10 +95,13 @@ const PACKAGE_NAME = /^(?:@[a-z0-9][a-z0-9._~-]*\/[a-z0-9][a-z0-9._~-]*|[a-z0-9]
 const VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u
 /** Thin and fat Mach-O magic numbers in both byte orders. */
 const MACH_O_MAGIC = new Set([0xFEEDFACE, 0xFEEDFACF, 0xCEFAEDFE, 0xCFFAEDFE, 0xCAFEBABE, 0xBEBAFECA])
-const readRuntimeFile = promisify(readFile)
 
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function byPath<T extends { readonly path: string }>(a: T, b: T): number {
+  return a.path < b.path ? -1 : a.path > b.path ? 1 : 0
 }
 
 /**
@@ -95,67 +118,49 @@ export function runtimePath(root: string, path: string): string {
   return join(root, ...path.split('/'))
 }
 
-function runtimeFiles(root: string): { path: string; name: string }[] {
-  const files: { path: string; name: string }[] = []
+/**
+ * An unpacked application directory, as a development tree or a test fixture presents it.
+ * @param root - Application directory.
+ * @param omit - Root-relative files left out of the inventory; the descriptor itself by default.
+ * @returns Payload whose entries are all physical.
+ */
+export function physicalPayload(root: string, omit: readonly string[] = [DESKTOP_RUNTIME_FILE]): PayloadSource {
+  const entries = new Map<string, PayloadEntry>()
   const visit = (directory: string): void => {
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      const path = join(directory, entry.name)
+    for (const dirent of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, dirent.name)
       const name = relative(root, path).split(sep).join('/')
-      if (name === DESKTOP_RUNTIME_FILE) continue
-      if (entry.isDirectory()) visit(path)
-      else if (entry.isFile()) files.push({ path, name })
-      else throw new Error(`desktop runtime: unsupported filesystem entry ${name}`)
+      if (omit.includes(name)) continue
+      if (dirent.isDirectory()) visit(path)
+      else if (dirent.isFile()) {
+        entries.set(name, { path: name, unpacked: false,
+          // Windows has no portable Unix executable permission bits.
+          executable: process.platform !== 'win32' && (lstatSync(path).mode & 0o111) !== 0,
+          read: () => readFileSync(path) })
+      } else throw new Error(`desktop runtime: unsupported filesystem entry ${name}`)
     }
   }
   visit(root)
-  return files
+  const list = [...entries.values()].sort(byPath)
+  return { list: () => list, entry: path => entries.get(path) }
 }
 
 function isMachO(body: Buffer): boolean {
   return body.byteLength >= 4 && MACH_O_MAGIC.has(body.readUInt32BE(0))
 }
 
-function runtimeFile(path: string, name: string, body: Buffer): DesktopRuntimeFile {
-  return { path: name, bytes: body.byteLength, sha256: createHash('sha256').update(body).digest('hex'),
-    // Windows has no portable Unix executable permission bits.
-    executable: process.platform !== 'win32' && (lstatSync(path).mode & 0o111) !== 0, machO: isMachO(body) }
-}
-
-function byPath(a: DesktopRuntimeFile, b: DesktopRuntimeFile): number {
-  return a.path < b.path ? -1 : a.path > b.path ? 1 : 0
+function runtimeFile(entry: PayloadEntry, body: Buffer): DesktopRuntimeFile {
+  return { path: entry.path, bytes: body.byteLength, sha256: createHash('sha256').update(body).digest('hex'),
+    unpacked: entry.unpacked, executable: entry.executable, machO: isMachO(body) }
 }
 
 /**
- * Inventory a materialized payload without following links or including its descriptor.
- * @param root - Self-contained application payload directory.
- * @returns Sorted final-file inventory; executable permissions are false on Windows.
+ * Inventory a payload: every file's final bytes, placement and permissions.
+ * @param source - Payload to read completely.
+ * @returns Sorted inventory; executable permissions are false on Windows.
  */
-export function inventoryDesktopRuntime(root: string): DesktopRuntimeFile[] {
-  return runtimeFiles(root).map(({ path, name }) => runtimeFile(path, name, readFileSync(path))).sort(byPath)
-}
-
-async function inventoryRuntimeForVerification(root: string): Promise<DesktopRuntimeFile[]> {
-  const entries = runtimeFiles(root)
-  const files: DesktopRuntimeFile[] = []
-  const remaining = entries.values()
-  let failed = false
-  const workers = Array.from({ length: Math.min(8, entries.length) }, async () => {
-    while (!failed) {
-      const next = remaining.next()
-      if (next.done) return
-      const { path, name } = next.value
-      try {
-        files.push(runtimeFile(path, name, await readRuntimeFile(path)))
-      } catch (error) {
-        failed = true
-        throw error
-      }
-    }
-  })
-  // Failure returns only after every outstanding file read has closed its descriptor.
-  const results = await Promise.allSettled(workers)
-  for (const result of results) if (result.status === 'rejected') throw result.reason
-  return files.sort(byPath)
+export function inventoryPayload(source: PayloadSource): DesktopRuntimeFile[] {
+  return source.list().map(entry => runtimeFile(entry, entry.read()))
 }
 
 /**
@@ -180,41 +185,48 @@ function parseTarget(platform: unknown, archs: unknown): NextRuntimeTarget {
   return { platform: platform as NodeJS.Platform, archs: unique }
 }
 
+function readManifest(source: PayloadSource, path: string): unknown {
+  const entry = source.entry(path)
+  if (entry === undefined) throw new Error(`desktop runtime: missing ${path}`)
+  return JSON.parse(entry.read().toString('utf8'))
+}
+
 /**
- * Seal the final payload after Electron Builder copied and pruned it.
- * @param root - Application payload directory.
+ * Seal the final payload after Electron Builder assembled it.
+ * @param source - Complete payload.
+ * @param descriptorFile - Where the descriptor is written; outside the payload's inventory.
  * @param release - Matching shell, dsh, Electron and pnpm versions.
  * @param sharedNames - Release-owned packages supplied to Profiles.
  * @param target - Platform and architectures whose native dependencies the payload includes.
- * @returns Descriptor written beside the production packages.
+ * @returns The written descriptor.
  */
-export function writeDesktopRuntime(
-  root: string, release: NextRelease, sharedNames: readonly string[], target: NextRuntimeTarget,
+export function sealPayload(
+  source: PayloadSource, descriptorFile: string, release: NextRelease, sharedNames: readonly string[], target: NextRuntimeTarget,
 ): DesktopRuntimeDescriptor {
   const { platform, archs } = parseTarget(target.platform, target.archs)
   const sharedPackages = [...new Set(sharedNames)].sort().map((name) => {
     if (!PACKAGE_NAME.test(name)) throw new Error(`desktop runtime: invalid shared package ${name}`)
     const path = `node_modules/${name}`
-    const manifest: unknown = JSON.parse(readFileSync(join(runtimePath(root, path), 'package.json'), 'utf8'))
+    const manifest = readManifest(source, `${path}/package.json`)
     if (!record(manifest) || manifest.name !== name || typeof manifest.version !== 'string' || !VERSION.test(manifest.version)) {
       throw new Error(`desktop runtime: invalid shared package manifest ${name}`)
     }
     return { name, version: manifest.version, path }
   })
   const descriptor: DesktopRuntimeDescriptor = {
-    schemaVersion: 1, release: parseNextRelease(release), platform, archs, sharedPackages, files: inventoryDesktopRuntime(root),
+    schemaVersion: 1, release: parseNextRelease(release), platform, archs, sharedPackages, files: inventoryPayload(source),
   }
-  writeFileSync(join(root, DESKTOP_RUNTIME_FILE), `${JSON.stringify(descriptor, undefined, 2)}\n`)
+  writeFileSync(descriptorFile, `${JSON.stringify(descriptor, undefined, 2)}\n`)
   return descriptor
 }
 
 /**
  * Read packaged metadata and check the shared package records.
- * @param root - Application payload directory.
+ * @param descriptorFile - Descriptor beside the archive.
  * @returns Runtime metadata whose file inventory is verified only during packaging.
  */
-export function readDesktopRuntime(root: string): DesktopRuntimeDescriptor {
-  const value: unknown = JSON.parse(readFileSync(join(root, DESKTOP_RUNTIME_FILE), 'utf8'))
+export function readDesktopRuntime(descriptorFile: string): DesktopRuntimeDescriptor {
+  const value: unknown = JSON.parse(readFileSync(descriptorFile, 'utf8'))
   if (!record(value) || value.schemaVersion !== 1 || !Array.isArray(value.sharedPackages) || !Array.isArray(value.files)) {
     throw new Error('desktop runtime: invalid descriptor')
   }
@@ -242,18 +254,19 @@ function isCodeSignatureEntry(path: string): boolean {
 }
 
 /**
- * Verify every payload file against its recorded bytes and permissions at build time.
- * @param root - Application payload directory.
+ * Verify every payload file against its recorded bytes, placement and permissions at build time.
+ * @param source - Assembled payload.
+ * @param descriptorFile - Descriptor sealed by {@link sealPayload}.
  * @param expectedVersion - Version the payload must declare: the product version, or the
  * `DSH_NEXT_BUILD_VERSION` a drill build was given.
  * @param target - Required platform and architectures.
  * @param options - Code-signing tolerance for a payload that Electron Builder already signed.
  * @returns Validated runtime descriptor.
  */
-export async function verifyDesktopRuntime(
-  root: string, expectedVersion: string, target: NextRuntimeTarget, options: VerifyDesktopRuntimeOptions = {},
-): Promise<DesktopRuntimeDescriptor> {
-  const descriptor = readDesktopRuntime(root)
+export function verifyPayload(
+  source: PayloadSource, descriptorFile: string, expectedVersion: string, target: NextRuntimeTarget, options: VerifyPayloadOptions = {},
+): DesktopRuntimeDescriptor {
+  const descriptor = readDesktopRuntime(descriptorFile)
   const expected = parseTarget(target.platform, target.archs)
   if (descriptor.platform !== expected.platform || descriptor.archs.join(',') !== expected.archs.join(',')) {
     throw new Error('desktop runtime: incompatible platform/architecture')
@@ -262,43 +275,40 @@ export async function verifyDesktopRuntime(
     throw new Error(`desktop runtime: bundled ${descriptor.release.version} is not the expected ${expectedVersion}`)
   }
   for (const entry of descriptor.sharedPackages) {
-    const manifest: unknown = JSON.parse(readFileSync(join(runtimePath(root, entry.path), 'package.json'), 'utf8'))
+    const manifest = readManifest(source, `${entry.path}/package.json`)
     if (!record(manifest) || manifest.name !== entry.name || manifest.version !== entry.version) {
       throw new Error(`desktop runtime: shared package metadata mismatch for ${entry.name}`)
     }
   }
+  // Windows has no portable Unix executable permission bits.
+  const comparable = (items: readonly DesktopRuntimeFile[]): unknown => process.platform === 'win32'
+    ? items.map(({ executable: _executable, ...item }) => item) : items
   if (options.afterCodeSigning === true) {
     for (const file of descriptor.files) {
-      const path = runtimePath(root, file.path)
-      const stat = lstatSync(path, { throwIfNoEntry: false })
-      if (stat === undefined || !stat.isFile()) throw new Error(`desktop runtime: missing payload file ${file.path}`)
-      if (process.platform !== 'win32' && ((stat.mode & 0o111) !== 0) !== file.executable) {
-        throw new Error(`desktop runtime: permission changed for ${file.path}`)
-      }
+      const entry = source.entry(file.path)
+      if (entry === undefined) throw new Error(`desktop runtime: missing payload file ${file.path}`)
+      if (entry.unpacked !== file.unpacked) throw new Error(`desktop runtime: placement changed for ${file.path}`)
+      if (process.platform !== 'win32' && entry.executable !== file.executable) throw new Error(`desktop runtime: permission changed for ${file.path}`)
       if (file.machO || isCodeSignatureEntry(file.path)) continue
-      const actual = runtimeFile(path, file.path, await readRuntimeFile(path))
+      const actual = runtimeFile(entry, entry.read())
       if (actual.bytes !== file.bytes || actual.sha256 !== file.sha256) throw new Error(`desktop runtime: payload file changed ${file.path}`)
     }
     return descriptor
   }
-  const actual = await inventoryRuntimeForVerification(root)
-  // Windows has no portable Unix executable permission bits.
-  const comparable = (items: readonly DesktopRuntimeFile[]): unknown => process.platform === 'win32'
-    ? items.map(({ executable: _executable, ...item }) => item) : items
-  if (JSON.stringify(comparable(descriptor.files)) !== JSON.stringify(comparable(actual))) {
+  if (JSON.stringify(comparable(descriptor.files)) !== JSON.stringify(comparable(inventoryPayload(source)))) {
     throw new Error('desktop runtime: integrity verification failed')
   }
   return descriptor
 }
 
 /**
- * Read the version of one package installed at the payload root.
- * @param root - Application payload or development package directory.
+ * Read the version of one package installed at the application root.
+ * @param appRoot - Application directory; inside Electron, `app.asar` reads like a directory.
  * @param name - Package name.
  * @returns The installed version.
  */
-export function readInstalledPackageVersion(root: string, name: string): string {
-  const manifest: unknown = JSON.parse(readFileSync(join(runtimePath(root, `node_modules/${name}`), 'package.json'), 'utf8'))
+export function readInstalledPackageVersion(appRoot: string, name: string): string {
+  const manifest: unknown = JSON.parse(readFileSync(join(runtimePath(appRoot, `node_modules/${name}`), 'package.json'), 'utf8'))
   if (!record(manifest) || typeof manifest.version !== 'string') throw new Error(`desktop runtime: ${name} has no version`)
   return manifest.version
 }
@@ -307,12 +317,12 @@ export function readInstalledPackageVersion(root: string, name: string): string 
  * Check at startup that the installed payload is the one this application was released with.
  * File bytes are verified only during packaging; here the descriptor must exist, parse, and
  * name the running shell, dsh runtime, platform and architecture.
- * @param root - Packaged application directory.
+ * @param descriptorFile - Descriptor beside the archive.
  * @param identity - Facts of the running application.
  * @returns The sealed descriptor.
  */
-export function verifyPackagedRuntimeIdentity(root: string, identity: PackagedRuntimeIdentity): DesktopRuntimeDescriptor {
-  const descriptor = readDesktopRuntime(root)
+export function verifyPackagedRuntimeIdentity(descriptorFile: string, identity: PackagedRuntimeIdentity): DesktopRuntimeDescriptor {
+  const descriptor = readDesktopRuntime(descriptorFile)
   if (descriptor.release.version !== identity.version) {
     throw new Error(`desktop runtime: payload ${descriptor.release.version} does not belong to DSH NEXT ${identity.version}`)
   }

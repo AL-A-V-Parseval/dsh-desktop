@@ -1,4 +1,4 @@
-/** Verify every final Next executable: fuses, the sealed payload, a RunAsNode import smoke and a real Host boot. */
+/** Verify every final Next executable: fuses, the sealed archive, a RunAsNode import smoke and a real Host boot. */
 import { existsSync, readFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
@@ -6,8 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { verifyElectronExecutableFuses } from '../../dsh-plugin-desktop-beta/scripts/verify-electron-fuses.ts'
 import { withoutMacReleaseSecrets } from '../../dsh-plugin-desktop-beta/scripts/release-preflight.ts'
 import { withoutWindowsSigningSecrets } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
-import { verifyDesktopRuntime } from '../src/runtime-tree.ts'
-import { nextPackagingTarget } from './packaged-payload.ts'
+import { nextPackagingTarget, verifyNextRuntime } from './packaged-payload.ts'
 
 const desktopRoot = fileURLToPath(new URL('..', import.meta.url))
 
@@ -34,15 +33,18 @@ export default async function afterAllArtifactBuild(result: { outDir: string }):
   const executables = paths.map(path => join(result.outDir, path)).filter(existsSync)
   if (!executables.length) throw new Error('No packaged Next executable to verify')
   for (const path of executables) {
+    // Upstream Desktop keeps both archive fuses off; the archive is sealed by code signing instead.
     await verifyElectronExecutableFuses(path, undefined, false)
     const darwin = path.includes('.app/')
-    const root = darwin ? join(dirname(path), '../Resources/app') : join(dirname(path), 'resources/app')
-    // electron-builder signs Mach-O files and nested bundles after afterPack sealed the payload, so
-    // the final tree is checked with code-signing tolerance; verify-mac-release.ts validates the
-    // signatures themselves.
+    const resources = darwin ? join(dirname(path), '../Resources') : join(dirname(path), 'resources')
+    const root = join(resources, 'app.asar')
+    // electron-builder signs unpacked Mach-O files and nested bundles after afterPack sealed the
+    // payload, so the final tree is checked with code-signing tolerance; verify-mac-release.ts
+    // validates the signatures themselves.
     const target = nextPackagingTarget(darwin ? 'darwin' : path.endsWith('.exe') ? 'win32' : 'linux')
-    const descriptor = await verifyDesktopRuntime(root, expectedVersion(), target, { afterCodeSigning: true })
+    const descriptor = verifyNextRuntime(resources, expectedVersion(), target, { afterCodeSigning: true })
     console.log(`Verified the sealed Next payload at ${root}: ${String(descriptor.files.length)} files, dsh ${descriptor.release.dshVersion}`)
+    // Electron's Node mode reads the archive like a directory, as the Host and CLI will.
     runPackagedNode(path, ['--input-type=module', '-e', `
       import { createRequire } from 'node:module';
       import { pathToFileURL } from 'node:url';
@@ -53,7 +55,7 @@ export default async function afterAllArtifactBuild(result: { outDir: string }):
       await import(pathToFileURL(root + '/lib/desktop-runtime.js'));
       require.resolve('@deepseek-ai/dsh-web-frontend/dist/index.html');
     `, root], 30_000, 'Packaged Next runtime failed')
-    // The same Electron, in Node mode, starts the real Host from the payload with a private home.
+    // The same Electron, in Node mode, starts the real Host from the archive with a private home.
     runPackagedNode(path, ['--expose-internals', join(desktopRoot, 'scripts', 'packaged-host-smoke.mjs'), root], 300_000, 'Packaged Next Host smoke failed')
   }
   return []
