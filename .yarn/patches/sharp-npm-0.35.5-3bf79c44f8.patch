@@ -1,6 +1,6 @@
 diff --git a/bridge/core.cjs b/bridge/core.cjs
 new file mode 100644
-index 0000000000000000000000000000000000000000..7462ead398a3f663d44c77cec1c06ae9085cff44
+index 0000000000000000000000000000000000000000..fc5c1b2e6876a5c699737134ed9b866270a98e3b
 --- /dev/null
 +++ b/bridge/core.cjs
 @@ -0,0 +1,141 @@
@@ -139,7 +139,7 @@ index 0000000000000000000000000000000000000000..7462ead398a3f663d44c77cec1c06ae9
 +  }
 +
 +  const sharp = (input, options) => new Pipeline(input, options, [])
-+  sharp.versions = { get vips() { return '8.18.3 (bridged)' }, get sharp() { return '0.35.3 (bridged)' } }
++  sharp.versions = { get vips() { return '8.18.3 (bridged)' }, get sharp() { return '0.35.5 (bridged)' } }
 +
 +  module.exports = sharp
 +  module.exports.default = sharp
@@ -212,7 +212,7 @@ index 0000000000000000000000000000000000000000..998a1dbe9f3507244c5b74db1083210a
 +    }))
 +  })
 diff --git a/package.json b/package.json
-index 61432901e67b7eeaf95981fcc9cd0c1926e98489..c76f8d7c9b12ed88699031eb2fd11c72eef46b0f 100644
+index 64daa849bbf8c35c881a20787ae506eb4eac4fb9..5b958a19459e8cf204a25bf64e2898e62a26189e 100644
 --- a/package.json
 +++ b/package.json
 @@ -114,23 +114,24 @@

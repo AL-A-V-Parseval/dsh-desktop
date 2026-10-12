@@ -36,8 +36,10 @@ import { maskSecrets } from './mask-secrets.ts'
 import { DesktopBrowserGuests } from './browser-guests.ts'
 import { PlatformLoginWindow } from './platform-login-window.ts'
 import { NextUpdates } from './updates.ts'
+import { createArtifactRequest } from './update-transport.ts'
 import { NextUpdateInstaller } from './update-installer.ts'
 import { updateLabel } from './update-state.ts'
+import { DESKTOP_SHUTDOWN_TIMEOUT_MS } from '../../dsh-plugin-desktop-beta/src/shutdown.ts'
 
 // Inherit the package policy across the Host and every runtime child process.
 applyDesktopPackageAgePolicy(process.env)
@@ -159,6 +161,7 @@ const updateInstaller = new NextUpdateInstaller({ platform: process.platform, ex
   log: error => runtime.diagnostics.append(String(error), 'warn') })
 const updates = new NextUpdates({ version, platform: process.platform, packaged: app.isPackaged, userData: electronData,
   request: (url, init) => net.fetch(url, { ...init, credentials: 'omit' }),
+  artifactRequest: createArtifactRequest(),
   changed: () => { if (app.isReady() && !quitting) native.refresh() },
   log: error => runtime.diagnostics.append(String(error), 'warn'),
   prepare: (path, nextVersion, directory, signal) => updateInstaller.prepare(path, nextVersion, directory, signal),
@@ -211,6 +214,14 @@ function show(window: BrowserWindow): void {
   if (window.isMinimized()) window.restore()
   window.show(); window.focus()
 }
+/**
+ * Windows caption buttons never paint a fill of their own. Upstream fills them with the sidebar
+ * color, which matches only the official caption band: full-window surfaces such as the official
+ * onboarding and Platform sign-in pages paint that strip in the base background, leaving the
+ * buttons a different shade. Transparent buttons show whatever the page paints beneath them, and
+ * Electron derives their hover and press tint from the native theme rather than from this fill.
+ */
+const WINDOWS_CAPTION_FILL = '#00000000'
 
 function createWindow(preload: string, primary = false): BrowserWindow {
   const window = new BrowserWindow({ width: 1280, height: 840, minWidth: 800, minHeight: 580,
@@ -219,7 +230,7 @@ function createWindow(preload: string, primary = false): BrowserWindow {
     ...(!primary ? auxiliaryWindowChromeOptions() : {}),
     ...(process.platform === 'win32' && primary ? {
       titleBarStyle: 'hidden' as const,
-      titleBarOverlay: { height: WINDOWS_TITLEBAR_HEIGHT, color: nativeTheme.shouldUseDarkColors ? '#1b1b1c' : '#f9fafb',
+      titleBarOverlay: { height: WINDOWS_TITLEBAR_HEIGHT, color: WINDOWS_CAPTION_FILL,
         symbolColor: nativeTheme.shouldUseDarkColors ? '#f9fafb' : '#0f1115' },
     } : {}),
     ...(process.platform === 'darwin' && primary ? {
@@ -230,6 +241,28 @@ function createWindow(preload: string, primary = false): BrowserWindow {
     // `webviewTag` only on the application document: every attachment is still refused unless
     // `DesktopBrowserGuests` issued the lease, and the guest itself never gets the tag.
     webPreferences: { preload: join(root, 'lib', preload), contextIsolation: true, sandbox: true, nodeIntegration: false, webviewTag: primary },
+  })
+  let intervalStart = Date.now()
+  let count = 0
+  let failureCount = 0
+  // The Host log otherwise misses client slot failures: the renderer can retire
+  // an entry (and its portalled dialog) without crashing the Electron process.
+  window.webContents.on('console-message', (event, _level, legacyMessage) => {
+    // Electron versions differ: older runtimes pass the message as the third
+    // argument, newer ones put it on the event. Never assume either exists.
+    const message = typeof legacyMessage === 'string' ? legacyMessage : event?.message
+    if (typeof message !== 'string') return
+    const level = typeof event?.level === 'string' ? event.level : _level
+    const failure = level === 'error' || level === 3 || message.includes('[next-ui-error]') || message.includes('slot entry crashed') || message.includes('slot factory occurrence crashed')
+    if (!failure && !runtime.preferences.developerLogging) return
+    if (Date.now() - intervalStart >= 1000) { intervalStart = Date.now(); count = 0; failureCount = 0 }
+    const currentCount = failure ? ++failureCount : ++count
+    if (currentCount > 100) {
+      if (currentCount === 101) runtime.diagnostics.record({ source: 'renderer', event: 'console.rate-limited', level: 'warn' })
+      return
+    }
+    runtime.diagnostics.record({ source: 'renderer', event: 'console', level: failure ? 'error' : level === 'warning' || level === 2 ? 'warn' : 'info',
+      message: message.slice(0, 8192), developer: !failure, fields: { webContentsId: window.webContents.id } })
   })
   window.once('ready-to-show', () => show(window))
   if (primary) {
@@ -310,17 +343,6 @@ function openMain(): void {
   mainWindow.on('closed', () => { mainWindow = undefined; onboardingSurfaceActive = false })
   mainWindow.webContents.on('render-process-gone', (_event, details) => { if (!quitting) runtime.report(new Error(`Renderer: ${details.reason}`)) })
   mainWindow.webContents.on('preload-error', (_event, _path, error) => runtime.report(error))
-  // The Host log otherwise misses client slot failures: the renderer can retire
-  // an entry (and its portalled dialog) without crashing the Electron process.
-  mainWindow.webContents.on('console-message', (event, _level, legacyMessage) => {
-    // Electron versions differ: older runtimes pass the message as the third
-    // argument, newer ones put it on the event. Never assume either exists.
-    const message = typeof legacyMessage === 'string' ? legacyMessage : event?.message
-    if (typeof message !== 'string') return
-    if (!message.includes('[next-ui-diagnostic]') && !message.includes('slot entry crashed')
-      && !message.includes('client-modules:') && !message.includes('slot factory occurrence crashed')) return
-    runtime.diagnostics.append(maskSecrets(message.slice(0, 2048)), 'warn')
-  })
   mainWindow.webContents.on('did-fail-load', (_event, code, message, _url, isMain) => {
     if (isMain && code !== -3 && !quitting && mainWindow === owner && !owner.isDestroyed()) runtime.report(new Error(message))
   })
@@ -391,13 +413,18 @@ async function command(value: unknown, source: 'app' | 'shell' | 'native' = 'app
   // release it after success, cancellation or failure so recovery can retry.
   if (['safe-mode', 'normal-mode', 'recover', 'restart', 'rollback', 'repair-global', 'restart-app', 'restart-recovery'].includes(type)) {
     if (recoveryRequest !== undefined) return recoveryRequest
-    const request = performCommand(input, type, source).finally(() => {
+    const request = loggedCommand(input, type, source).finally(() => {
       if (recoveryRequest === request) recoveryRequest = undefined
     })
     recoveryRequest = request
     return request
   }
-  return performCommand(input, type, source)
+  return loggedCommand(input, type, source)
+}
+
+async function loggedCommand(input: Record<string, unknown>, type: string, source: 'app' | 'shell' | 'native'): Promise<void> {
+  const end = runtime.diagnostics.operation('electron.commands', type, { caller: source }, true)
+  try { await performCommand(input, type, source); end() } catch (error) { end(error); throw error }
 }
 
 async function performCommand(input: Record<string, unknown>, type: string, source: 'app' | 'shell' | 'native'): Promise<void> {
@@ -504,7 +531,8 @@ async function performCommand(input: Record<string, unknown>, type: string, sour
         filters: [{ name: type === 'export-ca' ? 'CA certificate' : 'Diagnostics', extensions: [type === 'export-ca' ? 'crt' : 'json'] }] }
       const result = await (owner === undefined ? dialog.showSaveDialog(options) : dialog.showSaveDialog(owner, options))
       if (!result.canceled && result.filePath && !quitting) {
-        await writeFile(result.filePath, type === 'export-ca' ? certificate! : runtime.diagnostics.export(state()), { mode: 0o600 })
+        if (type === 'export-ca') await writeFile(result.filePath, certificate!, { mode: 0o600 })
+        else await runtime.diagnostics.exportTo(result.filePath, state())
         if (type === 'diagnostics') diagnosticsFile = result.filePath
       }
       return
@@ -924,12 +952,13 @@ async function main(): Promise<void> {
       const zoom = window.webContents.getZoomFactor()
       return new Promise<void>(resolvePopup => { Menu.buildFromTemplate(items).popup({ window, x: Math.round(x * zoom), y: Math.round(y * zoom), callback: resolvePopup }) })
     })
-    ipcMain.on(IPC.windowsAppearance, (event, language: unknown, color: unknown, symbolColor: unknown) => {
+    ipcMain.on(IPC.windowsAppearance, (event, language: unknown, sidebarFill: unknown, symbolColor: unknown) => {
       try { assertSender(event, mainWindow, APP_URL) } catch { return }
       // Caption paint can run before the official locale service initializes;
       // IPC.locale is the only renderer authority for the application language.
+      // The recorded upstream preload still reports its sidebar fill; see WINDOWS_CAPTION_FILL.
       const validColor = (value: unknown): value is string => typeof value === 'string' && /^(?:#[\da-f]{3,8}|rgba?\([\d.,%\s]+\))$/iu.test(value)
-      if (validColor(color) && validColor(symbolColor)) mainWindow!.setTitleBarOverlay({ color, symbolColor })
+      if (validColor(symbolColor)) mainWindow!.setTitleBarOverlay({ color: WINDOWS_CAPTION_FILL, symbolColor })
     })
   }
   if (runtime.recoveryMode) openControls('recovery')
@@ -942,13 +971,34 @@ app.on('before-quit', event => {
   if (quitting || !ownsInstance) return
   event.preventDefault()
   quitting = true
+  runtime.diagnostics.record({ source: 'electron', event: 'shutdown.start' })
+  runtime.diagnostics.flush()
+  // Bound the whole shutdown, including cleanup before Host termination starts.
+  let finished = false
+  const timeout = setTimeout(() => {
+    if (finish()) {
+      runtime.diagnostics.record({ source: 'electron', event: 'shutdown.timeout', level: 'error', message: 'Shutdown exceeded five seconds', fields: { pending: JSON.stringify(runtime.diagnostics.pendingOperations()) } })
+      runtime.diagnostics.end(false)
+      app.exit(1)
+    }
+  }, DESKTOP_SHUTDOWN_TIMEOUT_MS)
+  timeout.unref()
+  function finish(): boolean {
+    if (finished) return false
+    finished = true
+    clearTimeout(timeout)
+    return true
+  }
   // Keep disconnection/reconnection chrome out of the quit/relaunch transition.
   for (const window of [mainWindow, shellWindow]) {
     if (window && !window.isDestroyed()) window.hide()
   }
   native.close()
   platformLogin.close()
-  void Promise.all([updates.dispose(installingUpdate), (async () => { await recoveryRunner?.dispose(); await runtime.close() })()]).then(async () => {
+  const updatesDone = runtime.diagnostics.operation('electron', 'updates.dispose')
+  const recoveryDone = runtime.diagnostics.operation('electron', 'recovery.dispose')
+  void Promise.all([updates.dispose(installingUpdate).then(() => updatesDone(), error => { updatesDone(error); throw error }), (async () => { try { await recoveryRunner?.dispose(); recoveryDone() } catch (error) { recoveryDone(error); throw error }; await runtime.close() })()]).then(async () => {
+    if (finished) return
     // A staged installer must survive until handoff; the next boot removes it.
     if (safeModeRequested && !installingUpdate) {
       // Windows may still hold Chromium files until process exit; a normal boot
@@ -957,17 +1007,34 @@ app.on('before-quit', event => {
       catch (error) { runtime.diagnostics.append(`Safe Mode desktop state cleanup failed: ${String(error)}`, 'warn'); runtime.diagnostics.flush() }
     }
     if (installingUpdate) {
-      try { await updateInstaller.launch() }
+      const installerDone = runtime.diagnostics.operation('electron', 'installer.launch')
+      try { await updateInstaller.launch(); installerDone() }
       catch (error) {
-        runtime.diagnostics.append(String(error), 'error')
+        installerDone(error)
+        if (!finish()) return
+        runtime.diagnostics.record({ source: 'electron', event: 'installer.failed', level: 'error', error })
+        runtime.diagnostics.end(true)
         dialog.showErrorBox(t('更新未能安装', 'Update could not be installed'), t('应用将重新打开，请在设置中重试更新。', 'The application will reopen. Retry the update in Settings.'))
         relaunchApp(app, relaunchArguments(process.argv.slice(1), false, false))
         app.quit()
+        return
       }
-      if (process.platform === 'darwin') return
+      if (process.platform === 'darwin') { if (finish()) runtime.diagnostics.end(true); return }
     }
+    if (!finish()) return
+    runtime.diagnostics.end(true)
     if (relaunch) relaunchApp(app, relaunch)
     app.quit()
-  }, error => { console.error(error); app.exit(1) })
+  }).catch(error => { if (finish()) { runtime.diagnostics.record({ source: 'electron', event: 'shutdown.failed', level: 'error', error }); runtime.diagnostics.end(false); app.exit(1) } })
 })
-if (ownsInstance) void main().catch(error => runtime.report(error))
+if (ownsInstance) {
+  process.on('uncaughtExceptionMonitor', (error, origin) => {
+    runtime.diagnostics.record({ source: 'electron', event: 'uncaught-exception', level: 'error', error, fields: { origin } })
+    runtime.diagnostics.end(false)
+  })
+  app.on('child-process-gone', (_event, details) => runtime.diagnostics.record({ source: 'electron', event: 'child-process-gone', level: 'error',
+    fields: { type: details.type, reason: details.reason, exitCode: details.exitCode, service: details.serviceName ?? null } }))
+  app.once('will-quit', () => runtime.diagnostics.flush())
+  runtime.diagnostics.begin({ version, platform: process.platform, electron: process.versions.electron ?? '', node: process.version, safeMode: safeModeRequested })
+  void main().catch(error => runtime.report(error))
+}
