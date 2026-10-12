@@ -20,7 +20,9 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
   expect(next.build.appId).toBe('ai.deepseek.dsh.desktop.next')
   expect(next.build.asar).toBe(true)
   for (const platform of ['mac', 'win', 'linux']) expect(next.build[platform].asar, platform).toBeUndefined()
-  expect(next.build.mac.mergeASARs).toBe(true)
+  // Both CPU builds archive identical bytes, so the universal build keeps one archive. Merging would
+  // rebuild it with one unpack glob per unpacked file and overflow minimatch, as 9ecf5ce32b found.
+  expect(next.build.mac.mergeASARs).toBe(false)
   // Electron's own fs and dlopen read the archive; child processes, shells and nativeImage need these physically.
   expect(next.build.asarUnpack).toEqual(expect.arrayContaining(['**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper',
     '**/@vscode/ripgrep-*/bin/rg', '**/@dataiku/uv-*/bin/uv', '**/node_modules/@deepseek-ai/libreoffice-kit-*/**/*', '**/node_modules/pnpm/**/*',
