@@ -299,8 +299,7 @@
     "appId": "ai.deepseek.dsh.desktop.next",
     "productName": "DSH NEXT",
     "asar": true,
-    "npmRebuild": false,
-    "beforePack": "./scripts/prepare-pack.ts",
+    "beforeBuild": "./scripts/before-build.ts",
     "afterPack": "./scripts/verify-packaged.ts",
     "afterAllArtifactBuild": "./scripts/verify-fuses.ts",
     "electronFuses": {
@@ -317,21 +316,19 @@
       "nsis": "1.2.1"
     },
     "files": [
-      "assets/**",
-      "build/app-icon.ico",
-      "build/app-icon.png",
-      "build/app-icon-mac.png",
-      "cordis.patch.yml",
-      "host.cordis.patch.yml",
-      "lib/**",
-      "package.json",
-      "scripts/node-bin/**",
-      "!**/*.{js,cjs,mjs,ts,cts,mts,css}.map",
-      "!**/*.d.{ts,cts,mts}",
-      "!**/*.tsbuildinfo",
-      "!**/.yarn-state.yml",
-      "!node_modules/node-pty/build/**",
-      "!node_modules/fs-ext/build/**"
+      {
+        "from": ".desktop-build/payload",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": ".desktop-build/payload/node_modules",
+        "to": "node_modules",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
     "mac": {
       "artifactName": "DSH-NEXT-${version}-${arch}.${ext}",
@@ -362,7 +359,7 @@
       "signIgnore": [
         "\\.(?:pak|dat|wasm)$"
       ],
-      "x64ArchFiles": "**/node_modules/{@deepseek-ai/node-addon-system-darwin-*/**,node-pty/prebuilds/darwin-*/**,fs-ext/prebuilds/darwin-*/**,node-addon-require-builtin-darwin-*/**,@vscode/ripgrep-darwin-*/**,@img/sharp-darwin-*/**,@img/sharp-libvips-darwin-*/**,@koromix/koffi-darwin-*/**,@dataiku/uv-darwin-*/**,@deepseek-ai/libreoffice-kit-darwin-*/**,sherpa-onnx-darwin-*/**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**}"
+      "x64ArchFiles": "**/node_modules/{@deepseek-ai/node-addon-system-darwin-*/**,node-pty/prebuilds/darwin-*/**,fs-ext/prebuilds/darwin-*/**,node-addon-require-builtin-darwin-*/**,@vscode/ripgrep-darwin-*/**,@img/sharp-darwin-*/**,@img/sharp-libvips-darwin-*/**,@koromix/koffi-darwin-*/**,@dataiku/uv-darwin-*/**,@deepseek-ai/libreoffice-kit-darwin-*/**,sherpa-onnx-darwin-*/**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**,@reflink/reflink-darwin-*/**}"
     },
     "win": {
       "compression": "normal",
@@ -412,9 +409,9 @@
       "**/node_modules/sherpa-onnx-*/**/*",
       "**/node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**/*",
       "**/node_modules/pnpm/**/*",
-      "scripts/node-bin/**/*",
-      "assets/**/*",
-      "build/**/*"
+      ".desktop-build/payload/scripts/node-bin/**/*",
+      ".desktop-build/payload/assets/**/*",
+      ".desktop-build/payload/build/**/*"
     ]
   }
 }

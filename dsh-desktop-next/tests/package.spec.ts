@@ -26,20 +26,26 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
   // Electron's own fs and dlopen read the archive; child processes, shells and nativeImage need these physically.
   expect(next.build.asarUnpack).toEqual(expect.arrayContaining(['**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper',
     '**/@vscode/ripgrep-*/bin/rg', '**/@dataiku/uv-*/bin/uv', '**/node_modules/@deepseek-ai/libreoffice-kit-*/**/*', '**/node_modules/pnpm/**/*',
-    '**/node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**/*', 'scripts/node-bin/**/*', 'assets/**/*', 'build/**/*']))
-  // The Desktop file policy is applied by these globs; the afterPack audit rejects anything they miss.
-  expect(next.build.files).toEqual(expect.arrayContaining(['!**/*.{js,cjs,mjs,ts,cts,mts,css}.map', '!**/*.d.{ts,cts,mts}', '!**/*.tsbuildinfo']))
-  // Platform omissions join the single file set in beforePack; a platform-level files list would include everything else.
+    '**/node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**/*']))
+  // The prepared tree is archived verbatim, as upstream archives its prepared dsh tree: one file set for the
+  // shell files and one for the dependency tree, because electron-builder leaves out a file set's root node_modules.
+  expect(next.build.files).toEqual([{ from: '.desktop-build/payload', filter: ['**/*'] },
+    { from: '.desktop-build/payload/node_modules', to: 'node_modules', filter: ['**/*'] }])
   for (const platform of ['mac', 'win', 'linux']) expect(next.build[platform].files, platform).toBeUndefined()
-  expect(next.build.beforePack).toBe('./scripts/prepare-pack.ts')
+  // electron-builder collects node_modules itself unless beforeBuild declines, and npmRebuild: false would skip that hook.
+  expect(next.build.beforeBuild).toBe('./scripts/before-build.ts')
+  expect(next.build.npmRebuild).toBeUndefined()
+  expect(next.build.beforePack).toBeUndefined()
+  // Unpack patterns are matched below the application directory, so payload-root patterns name the prepared directory.
+  expect(next.build.asarUnpack).toEqual(expect.arrayContaining(['.desktop-build/payload/scripts/node-bin/**/*', '.desktop-build/payload/assets/**/*', '.desktop-build/payload/build/**/*']))
+  expect(next.build.asarUnpack.every((pattern: string) => pattern.startsWith('**/') || pattern.startsWith('.desktop-build/payload/'))).toBe(true)
   expect(next.build.afterPack).toBe('./scripts/verify-packaged.ts')
   expect(next.build.afterAllArtifactBuild).toBe('./scripts/verify-fuses.ts')
   expect(next.build.electronFuses).toEqual(beta.build.electronFuses)
-  expect(next.build.mac.x64ArchFiles).toBe(beta.build.mac.x64ArchFiles.replace('**}', '**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**}'))
+  // pnpm's per-CPU reflink addons ride in its bundled dist/node_modules, which the prepared tree keeps.
+  expect(next.build.mac.x64ArchFiles).toBe(beta.build.mac.x64ArchFiles.replace('**}', '**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**,@reflink/reflink-darwin-*/**}'))
   expect(next.build.mac.icon).toBe('build/app-icon.icon')
   expect(existsSync(new URL('../build/app-icon.icon/icon.json', import.meta.url))).toBe(true)
   expect(next.build.nsis).toMatchObject({ oneClick: false, perMachine: false, allowElevation: true, allowToChangeInstallationDirectory: true })
   expect(next.build.mac.notarize).toBe(true)
-  expect(next.build.files).toContain('lib/**')
-  expect(next.build.files.some((path: string) => path.includes('.desktop-next'))).toBe(false)
 })

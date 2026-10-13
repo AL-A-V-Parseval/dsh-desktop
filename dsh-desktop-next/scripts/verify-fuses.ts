@@ -1,20 +1,14 @@
 /** Verify every final Next executable: fuses, the sealed archive, a RunAsNode import smoke and a real Host boot. */
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { verifyElectronExecutableFuses } from '../../dsh-plugin-desktop-beta/scripts/verify-electron-fuses.ts'
 import { withoutMacReleaseSecrets } from '../../dsh-plugin-desktop-beta/scripts/release-preflight.ts'
 import { withoutWindowsSigningSecrets } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
-import { nextPackagingTarget, verifyNextRuntime } from './packaged-payload.ts'
+import { expectedPayloadVersion, nextPackagingTarget, PAYLOAD_DIR, universalMergeRewrite, verifyNextRuntime } from './packaged-payload.ts'
 
 const desktopRoot = fileURLToPath(new URL('..', import.meta.url))
-
-/** Version the payload must declare: the drill override, otherwise the source manifest. */
-function expectedVersion(): string {
-  const source = (JSON.parse(readFileSync(join(desktopRoot, 'package.json'), 'utf8')) as { version: string }).version
-  return process.env.DSH_NEXT_BUILD_VERSION ?? source
-}
 
 function runPackagedNode(path: string, args: readonly string[], timeout: number, failure: string): void {
   const result = spawnSync(path, args, {
@@ -38,12 +32,14 @@ export default async function afterAllArtifactBuild(result: { outDir: string }):
     const darwin = path.includes('.app/')
     const resources = darwin ? join(dirname(path), '../Resources') : join(dirname(path), 'resources')
     const root = join(resources, 'app.asar')
-    // electron-builder signs unpacked Mach-O files and nested bundles after afterPack sealed the
-    // payload, so the final tree is checked with code-signing tolerance; verify-mac-release.ts
-    // validates the signatures themselves.
+    // electron-builder signs unpacked Mach-O files and nested bundles after afterPack cross-checked
+    // the archive, so the final tree is checked against the descriptor it carries with code-signing
+    // tolerance; verify-mac-release.ts validates the signatures themselves.
     const target = nextPackagingTarget(darwin ? 'darwin' : path.endsWith('.exe') ? 'win32' : 'linux')
-    const descriptor = verifyNextRuntime(resources, expectedVersion(), target, { afterCodeSigning: true })
-    console.log(`Verified the sealed Next payload at ${root}: ${String(descriptor.files.length)} files, dsh ${descriptor.release.dshVersion}`)
+    const merge = universalMergeRewrite(join(desktopRoot, ...PAYLOAD_DIR.split('/')))
+    const descriptor = verifyNextRuntime(resources, expectedPayloadVersion(desktopRoot), target, { afterCodeSigning: true, acceptRewrite: merge.accept })
+    console.log(`Verified ${root} against its sealed descriptor: ${String(descriptor.files.length)} files, dsh ${descriptor.release.dshVersion}`
+      + (merge.accepted.length === 0 ? '' : `; the universal merge rewrote ${merge.accepted.join(', ')}`))
     // Electron's Node mode reads the archive like a directory, as the Host and CLI will.
     runPackagedNode(path, ['--input-type=module', '-e', `
       import { createRequire } from 'node:module';

@@ -1,10 +1,15 @@
-/** Read, audit, seal and verify the archived Next payload after Electron Builder assembled it. */
-import { closeSync, lstatSync, openSync, readFileSync, readSync } from 'node:fs'
-import { join } from 'node:path'
-import { dirname as posixDirname } from 'node:path/posix'
+/** Read, audit and verify the archived Next payload after Electron Builder assembled it from the prepared tree. */
+import { createHash } from 'node:crypto'
+import { closeSync, existsSync, lstatSync, openSync, readFileSync, readSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { dirname, join } from 'node:path'
+import { basename as posixBasename, dirname as posixDirname } from 'node:path/posix'
 import { getRawHeader } from '@electron/asar'
 import { nextRuntimeFileExclusion, type NextPackagingTarget } from './runtime-file-policy.ts'
-import { DESKTOP_RUNTIME_FILE, sealPayload, verifyPayload, type DesktopRuntimeDescriptor, type NextRelease, type PayloadEntry, type PayloadSource, type VerifyPayloadOptions } from '../src/runtime-tree.ts'
+import { DESKTOP_RUNTIME_FILE, parseDesktopRuntime, verifyPayload, type DesktopRuntimeDescriptor, type DesktopRuntimeFile, type NextRelease, type PayloadEntry, type PayloadSource, type VerifyPayloadOptions } from '../src/runtime-tree.ts'
+
+/** Application-relative directory holding the prepared payload that Electron Builder archives verbatim. */
+export const PAYLOAD_DIR = '.desktop-build/payload'
 
 /**
  * Architectures whose native dependencies one Next package carries.
@@ -26,12 +31,15 @@ interface AsarDirectory { readonly files: Readonly<Record<string, AsarDirectory 
 /** The archive and its unpacked sibling; `close` releases the archive file descriptor. */
 export interface ArchivedPayload extends PayloadSource {
   readonly archive: string
+  /** The descriptor the archive carries at its root. */
+  descriptor(): DesktopRuntimeDescriptor
   close(): void
 }
 
 /**
  * Open `app.asar` and `app.asar.unpacked` as one payload. Archive entries are read from their
- * recorded offsets; unpacked entries are the physical files Electron Builder placed beside the archive.
+ * recorded offsets; unpacked entries are the physical files Electron Builder placed beside the
+ * archive. The descriptor entry is readable but, as in a prepared tree, outside the inventory.
  * @param resourcesDir - Application resources directory containing `app.asar`.
  * @returns The payload; call `close` when done.
  */
@@ -71,8 +79,16 @@ export function archivedPayload(resourcesDir: string): ArchivedPayload {
     }
   }
   visit(header, '')
-  const list = [...entries.values()].sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0)
-  return { archive, list: () => list, entry: path => entries.get(path), close: () => { if (fd !== undefined) { closeSync(fd); fd = undefined } } }
+  const list = [...entries.values()].filter(entry => entry.path !== DESKTOP_RUNTIME_FILE).sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0)
+  return {
+    archive, list: () => list, entry: path => entries.get(path),
+    descriptor: () => {
+      const entry = entries.get(DESKTOP_RUNTIME_FILE)
+      if (entry === undefined) throw new Error(`Next payload: ${DESKTOP_RUNTIME_FILE} is missing from the archive`)
+      return parseDesktopRuntime(JSON.parse(entry.read().toString('utf8')))
+    },
+    close: () => { if (fd !== undefined) { closeSync(fd); fd = undefined } },
+  }
 }
 
 /** Mach-O and ELF magic numbers; PE starts with `MZ`. */
@@ -92,8 +108,8 @@ const REQUIRED_UNPACKED = [
   /^node_modules\/@agents-anywhere\/dsh-bridge-next\/lib\/bundled-connector\//u,
 ] as const
 
-/** The only entries the application file set declares at the payload root. */
-const ALLOWED_ROOT_ENTRIES = new Set(['assets', 'build', 'cordis.patch.yml', 'host.cordis.patch.yml', 'lib', 'node_modules', 'package.json', 'scripts'])
+/** The only entries the prepared payload places at its root. */
+const ALLOWED_ROOT_ENTRIES = new Set(['assets', 'build', 'cordis.patch.yml', DESKTOP_RUNTIME_FILE, 'host.cordis.patch.yml', 'lib', 'node_modules', 'package.json', 'scripts'])
 
 /**
  * Audit an assembled payload: only the declared root entries may exist, nothing the Desktop file
@@ -198,24 +214,88 @@ export function nextPayloadRelease(source: PayloadSource, electronVersion: strin
 }
 
 /**
- * Seal the payload beside its archive and prove the descriptor round-trips before signing.
- * Every direct dependency of the packaged manifest is a shared package: Profiles resolve them
- * through the Next installation anchor.
- * @param resourcesDir - Application resources directory; the descriptor lands next to `app.asar`.
- * @param source - Assembled payload.
- * @param release - Release facts from {@link nextPayloadRelease}.
- * @param target - Platform and architectures of the package.
- * @returns The verified descriptor.
+ * Version the payload must declare: the drill override, otherwise the application manifest.
+ * @param desktopRoot - Application package directory.
+ * @param env - Packaging environment.
+ * @returns Expected product version.
  */
-export function sealNextPayload(resourcesDir: string, source: PayloadSource, release: NextRelease, target: NextPackagingTarget): DesktopRuntimeDescriptor {
-  const manifest = JSON.parse(source.entry('package.json')!.read().toString('utf8')) as { dependencies?: Record<string, string> }
-  const file = join(resourcesDir, DESKTOP_RUNTIME_FILE)
-  sealPayload(source, file, release, Object.keys(manifest.dependencies ?? {}), target)
-  return verifyPayload(source, file, release.version, target)
+export function expectedPayloadVersion(desktopRoot: string, env: NodeJS.ProcessEnv = process.env): string {
+  const source = (JSON.parse(readFileSync(join(desktopRoot, 'package.json'), 'utf8')) as { version: string }).version
+  return env.DSH_NEXT_BUILD_VERSION ?? source
+}
+
+/** Rewrites a verification accepted, for the build log. */
+export interface MergeRewriteTolerance {
+  readonly accept: (file: DesktopRuntimeFile, shipped: Buffer) => boolean
+  /** Paths accepted so far, in verification order. */
+  readonly accepted: readonly string[]
+}
+
+interface PlistParser { parse(xml: string): unknown }
+
+// The parser @electron/universal itself writes the merged plists with.
+const plistParser = (): PlistParser => createRequire(createRequire(import.meta.url).resolve('@electron/universal/package.json'))('plist') as PlistParser
+
+/**
+ * The one rewrite a universal macOS build makes inside the payload: @electron/universal parses
+ * every `Info.plist` in the application, including those of nested bundles among the unpacked
+ * files, injects the archive integrity and serializes it again. Such a file is accepted when the
+ * prepared copy still matches its record and both parse to the same content apart from
+ * `ElectronAsarIntegrity`, the same equality @electron/universal demands of the two CPU builds.
+ * @param payloadDir - Prepared payload the descriptor was sealed from.
+ * @returns Tolerance for {@link verifyPayload}, recording what it accepted.
+ */
+export function universalMergeRewrite(payloadDir: string): MergeRewriteTolerance {
+  const accepted: string[] = []
+  const content = (xml: Buffer): string => {
+    const { ElectronAsarIntegrity: _integrity, ...rest } = plistParser().parse(xml.toString('utf8')) as Record<string, unknown>
+    return JSON.stringify(rest)
+  }
+  return {
+    accepted,
+    accept: (file, shipped) => {
+      if (posixBasename(file.path) !== 'Info.plist') return false
+      const preparedFile = join(payloadDir, ...file.path.split('/'))
+      if (!existsSync(preparedFile)) return false
+      const prepared = readFileSync(preparedFile)
+      if (prepared.byteLength !== file.bytes || createHash('sha256').update(prepared).digest('hex') !== file.sha256) return false
+      try { if (content(prepared) !== content(shipped)) return false } catch { return false }
+      accepted.push(file.path)
+      return true
+    },
+  }
+}
+
+/** Outcome of the cross-check between an assembled archive and the prepared tree. */
+export interface ArchiveCrossCheck {
+  readonly descriptor: DesktopRuntimeDescriptor
+  /** `Info.plist` files the universal merge rewrote; empty for a single-CPU build. */
+  readonly rewrittenPlists: readonly string[]
 }
 
 /**
- * Verify a final application's archive and unpacked files against the sealed descriptor.
+ * Cross-check an assembled archive against the descriptor the prepared tree was sealed with:
+ * the archive must carry that descriptor byte for byte, and its files must match the inventory
+ * exactly, apart from the `Info.plist` rewrites of {@link universalMergeRewrite}. The prepared
+ * tree and the archive are two independent copies of the installation.
+ * @param source - Assembled archive.
+ * @param preparedDescriptorFile - Descriptor file inside the prepared payload.
+ * @param expectedVersion - Version the payload must declare.
+ * @param target - Platform and architectures of the package.
+ * @returns The verified descriptor and the rewrites tolerated.
+ */
+export function verifyArchiveAgainstPrepared(source: ArchivedPayload, preparedDescriptorFile: string, expectedVersion: string, target: NextPackagingTarget): ArchiveCrossCheck {
+  const prepared = readFileSync(preparedDescriptorFile)
+  const archived = source.entry(DESKTOP_RUNTIME_FILE)?.read()
+  if (archived === undefined) throw new Error(`Next payload: ${DESKTOP_RUNTIME_FILE} is missing from the archive`)
+  if (!archived.equals(prepared)) throw new Error('Next payload: the archived descriptor differs from the prepared one')
+  const tolerance = universalMergeRewrite(dirname(preparedDescriptorFile))
+  const descriptor = verifyPayload(source, parseDesktopRuntime(JSON.parse(prepared.toString('utf8'))), expectedVersion, target, { acceptRewrite: tolerance.accept })
+  return { descriptor, rewrittenPlists: tolerance.accepted }
+}
+
+/**
+ * Verify a final application's archive and unpacked files against the descriptor it carries.
  * @param resourcesDir - Application resources directory.
  * @param expectedVersion - Version the payload must declare.
  * @param target - Platform and architectures of the package.
@@ -224,6 +304,6 @@ export function sealNextPayload(resourcesDir: string, source: PayloadSource, rel
  */
 export function verifyNextRuntime(resourcesDir: string, expectedVersion: string, target: NextPackagingTarget, options: VerifyPayloadOptions = {}): DesktopRuntimeDescriptor {
   const source = archivedPayload(resourcesDir)
-  try { return verifyPayload(source, join(resourcesDir, DESKTOP_RUNTIME_FILE), expectedVersion, target, options) }
+  try { return verifyPayload(source, source.descriptor(), expectedVersion, target, options) }
   finally { source.close() }
 }

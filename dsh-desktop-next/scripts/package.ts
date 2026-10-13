@@ -32,21 +32,37 @@ if (TEST_BUILD_VERSION !== undefined && !/^[0-9]+\.[0-9]+\.[0-9]+-next(?:\.[0-9]
 const run = (command: string, args: readonly string[], cwd: string, env: NodeJS.ProcessEnv): void => {
   // Windows resolves the CLI path with backslashes.
   const isBuilder = args.includes('electron-builder') || args.some(arg => arg.replaceAll('\\', '/').endsWith('electron-builder/cli.js'))
+  // Beta skips electron-builder's dependency rebuild with npmRebuild=false. electron-builder honours
+  // that flag before it calls beforeBuild, and only a beforeBuild answer makes it leave node_modules
+  // to the prepared payload, so Next drops the flag: its beforeBuild hook declines the rebuild too.
+  const withoutRebuildFlag = isBuilder ? args.filter(arg => arg !== '--config.npmRebuild=false') : args
   const forwarded = TEST_BUILD_VERSION !== undefined && isBuilder
-    ? [...args, `--config.extraMetadata.version=${TEST_BUILD_VERSION}`, `--config.buildVersion=${TEST_BUILD_VERSION}`]
-    : args
-  if (forwarded !== args) console.log(`Packaging with test build version ${TEST_BUILD_VERSION}; source manifests are unchanged.`)
+    ? [...withoutRebuildFlag, `--config.extraMetadata.version=${TEST_BUILD_VERSION}`, `--config.buildVersion=${TEST_BUILD_VERSION}`]
+    : withoutRebuildFlag
+  if (TEST_BUILD_VERSION !== undefined && isBuilder) console.log(`Packaging with test build version ${TEST_BUILD_VERSION}; source manifests are unchanged.`)
   runNextPackagingCommand(command, forwarded, cwd, env, workspaceRoot)
 }
-const prepareRuntime = (): void => {
-  prepareNextMacRuntime(desktopRoot)
+/**
+ * Materialize and seal the payload electron-builder archives. A separate process keeps the
+ * manifest transformer it borrows from electron-builder out of this entry point.
+ * @param platform - Platform being packaged.
+ */
+const preparePayload = (platform: NodeJS.Platform): void => {
+  const result = spawnSync(process.execPath, [join(desktopRoot, 'scripts', 'prepare-payload.ts'), '--platform', platform,
+    ...(TEST_BUILD_VERSION === undefined ? [] : ['--version', TEST_BUILD_VERSION])], { cwd: desktopRoot, env: process.env, stdio: 'inherit' })
+  if (result.error) throw result.error
+  if (result.status !== 0) throw new Error(`Next payload preparation exited with ${String(result.status)}`)
+}
+const prepareRuntime = (platform: NodeJS.Platform = process.platform): void => {
+  if (platform === 'darwin') prepareNextMacRuntime(desktopRoot)
+  preparePayload(platform)
 }
 const mode = process.argv[2]
 const outputDir = join(desktopRoot, 'dist', mode === 'mac' ? 'mac-release' : 'mac-smoke')
 const shared = { env: process.env, platform: process.platform, desktopRoot, outputDir,
   resetOutput: () => rmSync(outputDir, { force: true, recursive: true }), run, log: console.log, prepareRuntime }
 if (mode === 'dir') {
-  if (process.platform === 'darwin') prepareRuntime()
+  prepareRuntime()
   packageDirectory({ cwd: desktopRoot, electronBuilderCli: require.resolve('electron-builder/cli.js'), electronDistPath: join(dirname(require.resolve('electron/package.json')), 'dist') })
 } else if (mode === 'mac') {
   releaseMac({ ...shared, listCodeSigningIdentities: env => {
@@ -59,6 +75,6 @@ if (mode === 'dir') {
     builderCli: require.resolve('electron-builder/cli.js'), verifier: join(desktopRoot, 'scripts/verify-mac-smoke.ts'), nodeExecutable: process.execPath })
 } else if (mode === 'win') {
   packageWindowsInstaller({ ...createWindowsPackageOptions(), desktopRoot, workspaceRoot, run,
-    prepareRuntime: () => {},
+    prepareRuntime: () => preparePayload('win32'),
     verifier: join(desktopRoot, 'scripts/verify-win-installer.ts') })
 } else throw new Error('Expected dir, mac, mac-smoke or win')

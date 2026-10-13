@@ -1,27 +1,23 @@
-/** Check, audit and seal the assembled `app.asar` payload before signing, without a GUI. */
-import { existsSync, readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
+/** Cross-check the assembled `app.asar` payload against the prepared tree before signing, without a GUI. */
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { archivedPayload, auditNextPayload, nextPackagingTarget, nextPayloadRelease, sealNextPayload, verifyNextPayload } from './packaged-payload.ts'
+import { archivedPayload, auditNextPayload, nextPackagingTarget, PAYLOAD_DIR, verifyArchiveAgainstPrepared, verifyNextPayload } from './packaged-payload.ts'
+import { DESKTOP_RUNTIME_FILE } from '../src/runtime-tree.ts'
 
 interface PackContext {
   appOutDir: string
   electronPlatformName: string
-  packager: { projectDir: string }
-}
-
-/** Electron release the package embeds, read from the packaging workspace. */
-function packagedElectronVersion(projectDir: string): string {
-  const require = createRequire(join(projectDir, 'package.json'))
-  return (JSON.parse(readFileSync(require.resolve('electron/package.json'), 'utf8')) as { version: string }).version
+  packager: { projectDir: string; appInfo: { version: string } }
 }
 
 /**
- * Electron Builder's afterPack hook: the archive must be complete and resolvable, carry nothing
- * the Desktop file policy omits, keep native and shell-executed files unpacked, and seal
- * `desktop-runtime.json` beside it before signing. Universal macOS builds run this once per
- * CPU and once more on the merged application; the archives and descriptors are identical,
- * which the merge requires.
+ * Electron Builder's afterPack hook. The archive and its unpacked files are one copy of the
+ * installation; the prepared tree with its sealed descriptor is another. The archive must be
+ * complete and resolvable, carry nothing the Desktop file policy omits, keep native and
+ * shell-executed files unpacked, embed the prepared descriptor byte for byte, and match its
+ * inventory exactly. Universal macOS builds run this once per CPU and once more on the merged
+ * application; all three archives come from the same prepared tree, and the merge may only have
+ * re-serialized nested `Info.plist` files.
  * @param context - Electron Builder's afterPack context.
  */
 export default async function afterPack(context: PackContext): Promise<void> {
@@ -34,11 +30,13 @@ export default async function afterPack(context: PackContext): Promise<void> {
     const target = nextPackagingTarget(context.electronPlatformName as NodeJS.Platform)
     const problems = auditNextPayload(source, target)
     if (problems.length > 0) throw new Error(`Next payload audit failed:\n${problems.join('\n')}`)
-    const release = nextPayloadRelease(source, packagedElectronVersion(context.packager.projectDir))
-    const descriptor = sealNextPayload(resources, source, release, target)
-    const unpacked = descriptor.files.filter(file => file.unpacked).length
-    console.log(`Sealed the Next payload: ${String(descriptor.files.length)} files (${String(unpacked)} unpacked) for ${descriptor.platform} ${descriptor.archs.join('/')}; `
-      + `DSH NEXT ${release.version}, dsh ${release.dshVersion}, Electron ${release.electronVersion}, pnpm ${release.pnpmVersion}`)
+    const prepared = join(context.packager.projectDir, ...PAYLOAD_DIR.split('/'), DESKTOP_RUNTIME_FILE)
+    const { descriptor, rewrittenPlists } = verifyArchiveAgainstPrepared(source, prepared, context.packager.appInfo.version, target)
+    const unpacked = source.list().filter(entry => entry.unpacked).length
+    const { release } = descriptor
+    console.log(`Verified the archive against the prepared Next payload: ${String(descriptor.files.length)} files (${String(unpacked)} unpacked) for ${descriptor.platform} ${descriptor.archs.join('/')}; `
+      + `DSH NEXT ${release.version}, dsh ${release.dshVersion}, Electron ${release.electronVersion}, pnpm ${release.pnpmVersion}`
+      + (rewrittenPlists.length === 0 ? '' : `; the universal merge rewrote ${rewrittenPlists.join(', ')}`))
   } finally { source.close() }
   await Promise.resolve()
 }
