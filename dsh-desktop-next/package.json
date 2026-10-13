@@ -430,6 +430,7 @@
       "**/node_modules/@trycua/cua-driver-*/**/*",
       "**/node_modules/sherpa-onnx-*/**/*",
       "**/node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**/*",
+      "**/node_modules/@deepseek-ai/dsh-agent-preset/**/*",
       "**/node_modules/pnpm/**/*",
       ".desktop-build/payload/scripts/node-bin/**/*",
       ".desktop-build/payload/assets/**/*",

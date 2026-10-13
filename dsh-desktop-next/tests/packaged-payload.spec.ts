@@ -91,6 +91,8 @@ it('reports stray root entries, policy leftovers, packed native code and packed 
     writeFileSync(join(app, 'node_modules', 'native-pkg', 'helper'), machO('helper'))
     mkdirSync(join(app, 'node_modules', '@agents-anywhere', 'dsh-bridge-next', 'lib', 'bundled-connector'), { recursive: true })
     writeFileSync(join(app, 'node_modules', '@agents-anywhere', 'dsh-bridge-next', 'lib', 'bundled-connector', 'main.py'), 'print()\n')
+    mkdirSync(join(app, 'node_modules', '@deepseek-ai', 'dsh-agent-preset', 'skills', 'agent-experience'), { recursive: true })
+    writeFileSync(join(app, 'node_modules', '@deepseek-ai', 'dsh-agent-preset', 'skills', 'agent-experience', 'SKILL.md'), '---\nname: agent-experience\n---\n')
   })
   const source = archivedPayload(resources)
   try {
@@ -98,6 +100,7 @@ it('reports stray root entries, policy leftovers, packed native code and packed 
       '.desktop-next: outside the declared application files',
       'README.md: outside the declared application files',
       'node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/main.py: must be unpacked beside app.asar',
+      'node_modules/@deepseek-ai/dsh-agent-preset/skills/agent-experience/SKILL.md: must be unpacked beside app.asar',
       'node_modules/@deepseek-ai/dsh/index.js.map: source map must not be packaged',
       'node_modules/native-pkg/helper: native code is packed inside app.asar',
     ])
