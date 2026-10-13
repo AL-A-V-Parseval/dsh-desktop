@@ -58,6 +58,8 @@ export default async function afterAllArtifactBuild(result: { outDir: string }):
     `, root], 30_000, 'Packaged Next runtime failed')
     // The native computer-use driver opens its library with the system loader; the Host's resolver must answer with the unpacked copy.
     runPackagedNode(path, [join(desktopRoot, 'scripts', 'packaged-driver-smoke.mjs'), root], 120_000, 'Packaged computer-use driver smoke failed')
+    // The badge skill announces its asset directory to the model; the Host's resolver must make it physical.
+    runPackagedNode(path, [join(desktopRoot, 'scripts', 'packaged-skill-badge-smoke.mjs'), root], 120_000, 'Packaged badge skill smoke failed')
     // The same Electron, in Node mode, starts the real Host from the archive with a private home.
     runPackagedNode(path, ['--expose-internals', join(desktopRoot, 'scripts', 'packaged-host-smoke.mjs'), root], 300_000, 'Packaged Next Host smoke failed')
   }

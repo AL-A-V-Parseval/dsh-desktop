@@ -21,6 +21,7 @@ import { watchPlatformLogin, type PlatformLoginAccount } from './platform-login.
 import { installAgentPresetResolution } from './agent-preset.ts'
 import { installCuaDriverResolution } from './cua-driver.ts'
 import { installOfficeEngineResolution } from './office-engine.ts'
+import { installSkillBadgeResolution } from './skill-badge.ts'
 import * as desktopOffice from './office.ts'
 import { resolveOfficeConfig } from './office.ts'
 
@@ -38,6 +39,8 @@ export async function main(): Promise<void> {
   installAgentPresetResolution(runtimeDir)
   // The computer-use driver hands its library path to the system loader, which reads no archive.
   installCuaDriverResolution(runtimeDir)
+  // The badge skill tells the model to take its PNG from the directory it announces, which shells and the Host's filesystem service cannot read inside the archive.
+  installSkillBadgeResolution(runtimeDir)
   const preferences = parsePreferences(JSON.parse(process.env.DSH_NEXT_PREFERENCES ?? '{}'))
   configureHostLogging(preferences)
   hostLog({ source: 'host', event: 'process.start', fields: { profile: basename(projectDir), node: process.version } })

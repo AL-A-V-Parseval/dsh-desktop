@@ -109,6 +109,9 @@ const REQUIRED_UNPACKED = [
   // The Creator preset mounts this package's skills through the Host's filesystem service, which stats with bigint
   // and gets plain-number stats for archived entries; the Host resolves the package manifest to this copy.
   /^node_modules\/@deepseek-ai\/dsh-agent-preset\//u,
+  // The badge skill announces its `assets/` directory to the model as where to take `dsh-badge.png` from; shells and
+  // the Host's filesystem service read no archive, and the Host resolves the package to this copy.
+  /^node_modules\/@deepseek-ai\/dsh-skill-badge\//u,
   // The computer-use driver resolves its platform package's manifest and hands the library beside it to the system
   // loader; the Host resolves that package to this copy.
   /^node_modules\/@trycua\/cua-driver-/u,
