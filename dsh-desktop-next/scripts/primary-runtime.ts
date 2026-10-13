@@ -251,7 +251,8 @@ export async function preparePrimaryRuntime(options: PreparePrimaryRuntimeOption
     await downloadNodeRuntime(target, node, paths.downloads, lock)
     mkdirSync(join(node, 'node_modules'))
     writeFileSync(join(node, 'node_modules', 'README.txt'), 'Reserved for bundled Node packages. pnpm uses its default installation directories.\n')
-    const pnpmManifest = createRequire(import.meta.url).resolve('pnpm/package.json')
+    // pnpm exports only its manifest, which resolves the package entry to package.json itself.
+    const pnpmManifest = createRequire(import.meta.url).resolve('pnpm')
     const pnpmVersion = (JSON.parse(readFileSync(pnpmManifest, 'utf8')) as { version: string }).version
     await cp(dirname(pnpmManifest), join(dependencies, 'pnpm'), { recursive: true, dereference: true })
     await extractTar({ file: await pythonArchive(target, paths.downloads, lock), cwd: dependencies })
