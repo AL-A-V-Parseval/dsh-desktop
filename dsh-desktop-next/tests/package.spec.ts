@@ -43,6 +43,9 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
   expect(next.build.linux.extraResources).toBeUndefined()
   expect(next.build.mac.signIgnore).toContain('/Contents/Resources/runtime/(?:arm64|x64)/primary-runtime(?:/|$)')
   expect(next.scripts['prepare:runtime']).toBe('node scripts/prepare-runtime.ts')
+  // Like upstream Desktop's dev launcher, every development launch prepares the payload before the shell starts.
+  expect(next.scripts.dev).toBe('yarn build && yarn prepare:runtime && node scripts/start.mjs')
+  expect(next.scripts.start).toBe('yarn prepare:runtime && node scripts/start.mjs')
   for (const name of ['@deepseek-ai/dsh-skill-office', '@deepseek-ai/dsh-tool-workspace-dependencies']) expect(next.dependencies[name], name).toBe(next.dependencies['@deepseek-ai/dsh'])
   expect(next.build.mac.icon).toBe('build/app-icon.icon')
   expect(existsSync(new URL('../build/app-icon.icon/icon.json', import.meta.url))).toBe(true)
