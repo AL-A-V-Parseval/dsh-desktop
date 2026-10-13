@@ -44,8 +44,9 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
   expect(next.build.afterAllArtifactBuild).toBe('./scripts/verify-fuses.ts')
   expect(next.build.electronFuses).toEqual(beta.build.electronFuses)
   // pnpm's per-CPU reflink addons ride in its bundled dist/node_modules, which the prepared tree keeps, and the
-  // interpreter payloads of both CPUs are identical across the two CPU builds, so the universal merge keeps them all.
-  expect(next.build.mac.x64ArchFiles).toBe(`{${beta.build.mac.x64ArchFiles.replace('**}', '**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**,@reflink/reflink-darwin-*/**}')},Contents/Resources/runtime/**}`)
+  // interpreter payloads of both CPUs are identical across the two CPU builds, so the universal merge keeps them all;
+  // @electron/universal matches without the dot option, so the wheels' .dylibs directories need their own pattern.
+  expect(next.build.mac.x64ArchFiles).toBe(`{${beta.build.mac.x64ArchFiles.replace('**}', '**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**,@reflink/reflink-darwin-*/**}')},Contents/Resources/runtime/**,Contents/Resources/runtime/**/.*/**}`)
   // Both CPU payloads ride beside the archive as extra resources; electron-builder must not re-sign the pre-signed payloads.
   for (const platform of ['mac', 'win']) expect(next.build[platform].extraResources, platform).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }])
   expect(next.build.extraResources).toBeUndefined()
