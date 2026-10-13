@@ -26,6 +26,7 @@ import { bundledPnpmEntry, createPackageRunner } from './extensions.ts'
 import { applyDesktopPackageAgePolicy } from './pnpm-policy.ts'
 import { auxiliaryWindowChromeOptions, auxiliaryWindowHasCustomFrame } from '../../dsh-plugin-desktop-beta/src/auxiliary-window-options.ts'
 import { cleanupDisposableTree } from '../../dsh-plugin-desktop-beta/src/disposable-tree.ts'
+import { installEditingContextMenu } from '../../dsh-plugin-desktop-beta/src/context-menu.ts'
 import { atomicJson, privateDirectory } from './private-files.ts'
 import { windowMaterial } from './window-material.ts'
 import { ONBOARDING_ARGUMENT, RECOVERY_ARGUMENT, SAFE_ARGUMENT, relaunchApp, relaunchArguments } from './relaunch.ts'
@@ -282,6 +283,13 @@ function createWindow(preload: string, primary = false): BrowserWindow {
     if (!url.startsWith(primary ? APP_URL : SHELL_URL)) { event.preventDefault(); openExternal(url) }
   })
   window.webContents.on('will-redirect', (event, url) => { if (!url.startsWith(primary ? APP_URL : SHELL_URL)) event.preventDefault() })
+  // The official Desktop pops the same editing menu: native roles without shortcut
+  // labels, availability from Chromium, and Windows labels in the application language.
+  installEditingContextMenu(window.webContents, window, {
+    platform: process.platform,
+    labels: () => resolveDesktopLocale(windowsLanguage).messages,
+    menu: () => Menu,
+  })
   return window
 }
 

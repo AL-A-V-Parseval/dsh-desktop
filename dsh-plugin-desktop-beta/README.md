@@ -74,6 +74,8 @@ The centered product title and mode pill remain independent from the action grou
 
 The command bar remains visible and draggable while upstream overlays are open. macOS traffic lights and Windows caption controls keep their native hit regions; only Desktop-owned first-party icons render in this private surface, explicitly opt out of dragging, and remain clickable. Web Client plugins cannot contribute command-bar actions in compatibility or extended mode.
 
+Editable areas in the application document, the Desktop command bar, and Desktop-owned local windows show the same native right-click menu as the official Desktop: Undo, Redo, Cut, Copy, Paste, and Select All without shortcut labels, with availability reported by Chromium. Selected read-only text offers only Copy. Windows labels follow the Desktop language; macOS and Linux use the native role labels.
+
 The DOM declares the command bar as the Desktop frame and the shifted upstream root as its content viewport. The `shell.overlay` layer becomes the containing block for fixed plugin surfaces, while dialogs portalled directly to `body` receive the same content offset. Both paths are therefore bounded below the 36-pixel frame instead of darkening or intercepting it.
 
 Custom-window material is independent from mode. macOS offers **Off** and **Transparent**. Windows has no material choice, so every Windows window is an ordinary opaque window. The removed `windowsMaterial` values `acrylic` and `mica` stay readable so older settings still boot, and both resolve to off. Changing mode or material performs an orderly restart.
