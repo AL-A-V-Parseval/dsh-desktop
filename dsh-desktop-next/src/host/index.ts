@@ -19,6 +19,7 @@ import { maskSecrets } from '../mask-secrets.ts'
 import { parseSystemProxyProbe, SYSTEM_PROXY_ENV, withSystemProxy } from '../system-proxy.ts'
 import { watchPlatformLogin, type PlatformLoginAccount } from './platform-login.ts'
 import { installAgentPresetResolution } from './agent-preset.ts'
+import { installCuaDriverResolution } from './cua-driver.ts'
 import { installOfficeEngineResolution } from './office-engine.ts'
 import * as desktopOffice from './office.ts'
 import { resolveOfficeConfig } from './office.ts'
@@ -35,6 +36,8 @@ export async function main(): Promise<void> {
   installOfficeEngineResolution(runtimeDir)
   // The Creator preset reads its skills through the Host's filesystem service, which cannot stat inside the archive.
   installAgentPresetResolution(runtimeDir)
+  // The computer-use driver hands its library path to the system loader, which reads no archive.
+  installCuaDriverResolution(runtimeDir)
   const preferences = parsePreferences(JSON.parse(process.env.DSH_NEXT_PREFERENCES ?? '{}'))
   configureHostLogging(preferences)
   hostLog({ source: 'host', event: 'process.start', fields: { profile: basename(projectDir), node: process.version } })

@@ -109,6 +109,9 @@ const REQUIRED_UNPACKED = [
   // The Creator preset mounts this package's skills through the Host's filesystem service, which stats with bigint
   // and gets plain-number stats for archived entries; the Host resolves the package manifest to this copy.
   /^node_modules\/@deepseek-ai\/dsh-agent-preset\//u,
+  // The computer-use driver resolves its platform package's manifest and hands the library beside it to the system
+  // loader; the Host resolves that package to this copy.
+  /^node_modules\/@trycua\/cua-driver-/u,
   // The Office CLI and its direct dependencies run under the bundled standalone Node, which reads no archive;
   // beforePack unpacks the complete closure, and these guard its roots.
   /^node_modules\/@deepseek-ai\/libreoffice-kit\//u, /^node_modules\/(?:fflate|fontkit|koffi|saxes)\//u,
