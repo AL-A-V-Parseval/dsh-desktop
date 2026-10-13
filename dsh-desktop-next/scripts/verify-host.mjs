@@ -16,7 +16,6 @@ const root = fileURLToPath(new URL('..', import.meta.url))
 const home = mkdtempSync(join(tmpdir(), 'dsh-next-host-'))
 const manager = new NextProfiles(home)
 const executable = process.argv.includes('--electron') ? createRequire(import.meta.url)('electron') : process.execPath
-let restartRequests = 0
 let host
 let runner
 let registry
@@ -27,7 +26,7 @@ const pnpmInvocation = { command: executable, args: ['--expose-internals', bundl
 async function boot(name) {
   host = new DesktopHostProcess(executable, root, manager.directory(name), undefined,
     { ...process.env, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1' }, undefined, undefined, undefined,
-    join(root, 'scripts', 'fixtures', 'isolated-user-host.mjs'), () => { restartRequests++ })
+    join(root, 'scripts', 'fixtures', 'isolated-user-host.mjs'), () => {})
   let timer
   const ready = await Promise.race([
     host.start(), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Next Host smoke exceeded 60 seconds')), 60_000) }),
@@ -159,7 +158,7 @@ try {
   assert.equal(state.status, 200, await state.clone().text())
   const stateBody = await state.json()
   assert.ok(Array.isArray(stateBody.sources))
-  assert.deepEqual(stateBody.desktopActions, { openTerminal: ['darwin', 'win32'].includes(process.platform), requestRestart: true })
+  assert.deepEqual(stateBody.desktopActions, { openTerminal: ['darwin', 'win32'].includes(process.platform) })
   const nativeToken = 'fixture-native-request'
   const call = async (path, body, expected = 200) => {
     // Match the native session marker, including an absent Origin header.
@@ -202,7 +201,11 @@ try {
   assert.equal(selected.sources.find(item => item.sourceRecordId === source.sourceRecordId)?.enabled, true)
   const deleted = await call('sources', { action: 'remove', sourceRecordId: source.sourceRecordId })
   assert.equal(deleted.sources.some(item => item.sourceRecordId === source.sourceRecordId), false)
-  assert.ok((await call('installations')).installations.some(item => item.packageName === 'fixture-next-plugin' && item.action === 'uninstall'))
+  const marketInventory = (await call('installations')).installations
+  const fixtureInstallation = marketInventory.find(item => item.packageName === 'fixture-next-plugin')
+  assert.ok(fixtureInstallation?.enabled && fixtureInstallation.toggleable && fixtureInstallation.removable, JSON.stringify(fixtureInstallation))
+  // Official plugins and Desktop's own bundles belong to the official Plugins page; the Market lists community plugins only.
+  assert.deepEqual(marketInventory.filter(item => item.packageName !== 'fixture-next-plugin'), [], JSON.stringify(marketInventory))
   // This invalid mutation must reach the existing schema gate, with no installation or external requests.
   const mutation = await fetch(`${origin}/api/community-market/operations/preview`, {
     method: 'POST', headers: { cookie, origin, 'content-type': 'application/json' }, body: '{}',
@@ -213,15 +216,23 @@ try {
   })
   assert.equal(crossOrigin.status, 403)
   await crossOrigin.body?.cancel()
-  const preview = await call('operations/preview', { action: 'uninstall', bundleId: 'fixture-next-plugin' })
+  // Market toggles and removals run through the official manager and apply live; no restart request follows.
+  const disabledByMarket = await call('installations/enabled', { packageName: 'fixture-next-plugin', enabled: false })
+  assert.equal(disabledByMarket.application, 'applied', JSON.stringify(disabledByMarket))
+  assert.equal((await rpc('listBundles')).find(row => row.name === 'fixture-next-plugin')?.enabled, false)
+  assert.equal((await call('installations')).installations.find(item => item.packageName === 'fixture-next-plugin')?.enabled, false)
+  const enabledByMarket = await call('installations/enabled', { packageName: 'fixture-next-plugin', enabled: true })
+  assert.equal(enabledByMarket.application, 'applied', JSON.stringify(enabledByMarket))
+  await call('installations/enabled', { packageName: 'dsh-community-market', enabled: false }, 400)
+  await call('operations/preview', { action: 'uninstall', bundleId: 'fixture-next-plugin' }, 400)
+  const preview = await call('operations/preview', { action: 'uninstall', packageName: 'fixture-next-plugin' })
+  assert.equal(preview.packageName, 'fixture-next-plugin')
   const removed = await call('operations/execute', { previewId: preview.previewId })
   assert.equal(removed.packageName, 'fixture-next-plugin')
-  assert.equal((await call('installations')).installations.length, 0)
-  await call('desktop/request-restart', { restartToken: removed.restartToken })
-  await call('desktop/request-restart', { restartToken: removed.restartToken }, 410)
-  // Await the private IPC event without asking the smoke to launch an Electron window.
-  for (let attempts = 0; restartRequests === 0 && attempts < 50; attempts++) await new Promise(resolve => setTimeout(resolve, 10))
-  assert.equal(restartRequests, 1)
+  assert.equal(removed.application, 'applied', JSON.stringify(removed))
+  assert.equal(removed.restartToken, undefined)
+  assert.equal((await call('installations')).installations.some(item => item.packageName === 'fixture-next-plugin'), false)
+  assert.equal((await rpc('listBundles')).some(row => row.name === 'fixture-next-plugin' && row.installed), false)
   const page = await fetch(`${origin}/`, { headers: { cookie } })
   assert.equal(page.status, 200)
   const html = await page.text()
@@ -328,7 +339,7 @@ try {
     await stop()
     console.log('Onboarding Cua native provider activation and teardown passed without capturing screens, sending input or prompting for OS permissions.')
   }
-  console.log(`Next Host smoke passed (${process.argv.includes('--electron') ? 'Electron Node mode' : 'Node'}): authenticated 0.2.1-alpha.2 Web, exclusive market selection and independent AA persisted, official row toggles, dshmarket offline install and cross-market removal, official install/remove with a freshly published locked dependency, native dshmarket update origin gate, graceful shutdown, recovery boot and profile switch.`)
+  console.log(`Next Host smoke passed (${process.argv.includes('--electron') ? 'Electron Node mode' : 'Node'}): authenticated 0.2.1-alpha.2 Web, exclusive market selection and independent AA persisted, official row toggles, dshmarket offline install and cross-market toggle and removal through the official manager, official install/remove with a freshly published locked dependency, native dshmarket update origin gate, graceful shutdown, recovery boot and profile switch.`)
 } finally {
   await runner?.dispose()
   await host?.stop()
