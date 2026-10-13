@@ -35,7 +35,15 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
   expect(next.build.afterPack).toBe('./scripts/verify-packaged.ts')
   expect(next.build.afterAllArtifactBuild).toBe('./scripts/verify-fuses.ts')
   expect(next.build.electronFuses).toEqual(beta.build.electronFuses)
-  expect(next.build.mac.x64ArchFiles).toBe(beta.build.mac.x64ArchFiles.replace('**}', '**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**}'))
+  // The interpreter payloads of both CPUs are identical across the two CPU builds, so the universal merge keeps them as they are.
+  expect(next.build.mac.x64ArchFiles).toBe(`{${beta.build.mac.x64ArchFiles.replace('**}', '**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**}')},Contents/Resources/runtime/**}`)
+  // Both CPU payloads ride beside the archive as extra resources; electron-builder must not re-sign the pre-signed payloads.
+  for (const platform of ['mac', 'win']) expect(next.build[platform].extraResources, platform).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }])
+  expect(next.build.extraResources).toBeUndefined()
+  expect(next.build.linux.extraResources).toBeUndefined()
+  expect(next.build.mac.signIgnore).toContain('/Contents/Resources/runtime/(?:arm64|x64)/primary-runtime(?:/|$)')
+  expect(next.scripts['prepare:runtime']).toBe('node scripts/prepare-runtime.ts')
+  for (const name of ['@deepseek-ai/dsh-skill-office', '@deepseek-ai/dsh-tool-workspace-dependencies']) expect(next.dependencies[name], name).toBe(next.dependencies['@deepseek-ai/dsh'])
   expect(next.build.mac.icon).toBe('build/app-icon.icon')
   expect(existsSync(new URL('../build/app-icon.icon/icon.json', import.meta.url))).toBe(true)
   expect(next.build.nsis).toMatchObject({ oneClick: false, perMachine: false, allowElevation: true, allowToChangeInstallationDirectory: true })

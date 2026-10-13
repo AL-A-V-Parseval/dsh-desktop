@@ -150,7 +150,7 @@ Next 是正式的 Profile bundle，因此上游插件管理器重新组合配置
 
 ## 当前边界
 
-打包入口和 Next 自动更新客户端已接入；发布仍需生成并验证对应平台的安装包，再配置线上 Next 渠道。不迁移 Stable/Beta 数据。官方发布包内的 Python/Office 离线运行时和技能包也尚未集成。我们自己的增强／扩展窗口模式继续留待后续迁移。更新服务尚未发布 Next 时会显示暂时不可用，不会安装 Stable/Beta 包。增强窗口模式仍隐藏。Node/Electron 的无图形检查不代表跨平台安装包和视觉验收完成。
+打包入口和 Next 自动更新客户端已接入；发布仍需生成并验证对应平台的安装包，再配置线上 Next 渠道。不迁移 Stable/Beta 数据。我们自己的增强／扩展窗口模式继续留待后续迁移。更新服务尚未发布 Next 时会显示暂时不可用，不会安装 Stable/Beta 包。增强窗口模式仍隐藏。Node/Electron 的无图形检查不代表跨平台安装包和视觉验收完成。
 
 ## 打包与更新
 
@@ -166,6 +166,12 @@ corepack yarn dist:win:next
 打包复用 Beta 的目录构建、macOS universal DMG、签名公证预检和 Windows x64 NSIS 流程；Windows 安装包遵循现有未签名构建策略。与上游桌面端一样，应用归档为 `app.asar`；原生模块、可执行文件、嵌套 bundle、随包 pnpm、AA 桥接的 Connector 工程、Node shim 和图标资源解包在归档旁，因为 Electron 的归档视图只服务自己的 `fs` 和 `dlopen`，子进程、shell 和 `nativeImage` 看不到它。Host、终端里的 `dsh` 命令和恢复助手的插件 CLI 都以 Electron 的 Node 模式从归档运行；Host 通过上游的模块钩子把 LibreOffice 引擎解析到解包副本，AA 桥接通过 Profile 覆盖层拿到解包后的 Connector 与 uv 路径，Profile 不再建立指向应用的文件系统链接，因为链接无法进入归档。打包后的 Host 保留 Electron 的归档视图，所以工作区里名为 `*.asar` 的文件会被当作归档读取，与上游桌面端一致。两个归档 fuse 与上游发布一样保持关闭。所有入口仅构建产物，不发布、不启动 GUI；正式发布仍须先通过 AA 最新构建和仓库检查。
 
 归档遵循上游桌面端的文件策略。electron-builder 的文件 glob 排除 source map、TypeScript 声明与构建缓存以及其他平台的 node-pty 预构建文件；`afterPack` 钩子随后读取组装好的归档及其解包文件，拒绝策略要求省略的任何条目，拒绝留在归档内的原生代码或需经 shell 执行的文件，检查每个打包清单声明的依赖闭包都能解析，然后在 `app.asar` 旁封存 `desktop-runtime.json`：Next、dsh、Electron 与 pnpm 版本，平台及载荷所含原生文件的架构（macOS 为两种 Darwin CPU，Windows 为 x64），每个直接依赖的共享包记录，以及每个文件的字节数、SHA-256、归档内或解包的位置、可执行位和 Mach-O 标记。描述文件写入后立即对照归档校验。universal macOS 构建会对每个 CPU 各执行一次钩子，再对合并后的应用执行一次；两个 CPU 归档出的字节完全相同，所以 universal 构建直接保留一份归档而不合并两份（`mergeASARs: false`），描述文件同样完全相同。所有产物构建完成后，再以容忍代码签名的方式校验最终应用，因为 electron-builder 在封存之后才签名解包的 Mach-O 文件和嵌套 bundle，签名本身由 `verify-mac-release.ts` 验证；随后用打包好的 Electron 以 Node 模式从归档导入壳模块，并用私有数据目录从归档启动真实 Host，期间启用社区市场并执行一次诊断导出以运行其 worker 线程，若 Host 向普通浏览器暴露应用则判定失败。安装版启动时将描述文件与自身版本、已安装的 `@deepseek-ai/dsh`、平台和 CPU 比对；不一致时打开恢复助手而不进入工作区。
+
+与上游桌面端一样，安装包在归档之外携带 primary runtime，位于 `Contents/Resources/runtime`（Windows 为 `resources/runtime`）：上游锁文件固定的独立 Python 3.12 及 numpy、pandas、python-docx、python-pptx、openpyxl、Pillow、lxml、XlsxWriter，独立 Node，随包 pnpm，以及每份载荷旁的 Office 技能资源。macOS 发布包是一个 universal 应用，因此每个 CPU 各带一份载荷，`runtime/arm64/primary-runtime` 和 `runtime/x64/primary-runtime`，各自带有自己的 `office-skills`；安装版壳按自身运行的 CPU 选择载荷并交给 Host。Windows 只带 `runtime/x64`。每次运行 electron-builder 之前，`scripts/prepare-runtime.ts` 把上游锁文件（`deepseek-harness/scripts/primary-runtime/lock.json`）固定的压缩包和 wheel 下载到 `.desktop-build/downloads`，在 `.desktop-build/runtime/<cpu>` 下组装每份载荷并按上游方式裁剪 NumPy 与 pandas 的测试套件，写入记录产品版本和载荷摘要的 `runtime.json`，校验整棵树（清单的平台、CPU 和版本，Node 与 pnpm 入口，所声明 CPU 的 thin Mach-O 解释器，Office 检查器和技能），再执行本机能运行的载荷：本机 CPU 的那份，以及 Apple Silicon 主机装有 Rosetta 时的 Intel 那份。electron-builder 把这棵树作为 extra resources 原样复制；`afterPack` 钩子和最终产物检查会再次校验，`verify-mac-release.ts` 则在挂载的镜像中运行本机载荷。`corepack yarn workspace dsh-desktop-next prepare:runtime` 为开发运行准备同一棵树；开发运行中只有 `.desktop-build/runtime/<cpu>/primary-runtime` 存在时 Host 才挂载 Office 技能，打包后的 Host 则要求载荷存在，缺失即失败。
+
+Host 挂载上游的 Office 组合：`load_workspace_dependencies` 工具首次使用时把本 CPU 的载荷安装到 `<home>/dsh-runtimes/dsh-next-primary-runtime`（Next 自己的目录，因为 Next 与官方桌面端共用 `~/.dsh`，而该工具会替换清单不同的安装），以及 `office-docx`、`office-pptx`、`office-xlsx` 技能，它们拿到随包 Node 和解包后的 LibreOffice Kit CLI。CLI 由这个独立 Node 运行，而它读不了归档，所以 `beforePack` 钩子把两个 CPU 的完整 Office 包闭包解包在归档旁，载荷审计也要求这些根目录在那里。
+
+签名的 macOS 发布版在运行 electron-builder 之前先给载荷签名，与上游桌面端一致：每个 Mach-O 文件都获得带 hardened runtime、时间戳和逐文件标识符的 Developer ID 签名；独立 Node 获得 V8 所需的 JIT 权限，x64 的 Node 额外获得 `com.apple.security.cs.allow-unsigned-executable-memory` 以便使用可执行代码页，包括在 Rosetta 下运行时；Python 及其扩展模块不带任何权限。`signIgnore` 阻止 electron-builder 用继承的应用权限重新签名载荷，universal 合并规则则让它们在两个 CPU 构建之间保持一致。没有这一步，Python 的 `.so` 扩展模块会保持未签名，因为 osx-sign 只签无扩展名的二进制、`.dylib` 和 `.node` 文件，而公证会拒绝未签名的 Mach-O 代码。通过 `MAC_CERT_P12_BASE64` 提供的 PKCS#12 证书会在这一步导入临时钥匙串；登录钥匙串中的身份直接使用。`verify-mac-release.ts` 在挂载的镜像中检查签名、权限策略和本机载荷的导入。
 
 桌面设置和托盘均可检查更新。安装版启动后延迟检查，之后每 6 小时检查一次；只有用户点击下载才下载。托盘显示字节数或百分比，完成后点击“安装并重启”。安装前先隐藏窗口并停止 Host。macOS 校验 Next 身份、版本和签名团队，将已下载 DMG 中的应用封装为本地 ZIP，交给 Electron 的 Squirrel.Mac 原生更新器验证和替换；不会改写应用目录或降低签名要求。Windows 校验 Next 安装器身份和版本，交接给 NSIS 静默更新并重新启动。开发运行只允许检查，不替换源码或 Electron 开发运行时。
 

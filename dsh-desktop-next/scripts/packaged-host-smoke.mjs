@@ -1,7 +1,7 @@
 /** Boot the real Host from one packaged Next archive and stop it; no window, no user data. */
 import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const root = process.argv[2]
@@ -9,7 +9,8 @@ if (!root) throw new Error('packaged-host-smoke: expected the packaged applicati
 const { NextDesktopRuntime } = await import(pathToFileURL(join(root, 'lib', 'desktop-runtime.js')).href)
 const home = mkdtempSync(join(tmpdir(), 'dsh-next-packaged-smoke-'))
 let failures = 0
-const runtime = new NextDesktopRuntime({ root, home, executable: process.execPath, addresses: () => [],
+// The payload of this CPU sits beside the archive, where the packaged shell selects it.
+const runtime = new NextDesktopRuntime({ root, home, primaryRuntime: join(dirname(root), 'runtime', process.arch, 'primary-runtime'), executable: process.execPath, addresses: () => [],
   certificate: async () => { throw new Error('The packaged smoke must not request system key storage or expose a LAN listener') },
   onFailure: () => { failures += 1 }, onChange() {}, onRestart() {}, onTerminal() {}, onNotification() {},
 })

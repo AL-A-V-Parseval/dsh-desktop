@@ -1,8 +1,10 @@
-/** Electron Builder's beforePack hook: the platform's omissions join the one application file set. */
+/** Electron Builder's beforePack hook: the platform's omissions and the Office closure join the archive configuration. */
+import { nextPackagingTarget } from './packaged-payload.ts'
+import { officeUnpackPatterns } from './office-packages.ts'
 
 interface PackContext {
   electronPlatformName: string
-  packager: { config: { files?: unknown } }
+  packager: { projectDir: string; config: { files?: unknown; asarUnpack?: unknown } }
 }
 
 /**
@@ -42,8 +44,28 @@ export function applyPlatformFileExclusions(files: unknown, platform: NodeJS.Pla
   return added
 }
 
+/**
+ * Unpack the Office package closure of every CPU the package carries. The bundled standalone Node
+ * runs the LibreOffice Kit CLI and its JavaScript dependencies from physical files, so the closure
+ * resolved from the installed tree joins `asarUnpack`; each pattern is added once.
+ * @param config - electron-builder configuration being packed.
+ * @param projectDir - Installed application directory.
+ * @param platform - Electron platform being packaged.
+ * @returns The patterns this call added.
+ */
+export function applyOfficeUnpack(config: { asarUnpack?: unknown }, projectDir: string, platform: NodeJS.Platform): string[] {
+  const existing = config.asarUnpack
+  const patterns = typeof existing === 'string' ? [existing] : Array.isArray(existing) ? existing.filter((value): value is string => typeof value === 'string') : []
+  const added = officeUnpackPatterns(projectDir, platform, nextPackagingTarget(platform).archs).filter(pattern => !patterns.includes(pattern))
+  config.asarUnpack = [...patterns, ...added]
+  return added
+}
+
 export default async function beforePack(context: PackContext): Promise<void> {
-  const added = applyPlatformFileExclusions(context.packager.config.files, context.electronPlatformName as NodeJS.Platform)
+  const platform = context.electronPlatformName as NodeJS.Platform
+  const added = applyPlatformFileExclusions(context.packager.config.files, platform)
   if (added.length > 0) console.log(`Next ${context.electronPlatformName} payload omits ${added.join(', ')}`)
+  const office = applyOfficeUnpack(context.packager.config, context.packager.projectDir, platform)
+  if (office.length > 0) console.log(`Next ${context.electronPlatformName} payload unpacks the Office closure: ${String(office.length)} packages`)
   await Promise.resolve()
 }

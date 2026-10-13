@@ -90,6 +90,9 @@ function isNativeImage(head: Buffer): boolean {
 const REQUIRED_UNPACKED = [
   /^scripts\/node-bin\//u, /^assets\//u, /^build\//u, /^node_modules\/pnpm\//u,
   /^node_modules\/@agents-anywhere\/dsh-bridge-next\/lib\/bundled-connector\//u,
+  // The Office CLI and its direct dependencies run under the bundled standalone Node, which reads no archive;
+  // beforePack unpacks the complete closure, and these guard its roots.
+  /^node_modules\/@deepseek-ai\/libreoffice-kit\//u, /^node_modules\/(?:fflate|fontkit|koffi|saxes)\//u,
 ] as const
 
 /** The only entries the application file set declares at the payload root. */

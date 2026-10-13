@@ -26,6 +26,8 @@ export interface MacReleaseVerificationOptions {
   readonly run: (command: string, args: readonly string[]) => void
   /** Inspect signed main/Helper entitlements; custom verifiers may own this check. */
   readonly verifyEntitlements?: (appPath: string, productName: string) => void
+  /** Check resources beside the archive, such as bundled interpreter payloads, inside the mounted application. */
+  readonly verifyRuntime?: (appPath: string) => void
   /** Remove the detached empty mount point. */
   readonly removeMountPoint: (mountPoint: string) => void
 }
@@ -99,6 +101,7 @@ export function verifyMacRelease(
     }
     options.run('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath])
     options.verifyEntitlements?.(appPath, options.productName)
+    options.verifyRuntime?.(appPath)
     options.run('spctl', ['--assess', '--type', 'execute', '--verbose=4', appPath])
     options.run('xcrun', ['stapler', 'validate', appPath])
   } catch (cause) {

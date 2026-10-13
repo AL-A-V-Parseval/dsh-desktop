@@ -19,12 +19,15 @@ import { maskSecrets } from '../mask-secrets.ts'
 import { parseSystemProxyProbe, SYSTEM_PROXY_ENV, withSystemProxy } from '../system-proxy.ts'
 import { watchPlatformLogin, type PlatformLoginAccount } from './platform-login.ts'
 import { installOfficeEngineResolution } from './office-engine.ts'
+import * as desktopOffice from './office.ts'
+import { resolveOfficeConfig } from './office.ts'
 
 export async function main(): Promise<void> {
   // The Host lists and reads user workspaces; see asar-archive-policy.ts.
   disableAsarArchiveView(import.meta.url)
   const runtimeDir = process.argv[2]
   const projectDir = process.argv[3]
+  const primaryRuntime = process.argv[4]
   const home = process.env.DSH_HOME
   if (!runtimeDir || !projectDir || !home || !process.send) throw new Error('Next Host requires runtime, profile, home and IPC')
   // The Office engine runs as a native child process, so an archived payload resolves it to its unpacked copy.
@@ -114,6 +117,13 @@ export async function main(): Promise<void> {
   process.once('disconnect', () => { void stop().catch(fatal) })
   const { ctx } = await application
   auditHostPlugins(ctx)
+  // Office skills and the workspace dependency tool need the bundled payload; a packaged Host without it fails here.
+  const office = resolveOfficeConfig(runtimeDir, primaryRuntime, home)
+  if (office === undefined) hostLog({ source: 'host', event: 'office.unavailable', level: 'warn', fields: { source: primaryRuntime } })
+  else {
+    const mounted = hostOperation('host', 'office.mount', { source: office.source })
+    try { await ctx.plugin(desktopOffice, office); mounted() } catch (error) { mounted(error); throw error }
+  }
   hostLog({ source: 'host', event: 'process.ready' })
   await send({ type: 'ready', url: ctx.connection.authenticatedUrl(`http://127.0.0.1:${ctx.webServer.port}`),
     injections: ctx.webServer.collectIndexInjections() })

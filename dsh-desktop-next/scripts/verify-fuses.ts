@@ -7,6 +7,7 @@ import { verifyElectronExecutableFuses } from '../../dsh-plugin-desktop-beta/scr
 import { withoutMacReleaseSecrets } from '../../dsh-plugin-desktop-beta/scripts/release-preflight.ts'
 import { withoutWindowsSigningSecrets } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
 import { nextPackagingTarget, verifyNextRuntime } from './packaged-payload.ts'
+import { verifyNextRuntimeTree } from './prepare-runtime.ts'
 
 const desktopRoot = fileURLToPath(new URL('..', import.meta.url))
 
@@ -44,6 +45,9 @@ export default async function afterAllArtifactBuild(result: { outDir: string }):
     const target = nextPackagingTarget(darwin ? 'darwin' : path.endsWith('.exe') ? 'win32' : 'linux')
     const descriptor = verifyNextRuntime(resources, expectedVersion(), target, { afterCodeSigning: true })
     console.log(`Verified the sealed Next payload at ${root}: ${String(descriptor.files.length)} files, dsh ${descriptor.release.dshVersion}`)
+    // The interpreter payloads are pre-signed resources; code signing must have left them as prepared.
+    const runtimes = verifyNextRuntimeTree(join(resources, 'runtime'), target.platform, expectedVersion())
+    if (runtimes.length > 0) console.log(`Verified the bundled primary runtimes: ${runtimes.map(runtime => runtime.arch).join(', ')}`)
     // Electron's Node mode reads the archive like a directory, as the Host and CLI will.
     runPackagedNode(path, ['--input-type=module', '-e', `
       import { createRequire } from 'node:module';
