@@ -15801,6 +15801,7 @@ __metadata:
     "@deepseek-ai/dsh-api-terminal-controller": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-api-workspace-controller": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-api-workspace-files": "npm:0.2.1-alpha.2"
+    "@deepseek-ai/dsh-app-boot": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-atomic-write": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-attachment": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-brand": "npm:0.2.1-alpha.2"
@@ -15880,6 +15881,7 @@ __metadata:
     "@deepseek-ai/dsh-api-session-controller": 0.2.0-rc.2 || 0.2.1-alpha.2
     "@deepseek-ai/dsh-api-settings-controller": 0.2.0-rc.2 || 0.2.1-alpha.2
     "@deepseek-ai/dsh-api-workspace-controller": 0.2.0-rc.2 || 0.2.1-alpha.2
+    "@deepseek-ai/dsh-app-boot": 0.2.0-rc.2 || 0.2.1-alpha.2
     "@deepseek-ai/dsh-brand": 0.2.0-rc.2 || 0.2.1-alpha.2
     "@deepseek-ai/dsh-client-connection": 0.2.0-rc.2 || 0.2.1-alpha.2
     "@deepseek-ai/dsh-client-file-upload": 0.2.0-rc.2 || 0.2.1-alpha.2
@@ -15904,6 +15906,7 @@ __metadata:
     "@deepseek-ai/dsh-jobs": 0.2.0-rc.2 || 0.2.1-alpha.2
     "@deepseek-ai/dsh-llm": 0.2.0-rc.2 || 0.2.1-alpha.2
     "@deepseek-ai/dsh-message-feedback": 0.2.0-rc.2 || 0.2.1-alpha.2
+    "@deepseek-ai/dsh-plugin-manager": 0.2.0-rc.2 || 0.2.1-alpha.2
     "@deepseek-ai/dsh-session": 0.2.0-rc.2 || 0.2.1-alpha.2
     "@deepseek-ai/dsh-session-persistence": 0.2.0-rc.2 || 0.2.1-alpha.2
     "@deepseek-ai/dsh-settings": 0.2.0-rc.2 || 0.2.1-alpha.2
@@ -15933,6 +15936,8 @@ __metadata:
       optional: true
     "@deepseek-ai/dsh-api-workspace-controller":
       optional: true
+    "@deepseek-ai/dsh-app-boot":
+      optional: true
     "@deepseek-ai/dsh-brand":
       optional: true
     "@deepseek-ai/dsh-client-connection":
@@ -15954,6 +15959,8 @@ __metadata:
     "@deepseek-ai/dsh-llm":
       optional: true
     "@deepseek-ai/dsh-message-feedback":
+      optional: true
+    "@deepseek-ai/dsh-plugin-manager":
       optional: true
     "@deepseek-ai/dsh-session":
       optional: true
