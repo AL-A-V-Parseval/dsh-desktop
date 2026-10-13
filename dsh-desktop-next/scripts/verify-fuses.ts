@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url'
 import { verifyElectronExecutableFuses } from '../../dsh-plugin-desktop-beta/scripts/verify-electron-fuses.ts'
 import { withoutMacReleaseSecrets } from '../../dsh-plugin-desktop-beta/scripts/release-preflight.ts'
 import { withoutWindowsSigningSecrets } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
-import { expectedPayloadVersion, nextPackagingTarget, PAYLOAD_DIR, universalMergeRewrite, verifyNextRuntime } from './packaged-payload.ts'
+import { nextPackagingTarget, PAYLOAD_DIR, universalMergeRewrite, verifyNextRuntime } from './packaged-payload.ts'
+import { expectedNextVersion, verifyNextRuntimeTree } from './prepare-runtime.ts'
 
 const desktopRoot = fileURLToPath(new URL('..', import.meta.url))
 
@@ -26,6 +27,7 @@ export default async function afterAllArtifactBuild(result: { outDir: string }):
     'mac-universal/DSH NEXT.app/Contents/MacOS/DSH NEXT', 'win-unpacked/DSH NEXT.exe', 'linux-unpacked/dsh-desktop-next']
   const executables = paths.map(path => join(result.outDir, path)).filter(existsSync)
   if (!executables.length) throw new Error('No packaged Next executable to verify')
+  const expectedVersion = expectedNextVersion(desktopRoot)
   for (const path of executables) {
     // Upstream Desktop keeps both archive fuses off; the archive is sealed by code signing instead.
     await verifyElectronExecutableFuses(path, undefined, false)
@@ -37,9 +39,12 @@ export default async function afterAllArtifactBuild(result: { outDir: string }):
     // tolerance; verify-mac-release.ts validates the signatures themselves.
     const target = nextPackagingTarget(darwin ? 'darwin' : path.endsWith('.exe') ? 'win32' : 'linux')
     const merge = universalMergeRewrite(join(desktopRoot, ...PAYLOAD_DIR.split('/')))
-    const descriptor = verifyNextRuntime(resources, expectedPayloadVersion(desktopRoot), target, { afterCodeSigning: true, acceptRewrite: merge.accept })
+    const descriptor = verifyNextRuntime(resources, expectedVersion, target, { afterCodeSigning: true, acceptRewrite: merge.accept })
     console.log(`Verified ${root} against its sealed descriptor: ${String(descriptor.files.length)} files, dsh ${descriptor.release.dshVersion}`
       + (merge.accepted.length === 0 ? '' : `; the universal merge rewrote ${merge.accepted.join(', ')}`))
+    // The interpreter payloads are pre-signed resources; code signing must have left them as prepared.
+    const runtimes = verifyNextRuntimeTree(join(resources, 'runtime'), target.platform, expectedVersion)
+    if (runtimes.length > 0) console.log(`Verified the bundled primary runtimes: ${runtimes.map(runtime => runtime.arch).join(', ')}`)
     // Electron's Node mode reads the archive like a directory, as the Host and CLI will.
     runPackagedNode(path, ['--input-type=module', '-e', `
       import { createRequire } from 'node:module';

@@ -106,6 +106,9 @@ function isNativeImage(head: Buffer): boolean {
 const REQUIRED_UNPACKED = [
   /^scripts\/node-bin\//u, /^assets\//u, /^build\//u, /^node_modules\/pnpm\//u,
   /^node_modules\/@agents-anywhere\/dsh-bridge-next\/lib\/bundled-connector\//u,
+  // The Office CLI and its direct dependencies run under the bundled standalone Node, which reads no archive;
+  // beforePack unpacks the complete closure, and these guard its roots.
+  /^node_modules\/@deepseek-ai\/libreoffice-kit\//u, /^node_modules\/(?:fflate|fontkit|koffi|saxes)\//u,
 ] as const
 
 /** The only entries the prepared payload places at its root. */
@@ -211,17 +214,6 @@ export function nextPayloadRelease(source: PayloadSource, electronVersion: strin
     electronVersion,
     pnpmVersion: manifestVersion(source, 'node_modules/pnpm/package.json', 'pnpm'),
   }
-}
-
-/**
- * Version the payload must declare: the drill override, otherwise the application manifest.
- * @param desktopRoot - Application package directory.
- * @param env - Packaging environment.
- * @returns Expected product version.
- */
-export function expectedPayloadVersion(desktopRoot: string, env: NodeJS.ProcessEnv = process.env): string {
-  const source = (JSON.parse(readFileSync(join(desktopRoot, 'package.json'), 'utf8')) as { version: string }).version
-  return env.DSH_NEXT_BUILD_VERSION ?? source
 }
 
 /** Rewrites a verification accepted, for the build log. */

@@ -142,6 +142,61 @@
       "upstream": "apps/desktop-host/tests/office-engine.spec.ts",
       "local": "tests/office-engine.spec.ts",
       "upstreamSha256": "0ef9ae8b2de83cb00a19db96b11cab886672277582986346df4431df189f6344"
+    },
+    {
+      "upstream": "apps/desktop-host/src/office.ts",
+      "local": "src/host/office.ts",
+      "upstreamSha256": "33c85997b69dacd6a9e5410d3c101039dd0e9a4cc8f63f9bbdfee1242390a668"
+    },
+    {
+      "upstream": "apps/desktop-host/tests/office.spec.ts",
+      "local": "tests/host-office.spec.ts",
+      "upstreamSha256": "580b1bf1213e0a5dc6baaa2df430b0aabf4ae186fd39559685e89e4428b8a6df"
+    },
+    {
+      "upstream": "scripts/primary-runtime/prepare.ts",
+      "local": "scripts/primary-runtime.ts",
+      "upstreamSha256": "f2a61674ab2283f2ee23aeef9c84265c738f22bf101eaa3ef43814235ed48fb6"
+    },
+    {
+      "upstream": "scripts/primary-runtime/prepare.spec.ts",
+      "local": "tests/primary-runtime.spec.ts",
+      "upstreamSha256": "3496aee098f0c684e5a0c22de8d9c147d3de7f042cee39200c5fe9e8572dfc93"
+    },
+    {
+      "upstream": "scripts/primary-runtime/prune-python-tests.ts",
+      "local": "scripts/prune-python-tests.ts",
+      "upstreamSha256": "030e3db3e733ac0e4a3ded3762bdba498cbc57f91405567aef40c02018319881"
+    },
+    {
+      "upstream": "scripts/primary-runtime/prune-python-tests.spec.ts",
+      "local": "tests/prune-python-tests.spec.ts",
+      "upstreamSha256": "c3d5528a5ac6ef88b184a3652b16c6a1f3548f292341c6e777f711f3e3f97bd0"
+    },
+    {
+      "upstream": "scripts/libreoffice-packages.mjs",
+      "local": "scripts/office-packages.ts",
+      "upstreamSha256": "dee06b3337deec553858d9edbbbef09bbca88dadefead0903cbd42162acfe445"
+    },
+    {
+      "upstream": "apps/desktop/scripts/macos-runtime.ts",
+      "local": "scripts/sign-runtime.ts",
+      "upstreamSha256": "445924b21ab4ddbe219f755de11bc62537b6f1a8b7dcbe5c2a124b2ee63c816c"
+    },
+    {
+      "upstream": "apps/desktop/scripts/verify-macos-signature.mjs",
+      "local": "scripts/sign-runtime.ts",
+      "upstreamSha256": "32162091de8ed8bbe418ae8aa6101bc7b46c80e55d163568f0231ee5356226de"
+    },
+    {
+      "upstream": "apps/desktop/scripts/macos-signing-keychain.mjs",
+      "local": "scripts/sign-runtime.ts",
+      "upstreamSha256": "e73ad2ab60d56e610dfa5322f5bcd27e43bd297f2bda83aa44c69cd8d0352b3e"
+    },
+    {
+      "upstream": "apps/desktop/tests/macos-runtime.spec.ts",
+      "local": "tests/sign-runtime.spec.ts",
+      "upstreamSha256": "fc42b35da18477120f4595ff5a155370962d8231cceaec6a467d575d15398157"
     }
   ]
 }

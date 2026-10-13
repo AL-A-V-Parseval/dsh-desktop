@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createPackageWithOptions } from '@electron/asar'
 import { afterEach, expect, it } from 'vitest'
-import { archivedPayload, auditNextPayload, expectedPayloadVersion, nextPackagingTarget, nextPayloadRelease, universalMergeRewrite, verifyArchiveAgainstPrepared, verifyNextPayload, verifyNextRuntime } from '../scripts/packaged-payload.ts'
+import { archivedPayload, auditNextPayload, nextPackagingTarget, nextPayloadRelease, universalMergeRewrite, verifyArchiveAgainstPrepared, verifyNextPayload, verifyNextRuntime } from '../scripts/packaged-payload.ts'
 import { DESKTOP_RUNTIME_FILE, physicalPayload, readDesktopRuntime, sealPayload } from '../src/runtime-tree.ts'
 import { completeApplication, FIXTURE_RELEASE, FIXTURE_SHARED, writeApplication, writePackage } from './runtime-fixture.ts'
 
@@ -194,12 +194,4 @@ it('refuses to describe a payload whose pnpm has no version', async () => {
   const { resources } = await assembled((app) => { writeFileSync(join(app, 'node_modules', 'pnpm', 'package.json'), '{"name":"pnpm"}') }, false)
   const source = archivedPayload(resources)
   try { expect(() => nextPayloadRelease(source, '44.0.0')).toThrow(/pnpm has no version/u) } finally { source.close() }
-})
-
-it('expects the drill version when one is set, otherwise the manifest version', () => {
-  const root = mkdtempSync(join(tmpdir(), 'desktop-version-'))
-  roots.push(root)
-  writeFileSync(join(root, 'package.json'), JSON.stringify({ version: '2.0.0-next' }))
-  expect(expectedPayloadVersion(root, {})).toBe('2.0.0-next')
-  expect(expectedPayloadVersion(root, { DSH_NEXT_BUILD_VERSION: '2.0.1-next.3' })).toBe('2.0.1-next.3')
 })

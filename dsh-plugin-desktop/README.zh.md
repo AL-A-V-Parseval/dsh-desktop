@@ -72,6 +72,8 @@ Cordis row 会在 profile 激活期间登记原生窗口参数。Launcher 只在
 
 即使上游 overlay 打开，操作栏仍会保持可见且可以拖动窗口。macOS 红绿灯和 Windows 原生标题栏按钮保留各自命中区域；这个私有 surface 只直接渲染 Desktop 自有的第一方图标，它们会明确退出拖动区域并保持可点击。Web Client 插件在兼容模式和扩展窗口中都不能向操作栏贡献 action。
 
+应用文档、Desktop 操作栏和 Desktop 自有本地窗口中的可编辑区域显示与官方桌面端一致的原生右键菜单：撤销、重做、剪切、复制、粘贴和全选，不带快捷键标注，可用状态由 Chromium 提供。选中的只读文本只提供“复制”。Windows 文案跟随 Desktop 语言；macOS 与 Linux 使用原生 role 文案。
+
 DOM 会把操作栏声明为 Desktop frame，并把下移后的上游 root 声明为它的 content viewport。`shell.overlay` 会成为 fixed 插件 surface 的 containing block，直接 portal 到 `body` 的对话框则获得相同的内容偏移；两条路径都会被限制在 36 像素 frame 下方，不会再压暗或拦截顶栏。
 
 自定义窗口材质独立于模式设置。macOS 可选“关闭”或“透明材质”。Windows 不提供材质选项，所有 Windows 窗口都是普通的不透明窗口。已移除的 `windowsMaterial` 旧值 `acrylic` 和 `mica` 仍可读取，旧设置照常启动，两者都按关闭处理。切换模式或材质都会执行有序重启。
