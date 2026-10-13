@@ -43,16 +43,21 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
   expect(next.build.afterPack).toBe('./scripts/verify-packaged.ts')
   expect(next.build.afterAllArtifactBuild).toBe('./scripts/verify-fuses.ts')
   expect(next.build.electronFuses).toEqual(beta.build.electronFuses)
-  // pnpm's per-CPU reflink addons ride in its bundled dist/node_modules, which the prepared tree keeps, and the
-  // interpreter payloads of both CPUs are identical across the two CPU builds, so the universal merge keeps them all;
-  // @electron/universal matches without the dot option, so the wheels' .dylibs directories need their own pattern.
-  expect(next.build.mac.x64ArchFiles).toBe(`{${beta.build.mac.x64ArchFiles.replace('**}', '**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**,@reflink/reflink-darwin-*/**}')},Contents/Resources/runtime/**,Contents/Resources/runtime/**/.*/**}`)
+  // Beta's rule already keeps the interpreter payloads, identical across the two CPU builds. Next adds its own
+  // per-CPU native packages, pnpm's reflink addons from its bundled dist/node_modules, and the wheels' .dylibs
+  // directories, which @electron/universal misses because it matches without the dot option.
+  expect(next.build.mac.x64ArchFiles).toBe(beta.build.mac.x64ArchFiles
+    .replace('sherpa-onnx-darwin-*/**}', 'sherpa-onnx-darwin-*/**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**,@reflink/reflink-darwin-*/**}')
+    .replace('Contents/Resources/runtime/**}', 'Contents/Resources/runtime/**,Contents/Resources/runtime/**/.*/**}'))
   // Both CPU payloads ride beside the archive as extra resources; electron-builder must not re-sign the pre-signed payloads.
   for (const platform of ['mac', 'win']) expect(next.build[platform].extraResources, platform).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }])
   expect(next.build.extraResources).toBeUndefined()
   expect(next.build.linux.extraResources).toBeUndefined()
   expect(next.build.mac.signIgnore).toContain('/Contents/Resources/runtime/(?:arm64|x64)/primary-runtime(?:/|$)')
   expect(next.scripts['prepare:runtime']).toBe('node scripts/prepare-runtime.ts')
+  // Like upstream Desktop's dev launcher, every development launch prepares the payload before the shell starts.
+  expect(next.scripts.dev).toBe('yarn build && yarn prepare:runtime && node scripts/start.mjs')
+  expect(next.scripts.start).toBe('yarn prepare:runtime && node scripts/start.mjs')
   for (const name of ['@deepseek-ai/dsh-skill-office', '@deepseek-ai/dsh-tool-workspace-dependencies']) expect(next.dependencies[name], name).toBe(next.dependencies['@deepseek-ai/dsh'])
   expect(next.build.mac.icon).toBe('build/app-icon.icon')
   expect(existsSync(new URL('../build/app-icon.icon/icon.json', import.meta.url))).toBe(true)
