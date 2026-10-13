@@ -222,6 +222,9 @@ it('captures scoped client errors with either Electron console-message signature
     await import('../src/main.ts')
     await vi.waitFor(() => expect(fixture.windows).toHaveLength(1))
     const consoleMessage = fixture.windows[0].webContents
+    // Startup records how the login-shell environment and locale were resolved before any Host starts.
+    expect(fixture.diagnosticAppend).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ source: 'desktop', event: 'shell-environment.resolved' }))
+    fixture.diagnosticAppend.mockClear()
     Object.assign(fixture.preferences, { developerLogging: true })
     consoleMessage.emit('console-message', {}, 2, '[next-ui-diagnostic] aa=false')
     consoleMessage.emit('console-message', { message: "slot entry crashed in 'sidebar.footer.action': error" })

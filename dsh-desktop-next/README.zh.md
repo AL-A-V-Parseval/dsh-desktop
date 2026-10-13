@@ -179,6 +179,7 @@ Host 挂载上游的 Office 组合：`load_workspace_dependencies` 工具首次�
 
 安装包字节改由 Chromium 的 `net.request` 传输，而不再使用 `net.fetch`：在 `redirect: 'manual'` 下 Electron 的 fetch 会拒绝重定向并抛出 `Redirect was cancelled`，而不是把 3xx 响应交回来，因此服务端指向存储路径的 `302` 永远无法被跟随。新传输层每一跳单独发起一个请求，每一跳都用同一条 HTTPS 与默认端口规则校验，首跳之后不再携带发布选择头，安装包流量走非持久化会话分区，因此不携带任何应用 Cookie。macOS 与 Windows 的下载端点都会重定向到存储路径；只能接受直接 `200` 的客户端无法完成更新。
 
+从 Finder 或 Dock 启动的打包版没有登录 shell 的导出变量。在任何 Host 启动之前，壳层像 Desktop 变体一样运行一次账户的登录 shell（zsh、bash 或 fish），只把 `PATH`、locale 变量、`TZ` 和固定的一组工具链变量合并进自己的环境；凭据、`DSH_*` 值和进程启动钩子不会被导入，shell 失败、超时或不受支持时保留继承的环境。当启动环境和登录 shell 都没有给出 locale 时，壳层按系统语言把 `LANG` 设为第一个已安装的 UTF-8 locale，和 Terminal.app 一样，这样 Host 的终端和工具子进程不会跑在 C locale 下，否则 `ls` 会把非 ASCII 文件名打印成 `?`。诊断日志以 `shell-environment.resolved` 记录结果。
 ## 运行日志与开发者日志
 
 Next 在 `<数据目录>/logs/desktop-next.log` 保存可直接阅读的近期日志，在 `logs/desktop-next-YYYY-MM-DD.<分段>.jsonl` 保存结构化历史。历史按每天和每文件 10 MiB 轮转，保留七天，总量上限 200 MiB，新文件使用私有权限。启动、Host 退出和退出清理阶段不受日志级别过滤；运行标记用于识别上一次未正常结束的启动。错误和强退证据立即刷新，其余记录约 200 毫秒批量保存。日志写入失败不会阻止应用运行，诊断导出会报告存储故障或丢弃的记录数。
