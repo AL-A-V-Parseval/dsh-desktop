@@ -16165,7 +16165,7 @@ __metadata:
     clsx: "npm:^2.1.1"
     diff: "npm:^9.0.0"
     dsh-community-market: "npm:0.1.0-dev.0"
-    dshmarket: "npm:1.66.19"
+    dshmarket: "npm:1.66.20"
     electron: "npm:44.0.0"
     electron-builder: "npm:26.15.7"
     extract-zip: "npm:2.0.1"
@@ -16347,6 +16347,7 @@ __metadata:
     "@deepseek-ai/dsh-shell-env": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-skill": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-skill-filesystem": "npm:0.2.1-alpha.2"
+    "@deepseek-ai/dsh-skill-office": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-spill": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-storage": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-storage-domain": "npm:0.2.1-alpha.2"
@@ -16368,6 +16369,7 @@ __metadata:
     "@deepseek-ai/dsh-tool-skill": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-tool-todo": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-tool-workflow": "npm:0.2.1-alpha.2"
+    "@deepseek-ai/dsh-tool-workspace-dependencies": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-tools": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-typert-protocol": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-typert-registry": "npm:0.2.1-alpha.2"
@@ -16391,6 +16393,7 @@ __metadata:
     "@types/js-yaml": "npm:^4.0.9"
     "@types/mdast": "npm:^4.0.4"
     "@types/node": "npm:^22.20.0"
+    "@types/papaparse": "npm:^5.3.0"
     "@types/react": "npm:^18"
     "@types/react-dom": "npm:^18"
     "@types/semver": "npm:^7.7.1"
@@ -16400,9 +16403,11 @@ __metadata:
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
     dsh-community-market: "npm:0.1.0-dev.0"
-    dshmarket: "npm:1.66.19"
+    dshmarket: "npm:1.66.20"
     electron: "npm:44.0.0"
     electron-builder: "npm:26.15.7"
+    extract-zip: "npm:2.0.1"
+    fflate: "npm:0.8.2"
     fs-ext: "npm:2.1.1"
     jsdom: "npm:29.1.1"
     koffi: "npm:3.1.5"
@@ -16410,6 +16415,7 @@ __metadata:
     lucide-react: "npm:^1.33.0"
     node-addon-require-builtin: "npm:^0.1.9"
     node-gyp: "npm:13.0.1"
+    papaparse: "npm:^5.5.0"
     pnpm: "npm:11.8.0"
     react: "npm:18.3.1"
     react-dom: "npm:18.3.1"
@@ -16420,6 +16426,7 @@ __metadata:
     sonner: "npm:^2.0.8"
     tailwind-merge: "npm:^3.6.0"
     tailwindcss: "npm:^4"
+    tar: "npm:7.5.22"
     tsdown: "npm:0.22.2"
     tw-animate-css: "npm:^1.4.0"
     typescript: "npm:6.0.3"
@@ -16564,6 +16571,7 @@ __metadata:
     "@deepseek-ai/dsh-shell-env": "npm:0.2.0-rc.2"
     "@deepseek-ai/dsh-skill": "npm:0.2.0-rc.2"
     "@deepseek-ai/dsh-skill-filesystem": "npm:0.2.0-rc.2"
+    "@deepseek-ai/dsh-skill-office": "npm:0.2.0-rc.2"
     "@deepseek-ai/dsh-spill": "npm:0.2.0-rc.2"
     "@deepseek-ai/dsh-storage": "npm:0.2.0-rc.2"
     "@deepseek-ai/dsh-storage-domain": "npm:0.2.0-rc.2"
@@ -16586,6 +16594,7 @@ __metadata:
     "@deepseek-ai/dsh-tool-skill": "npm:0.2.0-rc.2"
     "@deepseek-ai/dsh-tool-todo": "npm:0.2.0-rc.2"
     "@deepseek-ai/dsh-tool-workflow": "npm:0.2.0-rc.2"
+    "@deepseek-ai/dsh-tool-workspace-dependencies": "npm:0.2.0-rc.2"
     "@deepseek-ai/dsh-tools": "npm:0.2.0-rc.2"
     "@deepseek-ai/dsh-typert-protocol": "npm:0.2.0-rc.2"
     "@deepseek-ai/dsh-typert-registry": "npm:0.2.0-rc.2"
@@ -16608,6 +16617,7 @@ __metadata:
     "@types/js-yaml": "npm:^4.0.9"
     "@types/mdast": "npm:^4.0.4"
     "@types/node": "npm:^22.20.0"
+    "@types/papaparse": "npm:^5.3.0"
     "@types/react": "npm:^18"
     "@types/react-dom": "npm:^18"
     "@types/semver": "npm:^7.7.1"
@@ -16617,9 +16627,11 @@ __metadata:
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
     dsh-community-market: "npm:0.1.0-dev.0"
-    dshmarket: "npm:1.66.19"
+    dshmarket: "npm:1.66.20"
     electron: "npm:44.0.0"
     electron-builder: "npm:26.15.7"
+    extract-zip: "npm:2.0.1"
+    fflate: "npm:0.8.2"
     fs-ext: "npm:2.1.1"
     jsdom: "npm:29.1.1"
     koffi: "npm:3.1.5"
@@ -16627,6 +16639,7 @@ __metadata:
     lucide-react: "npm:^1.33.0"
     node-addon-require-builtin: "npm:^0.1.6"
     node-gyp: "npm:13.0.1"
+    papaparse: "npm:^5.5.0"
     pnpm: "npm:11.8.0"
     react: "npm:18.3.1"
     react-dom: "npm:18.3.1"
@@ -16637,6 +16650,7 @@ __metadata:
     sonner: "npm:^2.0.8"
     tailwind-merge: "npm:^3.6.0"
     tailwindcss: "npm:^4"
+    tar: "npm:7.5.22"
     tsdown: "npm:0.22.2"
     tw-animate-css: "npm:^1.4.0"
     typescript: "npm:6.0.3"
@@ -16651,9 +16665,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"dshmarket@npm:1.66.19":
-  version: 1.66.19
-  resolution: "dshmarket@npm:1.66.19"
+"dshmarket@npm:1.66.20":
+  version: 1.66.20
+  resolution: "dshmarket@npm:1.66.20"
   dependencies:
     js-yaml: "npm:^4.3.2"
     undici: "npm:^7.29.1"
@@ -16666,13 +16680,13 @@ __metadata:
       optional: true
     "@deepseek-ai/schemastery":
       optional: true
-  checksum: 10c0/0997f21a44106b8c9c3bfdb40d2a15088645d1f04c7222dc9d63077008391dda452a9ca4915cea533ed64059a9d2f7b4ca6a16c7962138b95759280f9772ec84
+  checksum: 10c0/de1eba20cc6d9c0069929e40c884bd0e47de1feefa94a37107b10226a735b885a04e0f24c622df963aaf6f88ad2f352cc3c2da0f04c0bc0dfa6af2d3605a2281
   languageName: node
   linkType: hard
 
-"dshmarket@patch:dshmarket@npm%3A1.66.19#./.yarn/patches/dshmarket-desktop.patch::locator=deepseek-harness-desktop%40workspace%3A.":
-  version: 1.66.19
-  resolution: "dshmarket@patch:dshmarket@npm%3A1.66.19#./.yarn/patches/dshmarket-desktop.patch::version=1.66.19&hash=734779&locator=deepseek-harness-desktop%40workspace%3A."
+"dshmarket@patch:dshmarket@npm%3A1.66.20#./.yarn/patches/dshmarket-desktop.patch::locator=deepseek-harness-desktop%40workspace%3A.":
+  version: 1.66.20
+  resolution: "dshmarket@patch:dshmarket@npm%3A1.66.20#./.yarn/patches/dshmarket-desktop.patch::version=1.66.20&hash=734779&locator=deepseek-harness-desktop%40workspace%3A."
   dependencies:
     js-yaml: "npm:^4.3.2"
     undici: "npm:^7.29.1"
@@ -16685,7 +16699,7 @@ __metadata:
       optional: true
     "@deepseek-ai/schemastery":
       optional: true
-  checksum: 10c0/21d3a67e7833ac81d5e9b02fad68c6da4fb53bdd8f7c3f5c6d1d2dc16d0b390def3c9f592e320de9d0f7fe17a7700a91140c5564429a1274121ecc3401f4d7fd
+  checksum: 10c0/59ad119848d38ae8f6f842ae58a4f4d674554be70afce7f62f1b4d2bd9a10e9a8da94fc2587122a7a84c204af9955a61b5954b15f10125995214ab3133a1683a
   languageName: node
   linkType: hard
 

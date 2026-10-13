@@ -7,6 +7,7 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { MACOS_UNIVERSAL_NATIVE_ENTRIES } from './mac-universal.ts'
 import { verifyMacEntitlements } from './verify-mac-entitlements.ts'
+import { verifyDesktopMacRuntime } from './verify-mac-runtime.ts'
 
 /** Injectable filesystem and command boundaries for release verification. */
 export interface MacReleaseVerificationOptions {
@@ -58,6 +59,8 @@ function defaultOptions(): MacReleaseVerificationOptions {
     makeMountPoint: () => mkdtempSync(join(tmpdir(), 'dsh-desktop-dmg-')),
     run,
     verifyEntitlements: verifyMacEntitlements,
+    // The interpreter payloads beside the application: both CPUs present, the host CPU executed, release signatures checked.
+    verifyRuntime: appPath => verifyDesktopMacRuntime(appPath, true),
     removeMountPoint: mountPoint => rmdirSync(mountPoint),
   }
 }
