@@ -17,6 +17,8 @@ import { NativeLocaleStore } from './native-locale.ts'
 import { NextDesktopRuntime } from './desktop-runtime.ts'
 import { publishBundledPrimaryRuntime } from './primary-runtime-payload.ts'
 import { probeSystemProxy, type DesktopSystemProxyProbe } from './system-proxy.ts'
+import { resolveDesktopShellEnvironment } from './shell-environment.ts'
+import { ensureUtf8Locale } from './shell-locale.ts'
 import { DEFAULT_PROFILE, NATIVE_ACCESS_HEADER, type DesktopCommand, type DesktopState, type DesktopSettingsPage } from './desktop-contract.ts'
 import { portsChanged, parsePreferences } from './desktop-preferences.ts'
 import { NativeDesktop, applyWindowMaterial } from './native-desktop.ts'
@@ -776,6 +778,12 @@ async function main(): Promise<void> {
   if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(join(root, 'build', 'app-icon-mac.png'))
   // Recovery can open without a Host; Chromium's app locale may differ from the OS language.
   windowsLanguage = preferredDesktopLocale([...app.getPreferredSystemLanguages(), app.getLocale()])
+  // Finder and Dock launches carry no login-shell exports, so the Host, its terminals and tool subprocesses
+  // would run with the minimal system PATH and no locale. Recover the exports the Desktop variants
+  // recover, then make sure a UTF-8 locale is set, as Terminal.app does for the shells it opens.
+  const shellEnvironment = await resolveDesktopShellEnvironment({ environment: process.env, home: app.getPath('home'), isPackaged: app.isPackaged, platform: process.platform })
+  for (const [name, value] of Object.entries(shellEnvironment.updates)) process.env[name] = value
+  const fallbackLocale = ensureUtf8Locale(process.env, process.platform, app.getPreferredSystemLanguages())
   // Read once, before anything can start a Host: a proxy client's "system proxy" switch sets no
   // environment variable, and only Chromium can evaluate it (PAC/WPAD included). Changing the
   // proxy takes effect on the next application start.
@@ -928,10 +936,12 @@ async function main(): Promise<void> {
   runtime.safeMode = safeModeRequested
   runtime.recoveryMode = process.argv.includes(RECOVERY_ARGUMENT)
   runtime.initialize()
+  runtime.diagnostics.record({ source: 'desktop', event: 'shell-environment.resolved', fields: { source: shellEnvironment.source,
+    fallbackReason: shellEnvironment.fallbackReason ?? null, recovered: Object.keys(shellEnvironment.updates).join(' ') || null, fallbackLocale: fallbackLocale ?? null } })
   if (dataLocation.error && !runtime.safeMode) { runtime.recoveryMode = true; runtime.report(dataLocation.error) }
   if (app.isPackaged) {
     // Packaging sealed the payload with the shell, dsh, platform and architectures it was released for.
-    try { verifyPackagedRuntimeIdentity(join(process.resourcesPath, DESKTOP_RUNTIME_FILE), { version, dshVersion: readInstalledPackageVersion(root, '@deepseek-ai/dsh'), platform: process.platform, arch: process.arch }) }
+    try { verifyPackagedRuntimeIdentity(join(root, DESKTOP_RUNTIME_FILE), { version, dshVersion: readInstalledPackageVersion(root, '@deepseek-ai/dsh'), platform: process.platform, arch: process.arch }) }
     catch (error) { runtime.recoveryMode = true; runtime.report(error) }
   }
   if (!runtime.safeMode && !runtime.recoveryMode) {

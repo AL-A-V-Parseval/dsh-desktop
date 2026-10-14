@@ -1,6 +1,6 @@
 {
   "name": "dsh-desktop-next",
-  "version": "2.0.17-next-linux.5",
+  "version": "2.0.18-next-linux.1",
   "private": true,
   "desktopName": "dsh-desktop-next.desktop",
   "description": "Experimental upstream-inspired DSH Desktop with Profiles, recovery, remote control and Community Market",
@@ -44,7 +44,7 @@
     "check:linux-package": "yarn check"
   },
   "dependencies": {
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c0cf7f57dc5bc.r49b34c10.tgz",
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c58d98da25a23.r49b34c10.tgz",
     "@deepseek-ai/cordis": "4.0.5-alpha.1",
     "@deepseek-ai/cordis-plugin-group": "1.0.5-alpha.1",
     "@deepseek-ai/cordis-plugin-include": "1.0.10-alpha.1",
@@ -316,7 +316,7 @@
     "appId": "ai.deepseek.dsh.desktop.next",
     "productName": "DSH NEXT",
     "asar": true,
-    "npmRebuild": false,
+    "beforeBuild": "./scripts/before-build.ts",
     "beforePack": "./scripts/prepare-pack.ts",
     "afterPack": "./scripts/verify-packaged.ts",
     "afterAllArtifactBuild": "./scripts/verify-fuses.ts",
@@ -334,21 +334,19 @@
       "nsis": "1.2.1"
     },
     "files": [
-      "assets/**",
-      "build/app-icon.ico",
-      "build/app-icon.png",
-      "build/app-icon-mac.png",
-      "cordis.patch.yml",
-      "host.cordis.patch.yml",
-      "lib/**",
-      "package.json",
-      "scripts/node-bin/**",
-      "!**/*.{js,cjs,mjs,ts,cts,mts,css}.map",
-      "!**/*.d.{ts,cts,mts}",
-      "!**/*.tsbuildinfo",
-      "!**/.yarn-state.yml",
-      "!node_modules/node-pty/build/**",
-      "!node_modules/fs-ext/build/**"
+      {
+        "from": ".desktop-build/payload",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": ".desktop-build/payload/node_modules",
+        "to": "node_modules",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
     "mac": {
       "artifactName": "DSH-NEXT-${version}-${arch}.${ext}",
@@ -378,6 +376,10 @@
         {
           "from": ".desktop-build/runtime",
           "to": "runtime"
+        },
+        {
+          "from": ".desktop-build/payload/package.json",
+          "to": "app/package.json"
         }
       ],
       "mergeASARs": false,
@@ -386,7 +388,7 @@
         "\\.(?:pak|dat|wasm)$",
         "/Contents/Resources/runtime/(?:arm64|x64)/primary-runtime(?:/|$)"
       ],
-      "x64ArchFiles": "{**/node_modules/{@deepseek-ai/node-addon-system-darwin-*/**,node-pty/prebuilds/darwin-*/**,fs-ext/prebuilds/darwin-*/**,node-addon-require-builtin-darwin-*/**,@vscode/ripgrep-darwin-*/**,@img/sharp-darwin-*/**,@img/sharp-libvips-darwin-*/**,@koromix/koffi-darwin-*/**,@dataiku/uv-darwin-*/**,@deepseek-ai/libreoffice-kit-darwin-*/**,sherpa-onnx-darwin-*/**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**},Contents/Resources/runtime/**}"
+      "x64ArchFiles": "{**/node_modules/{@deepseek-ai/node-addon-system-darwin-*/**,node-pty/prebuilds/darwin-*/**,fs-ext/prebuilds/darwin-*/**,node-addon-require-builtin-darwin-*/**,@vscode/ripgrep-darwin-*/**,@img/sharp-darwin-*/**,@img/sharp-libvips-darwin-*/**,@koromix/koffi-darwin-*/**,@dataiku/uv-darwin-*/**,@deepseek-ai/libreoffice-kit-darwin-*/**,sherpa-onnx-darwin-*/**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**,@reflink/reflink-darwin-*/**},Contents/Resources/runtime/**,Contents/Resources/runtime/**/.*/**}"
     },
     "win": {
       "compression": "normal",
@@ -464,10 +466,12 @@
       "**/node_modules/@trycua/cua-driver-*/**/*",
       "**/node_modules/sherpa-onnx-*/**/*",
       "**/node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**/*",
+      "**/node_modules/@deepseek-ai/dsh-agent-preset/**/*",
+      "**/node_modules/@deepseek-ai/dsh-skill-badge/**/*",
       "**/node_modules/pnpm/**/*",
-      "scripts/node-bin/**/*",
-      "assets/**/*",
-      "build/**/*"
+      ".desktop-build/payload/scripts/node-bin/**/*",
+      ".desktop-build/payload/assets/**/*",
+      ".desktop-build/payload/build/**/*"
     ]
   }
 }

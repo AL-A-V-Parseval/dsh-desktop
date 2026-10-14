@@ -16,7 +16,7 @@ it('declares every official optional bundle as a discoverable, version-aligned i
 
 it('archives the application like upstream Desktop while keeping fuses and native inventory aligned with Beta', () => {
   const next = read('../package.json'); const beta = read('../../dsh-plugin-desktop-beta/package.json')
-  expect(next.version).toBe('2.0.17-next-linux.5')
+  expect(next.version).toBe('2.0.18-next-linux.1')
   expect(next.build.appId).toBe('ai.deepseek.dsh.desktop.next')
   expect(next.build.asar).toBe(true)
   for (const platform of ['mac', 'win', 'linux']) expect(next.build[platform].asar, platform).toBeUndefined()
@@ -26,25 +26,34 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
   // Electron's own fs and dlopen read the archive; child processes, shells and nativeImage need these physically.
   expect(next.build.asarUnpack).toEqual(expect.arrayContaining(['**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper',
     '**/@vscode/ripgrep-*/bin/rg', '**/@dataiku/uv-*/bin/uv', '**/node_modules/@deepseek-ai/libreoffice-kit-*/**/*', '**/node_modules/pnpm/**/*',
-    '**/node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**/*', 'scripts/node-bin/**/*', 'assets/**/*', 'build/**/*']))
-  // The Desktop file policy is applied by these globs; the afterPack audit rejects anything they miss.
-  expect(next.build.files).toEqual(expect.arrayContaining(['!**/*.{js,cjs,mjs,ts,cts,mts,css}.map', '!**/*.d.{ts,cts,mts}', '!**/*.tsbuildinfo']))
-  // Platform omissions join the single file set in beforePack; a platform-level files list would include everything else.
+    '**/node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**/*', '**/node_modules/@deepseek-ai/dsh-agent-preset/**/*',
+    '**/node_modules/@deepseek-ai/dsh-skill-badge/**/*']))
+  // The prepared tree is archived verbatim, as upstream archives its prepared dsh tree: one file set for the
+  // shell files and one for the dependency tree, because electron-builder leaves out a file set's root node_modules.
+  expect(next.build.files).toEqual([{ from: '.desktop-build/payload', filter: ['**/*'] },
+    { from: '.desktop-build/payload/node_modules', to: 'node_modules', filter: ['**/*'] }])
   for (const platform of ['mac', 'win', 'linux']) expect(next.build[platform].files, platform).toBeUndefined()
+  // electron-builder collects node_modules itself unless beforeBuild declines, and npmRebuild: false would skip that hook.
+  expect(next.build.beforeBuild).toBe('./scripts/before-build.ts')
+  expect(next.build.npmRebuild).toBeUndefined()
+  // beforePack only adds the Office closure of the prepared payload to the unpack patterns.
   expect(next.build.beforePack).toBe('./scripts/prepare-pack.ts')
+  // Unpack patterns are matched below the application directory, so payload-root patterns name the prepared directory.
+  expect(next.build.asarUnpack).toEqual(expect.arrayContaining(['.desktop-build/payload/scripts/node-bin/**/*', '.desktop-build/payload/assets/**/*', '.desktop-build/payload/build/**/*']))
+  expect(next.build.asarUnpack.every((pattern: string) => pattern.startsWith('**/') || pattern.startsWith('.desktop-build/payload/'))).toBe(true)
   expect(next.build.afterPack).toBe('./scripts/verify-packaged.ts')
   expect(next.build.afterAllArtifactBuild).toBe('./scripts/verify-fuses.ts')
   expect(next.build.electronFuses).toEqual(beta.build.electronFuses)
-  // The interpreter payloads of both CPUs are identical across the two CPU builds, so the universal merge keeps them as they are.
-  if (process.platform === 'darwin') {
-    expect(next.build.mac.x64ArchFiles).toBe(`{${beta.build.mac.x64ArchFiles.replace('**}', '**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**}')},Contents/Resources/runtime/**}`)
-  } else {
-    // This fork packages Linux only; the macOS universal layout those globs describe is
-    // exercised on Darwin, while here the payload must simply ride beside the archive.
-    expect(next.build.mac.x64ArchFiles).toContain('Contents/Resources/runtime/**')
-  }
+  // Beta's rule already keeps the interpreter payloads, identical across the two CPU builds. Next adds its own
+  // per-CPU native packages, pnpm's reflink addons from its bundled dist/node_modules, and the wheels' .dylibs
+  // directories, which @electron/universal misses because it matches without the dot option.
+  expect(next.build.mac.x64ArchFiles).toBe(beta.build.mac.x64ArchFiles
+    .replace('sherpa-onnx-darwin-*/**}', 'sherpa-onnx-darwin-*/**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**,@reflink/reflink-darwin-*/**}')
+    .replace('Contents/Resources/runtime/**}', 'Contents/Resources/runtime/**,Contents/Resources/runtime/**/.*/**}'))
   // Both CPU payloads ride beside the archive as extra resources; electron-builder must not re-sign the pre-signed payloads.
-  for (const platform of ['mac', 'win']) expect(next.build[platform].extraResources, platform).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }])
+  // macOS also carries the manifest copy the updaters shipped in 2.0.14-next through 2.0.17-next read beside the archive.
+  expect(next.build.mac.extraResources).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }, { from: '.desktop-build/payload/package.json', to: 'app/package.json' }])
+  expect(next.build.win.extraResources).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }])
   expect(next.build.extraResources).toBeUndefined()
   // This fork carries the primary runtime on Linux too, so the entry lives on the
   // Linux target (upstream ships no payload there).
@@ -59,6 +68,4 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
   expect(existsSync(new URL('../build/app-icon.icon/icon.json', import.meta.url))).toBe(true)
   expect(next.build.nsis).toMatchObject({ oneClick: false, perMachine: false, allowElevation: true, allowToChangeInstallationDirectory: true })
   expect(next.build.mac.notarize).toBe(true)
-  expect(next.build.files).toContain('lib/**')
-  expect(next.build.files.some((path: string) => path.includes('.desktop-next'))).toBe(false)
 })

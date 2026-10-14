@@ -53,7 +53,9 @@ export class NextUpdateInstaller {
       if (apps.length !== 1) throw new Error('Expected one application in the Next disk image')
       const bundle = join(mount, apps[0]!.name)
       const info = await run('/usr/libexec/PlistBuddy', ['-c', 'Print :CFBundleIdentifier', join(bundle, 'Contents', 'Info.plist')])
-      // Next follows Stable/Beta's unpacked runtime policy (asar:false).
+      // Releases through 2.0.17-next shipped the application unpacked, and every shipped updater reads the manifest
+      // at that location. Archived releases keep a byte-for-byte copy of the archived manifest there as an extra
+      // resource (`build.mac.extraResources`, checked by scripts/packaged-payload.ts) so that they all accept them.
       const manifestPath = join(bundle, 'Contents', 'Resources', 'app', 'package.json')
       const meta = await lstat(manifestPath)
       if (!meta.isFile() || meta.isSymbolicLink() || meta.size > 128 * 1024) throw new Error('Invalid Next application manifest')

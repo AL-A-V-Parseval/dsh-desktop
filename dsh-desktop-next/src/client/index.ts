@@ -17,6 +17,7 @@ import { Onboarding } from '../native-ui/onboarding.tsx'
 import '../../../dsh-plugin-desktop-beta/src/client/onboarding.css'
 import { registerPluginControls } from './plugin-controls.tsx'
 import { installPluginControlsStyles } from './plugin-controls-styles.ts'
+import { desktopDirectoryPicker, registerDesktopDirectoryPicker } from './directory-picker.ts'
 import { SettingsRequests } from './settings-requests.tsx'
 import type { DesktopSettingsLocaleKey } from '../../../dsh-plugin-desktop-beta/src/client/desktop-settings-locales.ts'
 
@@ -38,6 +39,10 @@ export function apply(ctx: Context): void {
   ctx.effect(() => installDesktopSettingsStyles('dsh-desktop-next'), 'Shared Desktop settings styles')
   ctx.effect(installPluginControlsStyles, 'Plugin controls and permission dialog styles')
   registerPluginControls(ctx)
+  // The Desktop window adds workspaces through the system folder dialog like upstream
+  // Desktop, whatever directory flow the Host mounted; ordinary browsers have no bridge.
+  const directoryPicker = desktopDirectoryPicker()
+  if (directoryPicker) registerDesktopDirectoryPicker(ctx, directoryPicker)
   registerDesktopOnboarding(ctx, (snapshot, locale, finish, renderNavigation) => createElement(Onboarding, {
     embedded: true,
     renderNavigation,
