@@ -1,6 +1,6 @@
 /** Read, audit and verify the archived Next payload after Electron Builder assembled it from the prepared tree. */
 import { createHash } from 'node:crypto'
-import { closeSync, existsSync, lstatSync, openSync, readFileSync, readSync } from 'node:fs'
+import { closeSync, existsSync, lstatSync, openSync, readdirSync, readFileSync, readSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { basename as posixBasename, dirname as posixDirname } from 'node:path/posix'
@@ -88,6 +88,59 @@ export function archivedPayload(resourcesDir: string): ArchivedPayload {
       return parseDesktopRuntime(JSON.parse(entry.read().toString('utf8')))
     },
     close: () => { if (fd !== undefined) { closeSync(fd); fd = undefined } },
+  }
+}
+
+/**
+ * Resources-relative path of the manifest copy the updaters shipped in 2.0.14-next through
+ * 2.0.17-next read. Those updaters verify a downloaded disk image by reading the application
+ * manifest at its pre-archive location, `Contents/Resources/app/package.json`, and reject the
+ * image when it is missing (`src/update-installer.ts`). Archived releases keep a byte-for-byte
+ * copy of the archived manifest there as an extra resource so every shipped updater accepts them.
+ */
+export const UPDATER_MANIFEST_SHIM = 'app/package.json'
+
+/** Largest manifest those updaters accept. */
+export const UPDATER_MANIFEST_SHIM_MAX_BYTES = 128 * 1024
+
+/**
+ * Check the manifest copy beside the archive. On macOS it must exist as the only entry of
+ * `Resources/app`, be a regular file within the size those updaters accept, match the archived
+ * manifest byte for byte and name this release. The other platforms must ship no `app` directory:
+ * nothing reads one there. Electron loads `app.asar` before `app`, so the copy cannot change which
+ * application a launch loads.
+ * @param resourcesDir - Application resources directory containing `app.asar`.
+ * @param source - Assembled payload the copy must match.
+ * @param platform - Electron platform being packaged.
+ * @param expectedVersion - Version the manifest must declare.
+ */
+export function verifyUpdaterManifestShim(resourcesDir: string, source: PayloadSource, platform: NodeJS.Platform, expectedVersion: string): void {
+  const directory = join(resourcesDir, 'app')
+  const directoryStat = lstatSync(directory, { throwIfNoEntry: false })
+  if (platform !== 'darwin') {
+    if (directoryStat !== undefined) throw new Error('Next must not ship an unpacked application directory beside app.asar')
+    return
+  }
+  if (directoryStat === undefined || !directoryStat.isDirectory()) {
+    throw new Error(`Next must ship ${UPDATER_MANIFEST_SHIM} beside app.asar: the updaters of releases before the archive read the manifest there`)
+  }
+  const entries = readdirSync(directory)
+  if (entries.length !== 1 || entries[0] !== 'package.json') {
+    throw new Error(`Resources/app may hold only package.json for earlier updaters; found ${entries.length === 0 ? 'nothing' : entries.join(', ')}`)
+  }
+  const shim = join(resourcesDir, ...UPDATER_MANIFEST_SHIM.split('/'))
+  const stat = lstatSync(shim)
+  if (!stat.isFile()) throw new Error(`${UPDATER_MANIFEST_SHIM} must be a regular file`)
+  if (stat.size > UPDATER_MANIFEST_SHIM_MAX_BYTES) {
+    throw new Error(`${UPDATER_MANIFEST_SHIM} exceeds the ${String(UPDATER_MANIFEST_SHIM_MAX_BYTES)} bytes earlier updaters accept`)
+  }
+  const archived = source.entry('package.json')
+  if (archived === undefined) throw new Error('Next payload: the archive carries no application manifest')
+  const shipped = readFileSync(shim)
+  if (!shipped.equals(archived.read())) throw new Error(`${UPDATER_MANIFEST_SHIM} differs from the archived application manifest`)
+  const manifest = JSON.parse(shipped.toString('utf8')) as { name?: unknown; version?: unknown }
+  if (manifest.name !== 'dsh-desktop-next' || manifest.version !== expectedVersion) {
+    throw new Error(`${UPDATER_MANIFEST_SHIM} names ${String(manifest.name)} ${String(manifest.version)}, not dsh-desktop-next ${expectedVersion}`)
   }
 }
 

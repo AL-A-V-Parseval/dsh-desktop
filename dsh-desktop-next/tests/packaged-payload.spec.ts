@@ -1,9 +1,9 @@
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createPackageWithOptions } from '@electron/asar'
 import { afterEach, expect, it } from 'vitest'
-import { archivedPayload, auditNextPayload, nextPackagingTarget, nextPayloadRelease, universalMergeRewrite, verifyArchiveAgainstPrepared, verifyNextPayload, verifyNextRuntime } from '../scripts/packaged-payload.ts'
+import { archivedPayload, auditNextPayload, nextPackagingTarget, nextPayloadRelease, universalMergeRewrite, UPDATER_MANIFEST_SHIM_MAX_BYTES, verifyArchiveAgainstPrepared, verifyNextPayload, verifyNextRuntime, verifyUpdaterManifestShim } from '../scripts/packaged-payload.ts'
 import { DESKTOP_RUNTIME_FILE, physicalPayload, readDesktopRuntime, sealPayload } from '../src/runtime-tree.ts'
 import { completeApplication, FIXTURE_RELEASE, FIXTURE_SHARED, writeApplication, writePackage } from './runtime-fixture.ts'
 
@@ -203,4 +203,36 @@ it('refuses to describe a payload whose pnpm has no version', async () => {
   const { resources } = await assembled((app) => { writeFileSync(join(app, 'node_modules', 'pnpm', 'package.json'), '{"name":"pnpm"}') }, false)
   const source = archivedPayload(resources)
   try { expect(() => nextPayloadRelease(source, '44.0.0')).toThrow(/pnpm has no version/u) } finally { source.close() }
+})
+
+it('requires the manifest copy earlier updaters read beside the archive on macOS, and nothing else there', async () => {
+  const { resources, app } = await assembled()
+  const source = archivedPayload(resources)
+  try {
+    const shim = join(resources, 'app', 'package.json')
+    const check = (platform: NodeJS.Platform = 'darwin', version = FIXTURE_RELEASE.version): void => verifyUpdaterManifestShim(resources, source, platform, version)
+    // Windows ships no app directory; macOS must carry the copy.
+    expect(() => check('win32')).not.toThrow()
+    expect(() => check()).toThrow(/must ship app\/package\.json/u)
+    mkdirSync(join(resources, 'app'))
+    copyFileSync(join(app, 'package.json'), shim)
+    expect(() => check()).not.toThrow()
+    expect(() => check('win32')).toThrow(/must not ship an unpacked application directory/u)
+    expect(() => check('darwin', '9.9.9-next')).toThrow(/names dsh-desktop-next 2\.0\.0-next, not dsh-desktop-next 9\.9\.9-next/u)
+    // Anything beside the copy would make the directory an unpacked application again.
+    writeFileSync(join(resources, 'app', 'main.js'), 'export {}\n')
+    expect(() => check()).toThrow(/may hold only package\.json/u)
+    rmSync(join(resources, 'app', 'main.js'))
+    // The copy is the archived manifest itself, not a hand-written one, and a regular file of bounded size.
+    writeFileSync(shim, JSON.stringify({ name: 'dsh-desktop-next', version: FIXTURE_RELEASE.version }))
+    expect(() => check()).toThrow(/differs from the archived application manifest/u)
+    rmSync(shim)
+    if (unix) {
+      symlinkSync(join(app, 'package.json'), shim)
+      expect(() => check()).toThrow(/regular file/u)
+      rmSync(shim)
+    }
+    writeFileSync(shim, Buffer.alloc(UPDATER_MANIFEST_SHIM_MAX_BYTES + 1, 0x20))
+    expect(() => check()).toThrow(/exceeds/u)
+  } finally { source.close() }
 })

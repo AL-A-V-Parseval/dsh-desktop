@@ -1,7 +1,7 @@
 /** Cross-check the assembled `app.asar` payload against the prepared tree before signing, without a GUI. */
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { archivedPayload, auditNextPayload, nextPackagingTarget, PAYLOAD_DIR, verifyArchiveAgainstPrepared, verifyNextPayload } from './packaged-payload.ts'
+import { archivedPayload, auditNextPayload, nextPackagingTarget, PAYLOAD_DIR, verifyArchiveAgainstPrepared, verifyNextPayload, verifyUpdaterManifestShim } from './packaged-payload.ts'
 import { expectedNextVersion, verifyNextRuntimeTree } from './prepare-runtime.ts'
 import { DESKTOP_RUNTIME_FILE } from '../src/runtime-tree.ts'
 
@@ -17,18 +17,19 @@ interface PackContext {
  * complete and resolvable, carry nothing the Desktop file policy omits, keep native and
  * shell-executed files unpacked, embed the prepared descriptor byte for byte, and match its
  * inventory exactly; the interpreter payloads copied as extra resources must declare this
- * platform, every CPU and the product version. Universal macOS builds run this once per CPU and
- * once more on the merged application; all three archives come from the same prepared tree, and
- * the merge may only have re-serialized nested `Info.plist` files.
+ * platform, every CPU and the product version; macOS must carry the manifest copy that the
+ * updaters of earlier releases read beside the archive, and nothing else there. Universal macOS
+ * builds run this once per CPU and once more on the merged application; all three archives come
+ * from the same prepared tree, and the merge may only have re-serialized nested `Info.plist` files.
  * @param context - Electron Builder's afterPack context.
  */
 export default async function afterPack(context: PackContext): Promise<void> {
   const resources = context.electronPlatformName === 'darwin' ? join(context.appOutDir, 'DSH NEXT.app/Contents/Resources') : join(context.appOutDir, 'resources')
   if (!existsSync(join(resources, 'app.asar'))) throw new Error('Next must package its application into app.asar like upstream Desktop')
-  if (existsSync(join(resources, 'app'))) throw new Error('Next must not ship an unpacked application directory beside app.asar')
   const platform = context.electronPlatformName as NodeJS.Platform
   const source = archivedPayload(resources)
   try {
+    verifyUpdaterManifestShim(resources, source, platform, context.packager.appInfo.version)
     verifyNextPayload(source)
     const target = nextPackagingTarget(platform)
     const problems = auditNextPayload(source, target)

@@ -367,6 +367,10 @@
         {
           "from": ".desktop-build/runtime",
           "to": "runtime"
+        },
+        {
+          "from": ".desktop-build/payload/package.json",
+          "to": "app/package.json"
         }
       ],
       "mergeASARs": false,

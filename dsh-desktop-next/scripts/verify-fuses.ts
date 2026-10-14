@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { verifyElectronExecutableFuses } from '../../dsh-plugin-desktop-beta/scripts/verify-electron-fuses.ts'
 import { withoutMacReleaseSecrets } from '../../dsh-plugin-desktop-beta/scripts/release-preflight.ts'
 import { withoutWindowsSigningSecrets } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
-import { nextPackagingTarget, PAYLOAD_DIR, universalMergeRewrite, verifyNextRuntime } from './packaged-payload.ts'
+import { archivedPayload, nextPackagingTarget, PAYLOAD_DIR, universalMergeRewrite, verifyNextRuntime, verifyUpdaterManifestShim } from './packaged-payload.ts'
 import { expectedNextVersion, verifyNextRuntimeTree } from './prepare-runtime.ts'
 
 const desktopRoot = fileURLToPath(new URL('..', import.meta.url))
@@ -42,6 +42,9 @@ export default async function afterAllArtifactBuild(result: { outDir: string }):
     const descriptor = verifyNextRuntime(resources, expectedVersion, target, { afterCodeSigning: true, acceptRewrite: merge.accept })
     console.log(`Verified ${root} against its sealed descriptor: ${String(descriptor.files.length)} files, dsh ${descriptor.release.dshVersion}`
       + (merge.accepted.length === 0 ? '' : `; the universal merge rewrote ${merge.accepted.join(', ')}`))
+    // The manifest copy for the updaters of earlier releases must have come through signing and the merge unchanged.
+    const archived = archivedPayload(resources)
+    try { verifyUpdaterManifestShim(resources, archived, target.platform, expectedVersion) } finally { archived.close() }
     // The interpreter payloads are pre-signed resources; code signing must have left them as prepared.
     const runtimes = verifyNextRuntimeTree(join(resources, 'runtime'), target.platform, expectedVersion)
     if (runtimes.length > 0) console.log(`Verified the bundled primary runtimes: ${runtimes.map(runtime => runtime.arch).join(', ')}`)
