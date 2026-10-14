@@ -1,6 +1,6 @@
 /** Verify the unsigned Linux x64 AppImage and deb artifacts plus the unpacked executable (Next channel). */
 
-import { closeSync, openSync, readFileSync, readSync, statSync } from 'node:fs'
+import { closeSync, openSync, readFileSync, readSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -116,36 +116,44 @@ export function assertDebArchive(path: string, label: string): void {
   }
 }
 
-/** Payload entries required inside one packaged Linux installation. */
-const REQUIRED_PAYLOAD_ENTRIES = [
-  ['Python interpreter', ['primary-runtime', 'dependencies', 'python', 'bin', 'python3'], true],
-  ['Node.js executable', ['primary-runtime', 'dependencies', 'node', 'bin', 'node'], true],
-  ['pnpm entry', ['primary-runtime', 'dependencies', 'pnpm', 'bin', 'pnpm.mjs'], false],
-  ['Office skill checker', ['office-skills', 'scripts', 'check_office.py'], false],
+/** Payload entries required inside one packaged Linux installation, below its arch directory. */
+const requiredPayloadEntries = (arch: string) => [
+  ['Python interpreter', [arch, 'primary-runtime', 'dependencies', 'python', 'bin', 'python3'], true],
+  ['Node.js executable', [arch, 'primary-runtime', 'dependencies', 'node', 'bin', 'node'], true],
+  ['pnpm entry', [arch, 'primary-runtime', 'dependencies', 'pnpm', 'bin', 'pnpm.mjs'], false],
+  ['Office skill checker', [arch, 'office-skills', 'scripts', 'check_office.py'], false],
 ] as const
 
 /**
  * Verify the bundled primary runtime payload copied beside the application.
  *
  * Packaging prepares the payload from the lock pinned by the upstream checkout and
- * Electron Builder publishes it through `build.extraResources`. The runtime reads
- * the same entries at execution time, so a missing interpreter or Office asset is
- * a broken release rather than a degraded one.
+ * Electron Builder publishes it through the Linux target's `extraResources`, arch-scoped
+ * because the shell resolves it at `<resources>/runtime/<arch>/primary-runtime`. The
+ * runtime reads the same entries at execution time, so a missing interpreter or Office
+ * asset is a broken release rather than a degraded one.
  *
  * @param payloadRoot - `resources/runtime` of the unpacked application.
  */
 export function assertPrimaryRuntimePayload(payloadRoot: string): void {
-  const manifestPath = join(payloadRoot, 'primary-runtime', 'runtime.json')
+  const architectures = readdirSync(payloadRoot, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && (entry.name === 'x64' || entry.name === 'arm64'))
+    .map(entry => entry.name)
+  const arch = architectures.length === 1 ? architectures[0] : undefined
+  if (arch === undefined) {
+    throw new Error(`bundled primary runtime carries ${String(architectures.length)} architecture directories under ${payloadRoot}, expected one`)
+  }
+  const manifestPath = join(payloadRoot, arch, 'primary-runtime', 'runtime.json')
   let manifest: { platform?: unknown, arch?: unknown, python?: unknown }
   try {
     manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as typeof manifest
   } catch (cause) {
     throw new Error(`bundled primary runtime manifest is unreadable: ${manifestPath}`, { cause })
   }
-  if (manifest.platform !== 'linux' || manifest.arch !== 'x64') {
-    throw new Error(`bundled primary runtime targets ${String(manifest.platform)}-${String(manifest.arch)}, expected linux-x64`)
+  if (manifest.platform !== 'linux' || manifest.arch !== arch) {
+    throw new Error(`bundled primary runtime targets ${String(manifest.platform)}-${String(manifest.arch)}, expected linux-${arch}`)
   }
-  for (const [label, segments, executable] of REQUIRED_PAYLOAD_ENTRIES) {
+  for (const [label, segments, executable] of requiredPayloadEntries(arch)) {
     const path = join(payloadRoot, ...segments)
     const entry = statSync(path, { throwIfNoEntry: false })
     if (entry === undefined || !entry.isFile()) {

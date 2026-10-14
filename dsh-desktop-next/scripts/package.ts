@@ -135,6 +135,10 @@ if (mode === 'dir') {
         run,
         log: message => { console.log(message) },
       })
+      // Electron Builder's beforePack hook resolves the Office closure inside the sealed
+      // archive payload, so upstream's payload preparation has to run here too. Its
+      // interpreter verify is a no-op on Linux, where upstream ships no such payload.
+      prepareRuntime(process.platform)
     },
     verifier: join(desktopRoot, 'scripts/verify-linux-artifacts.ts'),
     nodeExecutable: process.execPath,

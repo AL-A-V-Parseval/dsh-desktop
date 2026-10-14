@@ -190,6 +190,80 @@ export async function prepareOfficeSkillAssets(source, destination) {
 }
 
 /**
+ * Collect the `tests` directories below one installed Python package.
+ * @param {string} sitePackages - absolute site-packages directory.
+ * @param {string} name - distribution-import name, for example `numpy`.
+ * @returns directory paths relative to site-packages, in walk order.
+ */
+function collectPythonTestDirectories(sitePackages, name) {
+  const removed = []
+  const walk = relativeDirectory => {
+    for (const entry of readdirSync(join(sitePackages, relativeDirectory), { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue
+      const path = `${relativeDirectory}/${entry.name}`
+      if (entry.name === 'tests') {
+        rmSync(join(sitePackages, path), { recursive: true, force: true })
+        removed.push(path)
+      } else walk(path)
+    }
+  }
+  walk(name)
+  return removed
+}
+
+/** Read the first field of one wheel RECORD line, honouring CSV quoting. */
+function firstCsvField(line) {
+  if (!line.startsWith('"')) {
+    const comma = line.indexOf(',')
+    return comma === -1 ? line : line.slice(0, comma)
+  }
+  let value = ''
+  for (let index = 1; index < line.length; index += 1) {
+    const character = line[index]
+    if (character === '"') {
+      if (line[index + 1] === '"') { value += '"'; index += 1; continue }
+      break
+    }
+    value += character
+  }
+  return value
+}
+
+/**
+ * Drop the upstream Python test suites from the staged site-packages and from the
+ * wheels' RECORD rows.
+ *
+ * The harness smoke asserts the payload carries no `tests` directory and then
+ * walks each RECORD to prove every remaining file is present, so the two edits
+ * belong together. Upstream does the same for its own mac/win payloads
+ * (`dsh-desktop-next/scripts/prune-python-tests.ts`); the fork's Linux payload
+ * needs it for the same reason, and it runs before the manifest is written.
+ * @param {string} sitePackages - absolute site-packages directory.
+ * @param {Record<string, string>} pythonPackages - locked versions by distribution name.
+ * @returns number of removed directories.
+ */
+export function prunePythonTests(sitePackages, pythonPackages) {
+  let removedTotal = 0
+  for (const name of ['numpy', 'pandas']) {
+    const version = pythonPackages?.[name]
+    if (typeof version !== 'string' || version.length === 0) continue
+    const record = join(sitePackages, `${name}-${version}.dist-info`, 'RECORD')
+    if (!existsSync(record)) fail(`primary runtime: missing wheel RECORD at ${record}`)
+    const removed = collectPythonTestDirectories(sitePackages, name)
+    if (removed.length === 0) continue
+    const rows = readFileSync(record, 'utf8').split('\n').filter(line => line.length > 0)
+    const kept = rows.filter((line) => {
+      const path = firstCsvField(line)
+      return !removed.some(directory => path.startsWith(`${directory}/`))
+    })
+    if (kept.length === rows.length) fail(`primary runtime: RECORD carried no rows for the pruned tests in ${record}`)
+    writeFileSync(record, `${kept.join('\n')}\n`)
+    removedTotal += removed.length
+  }
+  return removedTotal
+}
+
+/**
  * Assemble one target's payload and Office assets below the output directory.
  * @param {object} options - preparation inputs.
  * @param {string} options.target - locked target name, for example `linux-x64`.
@@ -285,15 +359,24 @@ export async function preparePrimaryRuntime(options) {
     for (const wheel of [...artifact.wheels, ...lock.wheels]) {
       await unpackWheel(await downloadLockedAsset(wheel.url, wheel.sha256, cache, log), sitePackages)
     }
+    const prunedTests = prunePythonTests(sitePackages, manifest.pythonPackages)
+    if (prunedTests > 0) log(`pruned ${prunedTests} Python test directories from the payload`)
     writeFileSync(join(payload, 'runtime.json'), `${JSON.stringify(manifest, undefined, 2)}\n`)
 
-    const destination = join(output, 'primary-runtime')
+    const destination = join(output, arch, 'primary-runtime')
     rmSync(destination, { recursive: true, force: true })
     await cp(payload, destination, { recursive: true, dereference: true })
     const officeAssets = join(dirname(require.resolve('@deepseek-ai/dsh-skill-office/package.json')), 'assets')
     if (!existsSync(officeAssets)) fail('the bundled Office skill package has no assets directory')
-    await prepareOfficeSkillAssets(officeAssets, join(output, 'office-skills'))
-    return { payload: destination, manifest, bytes: directoryBytes(destination) }
+    const officeRoot = join(output, arch, 'office-skills')
+    rmSync(officeRoot, { recursive: true, force: true })
+    // Drop the flat layout an earlier run of this script left at the output root: the whole
+    // `runtime/` directory is copied to `resources`, so a stale copy would ship a second,
+    // unresolvable payload beside the arch directory.
+    rmSync(join(output, 'primary-runtime'), { recursive: true, force: true })
+    rmSync(join(output, 'office-skills'), { recursive: true, force: true })
+    await prepareOfficeSkillAssets(officeAssets, officeRoot)
+    return { payload: destination, officeRoot, manifest, bytes: directoryBytes(destination) + directoryBytes(officeRoot) }
   } finally {
     rmSync(staging, { recursive: true, force: true })
   }
@@ -335,11 +418,14 @@ export function payloadEntries(root, manifest) {
 
 /** Verify an already prepared payload without touching the network. */
 export function verifyPrimaryRuntime(output, target, version) {
-  const root = join(resolve(output), 'primary-runtime')
+  const expected = targetPlatform(target)
+  // The shell resolves its payload below `<resources>/runtime/<arch>` (see
+  // `src/desktop-office.ts` and `src/main.ts`), so the arch directory is part of
+  // the published layout rather than a private detail of this script.
+  const root = join(resolve(output), expected.arch, 'primary-runtime')
   const manifestPath = join(root, 'runtime.json')
   if (!existsSync(manifestPath)) fail(`no prepared payload at ${root}; run the preparation step first`)
   const manifest = readJson(manifestPath)
-  const expected = targetPlatform(target)
   if (manifest.platform !== expected.platform || manifest.arch !== expected.arch) {
     fail(`payload at ${root} targets ${manifest.platform}-${manifest.arch}, expected ${target}`)
   }
@@ -353,7 +439,7 @@ export function verifyPrimaryRuntime(output, target, version) {
   for (const [label, path] of [['Python', payloadEntries(root, manifest).python], ['Node.js', payloadEntries(root, manifest).node]]) {
     if ((statSync(path).mode & 0o111) === 0) fail(`bundled ${label} is not executable: ${path}`)
   }
-  const officeRoot = join(resolve(output), 'office-skills')
+  const officeRoot = join(resolve(output), expected.arch, 'office-skills')
   if (!existsSync(join(officeRoot, 'scripts', 'check_office.py'))) {
     fail(`Office skill assets are missing from ${officeRoot}`)
   }

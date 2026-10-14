@@ -29,7 +29,13 @@ export function nextRuntimeFileExclusion(path: string, target: NextPackagingTarg
   const entry = packageParts.slice(nameParts).join('/')
   const targets = target.archs.map(arch => `${target.platform}-${arch}`)
   if (name.startsWith('@deepseek-ai/libreoffice-kit-')) {
-    if (!targets.some(suffix => name === `@deepseek-ai/libreoffice-kit-${suffix}`)) return 'LibreOffice other platform'
+    const isTargetEngine = targets.some(suffix => name === `@deepseek-ai/libreoffice-kit-${suffix}`)
+    // Every platform upstream packages ships a native engine; anywhere else the closure falls back
+    // to the wasm build (office-packages.ts selects it the same way), so its files must survive
+    // here or the payload carries an empty engine directory.
+    const isFallbackEngine = name === '@deepseek-ai/libreoffice-kit-wasm'
+      && target.platform !== 'darwin' && target.platform !== 'win32'
+    if (!isTargetEngine && !isFallbackEngine) return 'LibreOffice other platform'
   }
   if (name === 'fs-ext' && /^build\/(?:Release|Debug)\/(?:obj(?:\/|$)|fs_ext\.(?:exp|lib|pdb|iobj|ipdb)$)/u.test(entry)) {
     return 'fs-ext compiler output'
