@@ -1,9 +1,9 @@
 /** Official Desktop boot in headless Chromium; simulated IPC/platform, no native window or user profile. */
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { delimiter, dirname, join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { DesktopHostProcess } from '../lib/host-process.js'
@@ -22,24 +22,14 @@ const screenshots = join(root, '.desktop-next', 'verification')
 const manager = new NextProfiles(home)
 manager.ensure('desktop')
 manager.setFeatures('desktop', { market: true, remoteControl: false })
-// The renderer below simulates darwin, so the Host must mount the matching
-// `native` directory flow for the preload-backed picker to be the surface under
-// test. Upstream's chooser resolves `browse` on a Linux host with no
-// zenity/kdialog on PATH, which is every headless CI runner: hand it a display
-// and an executable chooser stub so one platform does not silently verify a
-// different flow. Nothing ever runs the stub — the client short-circuits to the
-// injected `__DSH_DIRECTORY_PICKER__` before the Host backend is consulted.
-const chooserEnv = {}
-if (process.platform === 'linux') {
-  const chooserDir = join(home, 'chooser-bin')
-  mkdirSync(chooserDir)
-  writeFileSync(join(chooserDir, 'zenity'), '#!/bin/sh\nexit 1\n', { mode: 0o755 })
-  chooserEnv.PATH = `${chooserDir}${delimiter}${process.env.PATH ?? ''}`
-  chooserEnv.DISPLAY = process.env.DISPLAY ?? ':0'
-}
+// A running Desktop hands its sampled LAN addresses to the Host as trusted authorities,
+// and upstream's adaptive directory-picker row then mounts the in-app browsing panel for
+// every browser it serves. Declare one here so the Host resolves `browse` on every
+// platform: the picker under test is Next's own Desktop occupant over the injected
+// `__DSH_DIRECTORY_PICKER__`, not the official native flow a trust-free Host would mount.
 const host = new DesktopHostProcess(process.execPath, root, manager.directory('desktop'), undefined,
-  { ...process.env, ...chooserEnv, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1' }, undefined, undefined, undefined,
-  join(root, 'lib', 'host.js'))
+  { ...process.env, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1', DSH_NEXT_TRUSTED_HOSTS: JSON.stringify(['192.0.2.10']) },
+  undefined, undefined, undefined, join(root, 'lib', 'host.js'))
 const shortcutPreferences = desktopKeybindings(home, 'macos', () => {})
 let browser
 let page
@@ -47,6 +37,11 @@ let recoveryPage
 const diagnostics = []
 try {
   const ready = await host.start()
+  // The trusted authority above made the Host compose the browse interaction; the Desktop
+  // document below must still adopt the injected path through Next's own occupant.
+  const roster = JSON.stringify(ready.injections)
+  assert.ok(roster.includes('@deepseek-ai/dsh-client-ui-directory-picker-browse'), 'the Host mounted the browse directory flow')
+  assert.ok(!roster.includes('@deepseek-ai/dsh-client-ui-directory-picker-native'), 'the Host left the native directory flow unmounted')
   const streamBaseUrl = new URL(ready.url).origin
   const cookie = await authenticateWebHost(ready.url)
   const cookieSeparator = cookie.indexOf('=')
@@ -333,7 +328,13 @@ try {
   await remoteDialog.getByRole('button', { name: /^(关闭远程控制|Close Remote Control|关闭手机连接)$/ }).click()
   await remoteDialog.waitFor({ state: 'hidden' })
   await dshChoice.focus()
-  await page.waitForFunction(() => document.activeElement === document.querySelector('[data-next-markets] [role="radio"]:last-child'))
+  // The Plugins page reloads its bundle list after the Remote Control dialog closes and
+  // locks every choice until the Host answers; a keypress inside that window is ignored
+  // by design, so wait for the focused choice to be actionable before pressing.
+  await page.waitForFunction(() => {
+    const choice = document.querySelector('[data-next-markets] [role="radio"]:last-child')
+    return document.activeElement === choice && choice.getAttribute('aria-disabled') !== 'true'
+  })
   await dshChoice.press('Space')
   await waitSelected('[data-next-markets] [role="radio"]:last-child')
   await assertMarketStyles('after switching to dsh-market')
