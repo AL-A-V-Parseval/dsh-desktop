@@ -406,7 +406,7 @@ try {
   await page.screenshot({ path: join(screenshots, 'plugin-controls.png'), animations: 'disabled' })
   await permissionGear.click()
   const permissionDialog = page.getByRole('dialog', { name: /^(系统权限|System permissions)$/ })
-  await permissionDialog.getByRole('group', { name: /屏幕录制|Screen recording/ }).getByText(/已拒绝|Denied/).waitFor()
+  await permissionDialog.getByRole('group', { name: /屏幕录制|Screen recording/ }).getByText(/未授权|Not granted/).waitFor()
   assert.equal(await permissionDialog.getByRole('group').count(), 3)
   assert.ok(permissionActions.every(item => item.action === 'query'), 'Opening the dialog must never prompt for permissions')
   assert.equal(await dragRegion(), 'no-drag')
@@ -414,7 +414,7 @@ try {
   await permissionDialog.press('Escape')
   await permissionDialog.waitFor({ state: 'hidden' })
   await page.evaluate(() => window.__nextTestOpenSettings('permissions'))
-  await permissionDialog.getByRole('group', { name: /屏幕录制|Screen recording/ }).getByText(/已拒绝|Denied/).waitFor()
+  await permissionDialog.getByRole('group', { name: /屏幕录制|Screen recording/ }).getByText(/未授权|Not granted/).waitFor()
   await page.evaluate(() => window.__nextTestOpenSettings('permissions'))
   assert.equal(await permissionDialog.count(), 1)
   assert.equal(await context.pages().length, 1)
@@ -615,12 +615,12 @@ try {
   const updateSection = settings.locator('[data-next-updates]')
   await updateSection.getByRole('button', { name: /检查更新|Check for updates/ }).click()
   assert.equal(controlCommands.at(-1).type, 'check-updates')
-  controlState.updates = { phase: 'downloading', version: '2.0.17-next.1', installable: true, received: 50, total: 100 }
+  controlState.updates = { phase: 'downloading', version: '2.0.18-next.1', installable: true, received: 50, total: 100 }
   await updateSection.getByText(/正在下载更新 50%|Downloading update 50%/).waitFor()
   assert.equal(await updateSection.locator('progress').getAttribute('value'), '50')
   await updateSection.scrollIntoViewIfNeeded()
   await page.screenshot({ path: join(screenshots, 'desktop-update-progress.png'), animations: 'disabled' })
-  controlState.updates = { phase: 'ready', version: '2.0.17-next.1', installable: true }
+  controlState.updates = { phase: 'ready', version: '2.0.18-next.1', installable: true }
   await updateSection.getByRole('button', { name: /安装并重启|Install and restart/ }).click()
   assert.equal(controlCommands.at(-1).type, 'install-update')
   controlState.updates = { phase: 'idle', installable: true }
@@ -659,7 +659,7 @@ try {
   const screen = permissionSettings.getByRole('group', { name: /屏幕录制|Screen recording/ })
   await screen.getByRole('button', { name: /打开系统设置|Open system settings/ }).click()
   assert.ok(permissionActions.some(item => item.action === 'openSettings' && item.permission === 'screen'))
-  await screen.getByText(/已拒绝|Denied/).waitFor()
+  await screen.getByText(/未授权|Not granted/).waitFor()
   await permissionSettings.getByRole('button', { name: /^(关闭|Close)$/ }).click()
   await notifications.click()
   await page.waitForFunction(() => document.querySelector('[aria-labelledby="dsh-desktop-notifications-title"] [role="switch"]')?.getAttribute('aria-checked') === 'false')
