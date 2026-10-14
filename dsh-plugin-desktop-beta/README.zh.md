@@ -88,6 +88,8 @@ Cordis row 会在 profile 激活期间登记原生窗口参数。Launcher 只在
 
 即使上游 overlay 打开，操作栏仍会保持可见且可以拖动窗口。macOS 红绿灯和 Windows 原生标题栏按钮保留各自命中区域；这个私有 surface 只直接渲染 Desktop 自有的第一方图标，它们会明确退出拖动区域并保持可点击。Web Client 插件在兼容模式和扩展窗口中都不能向操作栏贡献 action。
 
+应用文档、Desktop 操作栏和 Desktop 自有本地窗口中的可编辑区域显示与官方桌面端一致的原生右键菜单：撤销、重做、剪切、复制、粘贴和全选，不带快捷键标注，可用状态由 Chromium 提供。选中的只读文本只提供“复制”。Windows 文案跟随 Desktop 语言；macOS 与 Linux 使用原生 role 文案。
+
 DOM 会把操作栏声明为 Desktop frame，并把下移后的上游 root 声明为它的 content viewport。`shell.overlay` 会成为 fixed 插件 surface 的 containing block，直接 portal 到 `body` 的对话框则获得相同的内容偏移；两条路径都会被限制在 36 像素 frame 下方，不会再压暗或拦截顶栏。
 
 自定义窗口材质独立于模式设置。macOS 可选“关闭”或“透明材质”。Windows 不提供材质选项，所有 Windows 窗口都是普通的不透明窗口。已移除的 `windowsMaterial` 旧值 `acrylic` 和 `mica` 仍可读取，旧设置照常启动，两者都按关闭处理。切换模式或材质都会执行有序重启。
@@ -123,7 +125,7 @@ yarn check
 yarn dev
 ```
 
-`dev` 会在启动前自动构建，不需要另行手动构建。
+`dev` 会在启动前自动构建，不需要另行手动构建。`dev` 和 `start` 还会在壳启动前于 `.desktop-build/runtime` 下准备随包解释器载荷，与上游桌面端的开发启动器一致，因此开发运行中也有 Office 技能；首次启动会下载上游锁文件固定的压缩包和 wheel，`yarn prepare:runtime` 可单独执行这一步。
 
 以下 headless-safe 启动器入口不会导入或启动 Electron：
 
@@ -214,6 +216,8 @@ DSH Desktop 将 UTF-8 日志写入 Electron 用户数据目录：Windows 位于 
 ## 打包
 
 Stable 与 Beta 在 Windows、macOS 和 Linux 上均关闭 ASAR。打包后的 Electron smoke 会通过本地文件系统后端验证随包 Cordis 技能。
+
+与上游桌面端一样，安装包在应用旁携带 primary runtime，位于 `Contents/Resources/runtime`（Windows 为 `resources/runtime`）：上游锁文件固定的独立 Python 3.12 及 numpy、pandas、python-docx、python-pptx、openpyxl、Pillow、lxml、XlsxWriter，独立 Node，随包 pnpm，以及每份载荷旁的 Office 技能资源。macOS 的 universal 应用每个 CPU 各带一份载荷，`runtime/arm64` 和 `runtime/x64`，安装版壳按自身运行的 CPU 选择载荷；Windows 只带 `runtime/x64`，Linux 不带。每个打包入口都会在运行各项 gate 之前执行 `scripts/prepare-runtime.ts`：把上游锁文件（`deepseek-harness/scripts/primary-runtime/lock.json`）固定的压缩包和 wheel 下载到 `.desktop-build/downloads`，在 `.desktop-build/runtime/<cpu>` 下组装每份载荷并按上游方式裁剪 NumPy 与 pandas 的测试套件，写入记录产品版本和载荷摘要的 `runtime.json`，校验整棵树，再执行本机能运行的载荷。签名的 macOS 发布版在运行 electron-builder 之前先给每个 Mach-O 载荷文件打上带 hardened runtime 和时间戳的 Developer ID 签名，与上游一致；`signIgnore` 阻止 electron-builder 重新签名，universal 合并规则则覆盖这些完全相同的载荷。`afterPack` 钩子、最终产物检查和挂载镜像的校验器会再次检查载荷。Host 挂载上游的 Office 组合：`load_workspace_dependencies` 工具首次使用时把载荷安装到 `<home>/dsh-runtimes/dsh-plugin-desktop-beta-primary-runtime`（按版本区分的目录，因为 Stable 与官方桌面端共用 `~/.dsh`，而该工具会替换清单不同的安装），以及 `office-docx`、`office-pptx`、`office-xlsx` 技能，它们由随包 Node 运行 LibreOffice Kit CLI。打包后的 Host 缺少载荷即失败；开发运行的 Host 在 `yarn prepare:runtime` 执行之前只记录警告并在没有 Office 的情况下启动。
 
 `yarn package:dir` 为当前宿主平台创建未封装目录。如果应用目录缺少 desktop 更新与终端模块、DSH CLI bootstrap、内置 pnpm 入口或物理 deployment package，packaged-runtime gate 会拒绝该产物。Electron Builder 会把根 manifest、desktop runtime 与完整依赖树输出到 `resources/app/`（macOS 为 `Contents/Resources/app/`）；Host profile boot 与 CLI bootstrap 都会使用这棵物理树，因此 DSH profile fallback 的符号链接不会指向虚拟 ASAR 目录。
 

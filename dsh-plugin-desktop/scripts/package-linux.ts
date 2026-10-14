@@ -6,6 +6,7 @@ import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { prepareFsExtForElectron } from './prepare-fs-ext.ts'
 import { electronBuilderEnvironment } from './electron-builder-environment.ts'
+import { prepareDesktopInterpreters, verifyPreparedDesktopRuntime } from './prepare-runtime.ts'
 
 const LINUX_SIGNING_KEYS = [
   'CSC_IDENTITY_AUTO_DISCOVERY',
@@ -91,6 +92,10 @@ export function createLinuxPackageOptions(verifier = './verify-linux-artifacts.t
     builderCli: require.resolve('electron-builder/cli.js'),
     prepareRuntime: () => {
       prepareFsExtForElectron({ platform: 'linux', arch: 'x64', desktopRoot })
+      // Upstream ships no interpreter payload on Linux, so this confirms the upstream
+      // tree declares none; the fork's own payload below then publishes to
+      // resources/runtime through the package's extraResources entry.
+      verifyPreparedDesktopRuntime(desktopRoot, 'linux')
       preparePrimaryRuntimePayload({
         workspaceRoot,
         desktopRoot,
@@ -113,7 +118,7 @@ export function createLinuxPackageOptions(verifier = './verify-linux-artifacts.t
  * The payload is assembled from the lock pinned by the upstream checkout and
  * cached by digest, so repeated packaging runs do not download it again. An
  * unchanged payload is copied into `runtime/`, which Electron Builder then
- * publishes to `resources/runtime` through `build.extraResources`.
+ * publishes to `resources/runtime` through the Linux target's `extraResources`.
  */
 export function preparePrimaryRuntimePayload(options: {
   /** Repository root containing the preparation script and the upstream checkout. */
@@ -216,6 +221,7 @@ export function packageLinuxArtifacts(
 const invokedPath = process.argv[1]
 if (invokedPath !== undefined && resolve(invokedPath) === fileURLToPath(import.meta.url)) {
   try {
+    await prepareDesktopInterpreters({ desktopRoot: resolve(dirname(fileURLToPath(import.meta.url)), '..') })
     packageLinuxArtifacts()
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))

@@ -16,6 +16,7 @@ import {
 import { isDesktopSetupWizardSelection } from './setup-wizard-contract.ts'
 import { SETUP_ONBOARDING_CHANNEL } from './setup-onboarding-bridge.ts'
 import { CompatibilityShell, type CompatibilityShellActions } from './compatibility-shell.ts'
+import { installEditingContextMenu, type EditingContextMenuLabels } from './context-menu.ts'
 import { formatDesktopExitCode } from './desktop-logger.ts'
 import { showDesktopMessageBox } from './desktop-dialog-window.ts'
 import { applicationNeedsReveal, revealApplication } from './electron-reveal.ts'
@@ -211,6 +212,8 @@ export interface ElectronShellGenerationOptions {
   readonly chromeActions: CompatibilityShellActions
   /** Localized caption of the built-in DeepSeek Platform sign-in window. */
   readonly platformLoginTitle: () => string
+  /** Windows labels of the native editing context menu in the current Desktop language. */
+  readonly editingContextMenuLabels: () => EditingContextMenuLabels
 }
 
 /** Own one BrowserWindow and Tray generation, including every native listener. */
@@ -612,6 +615,15 @@ export class ElectronShellGeneration {
       separateChrome.on('did-fail-load', loadFailed)
       separateChrome.on('did-finish-load', chromeLoaded)
     }
+    // The official Desktop pops the same editing menu over editable content and
+    // selected text. The command bar gets it too, so copying its text behaves alike.
+    const contextMenuOptions = { platform: platform.platform, labels: this.options.editingContextMenuLabels, menu: () => Menu }
+    const removeRendererContextMenu = installEditingContextMenu(renderer, window, contextMenuOptions)
+    // The command bar only exists as a separate view where the platform keeps one
+    // (the fork's Linux compatibility shell folds it into the main webContents).
+    const removeChromeContextMenu = separateChrome === undefined
+      ? undefined
+      : installEditingContextMenu(separateChrome, window, contextMenuOptions)
     renderer.setWindowOpenHandler(({ url }) => {
       try {
         const target = new URL(url)
@@ -660,6 +672,8 @@ export class ElectronShellGeneration {
         separateChrome.off('did-fail-load', loadFailed)
         separateChrome.off('did-finish-load', chromeLoaded)
       }
+      removeRendererContextMenu()
+      removeChromeContextMenu?.()
       removeRendererAccessHeader?.()
       removeRendererAccessHeader = undefined
       tray?.off('click', show)

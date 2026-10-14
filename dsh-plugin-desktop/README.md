@@ -84,6 +84,8 @@ The centered product title and mode pill remain independent from the action grou
 
 The command bar remains visible and draggable while upstream overlays are open. macOS traffic lights and Windows caption controls keep their native hit regions; only Desktop-owned first-party icons render in this private surface, explicitly opt out of dragging, and remain clickable. Web Client plugins cannot contribute command-bar actions in compatibility or extended mode.
 
+Editable areas in the application document, the Desktop command bar, and Desktop-owned local windows show the same native right-click menu as the official Desktop: Undo, Redo, Cut, Copy, Paste, and Select All without shortcut labels, with availability reported by Chromium. Selected read-only text offers only Copy. Windows labels follow the Desktop language; macOS and Linux use the native role labels.
+
 The DOM declares the command bar as the Desktop frame and the shifted upstream root as its content viewport. The `shell.overlay` layer becomes the containing block for fixed plugin surfaces, while dialogs portalled directly to `body` receive the same content offset. Both paths are therefore bounded below the 36-pixel frame instead of darkening or intercepting it.
 
 Custom-window material is independent from mode. macOS offers **Off** and **Transparent**. Windows has no material choice, so every Windows window is an ordinary opaque window. The removed `windowsMaterial` values `acrylic` and `mica` stay readable so older settings still boot, and both resolve to off. Changing mode or material performs an orderly restart.
@@ -121,7 +123,7 @@ Start the desktop application explicitly when a graphical session is available:
 yarn dev
 ```
 
-`dev` builds before launching. It does not require a separate manual build.
+`dev` builds before launching. It does not require a separate manual build. `dev` and `start` also prepare the bundled interpreter payload under `.desktop-build/runtime` before the shell starts, as upstream Desktop's development launcher does, so the Office skills are available in development; the first launch downloads the archives and wheels the upstream lock pins, and `yarn prepare:runtime` runs that step alone.
 
 The headless-safe launcher surfaces can be exercised without importing or starting Electron:
 
@@ -212,6 +214,8 @@ Closing the window hides it while the Host Cordis tree continues running. The tr
 ## Packaging
 
 Stable and Beta disable ASAR on Windows, macOS, and Linux. Packaged Electron smokes verify bundled Cordis skills through the local filesystem backend.
+
+Like upstream Desktop, the package carries the primary runtime beside the application under `Contents/Resources/runtime` (`resources/runtime` on Windows): the standalone Python 3.12 pinned by the upstream lock with numpy, pandas, python-docx, python-pptx, openpyxl, Pillow, lxml and XlsxWriter, the standalone Node, the bundled pnpm, and the Office skill resources beside each payload. The universal macOS application carries one payload per CPU, `runtime/arm64` and `runtime/x64`, and the installed shell selects the payload of the CPU it runs on; Windows carries `runtime/x64` only, and Linux carries none. Every packaging entry runs `scripts/prepare-runtime.ts` before its gates: it downloads the archives and wheels the upstream lock pins (`deepseek-harness/scripts/primary-runtime/lock.json`) into `.desktop-build/downloads`, assembles each payload under `.desktop-build/runtime/<cpu>` with upstream's pruning of the NumPy and pandas test suites, writes its `runtime.json` with the product version and payload digest, verifies the tree and executes the payloads this host can run. Signed macOS releases pre-sign every Mach-O payload file with a hardened-runtime, timestamped Developer ID signature before electron-builder runs, as upstream does; `signIgnore` keeps electron-builder from re-signing them, and the universal merge rule covers the identical payloads. The `afterPack` hook, the final artifact check and the mounted-image verifiers check the payloads again. The Host mounts upstream's Office composition: the `load_workspace_dependencies` tool, which installs the payload under `<home>/dsh-runtimes/dsh-plugin-desktop-primary-runtime` on first use (an edition-specific directory, because Stable shares `~/.dsh` with the official Desktop and the tool replaces an installation whose manifest differs), and the `office-docx`, `office-pptx` and `office-xlsx` skills, which run the LibreOffice Kit CLI under the bundled Node. A packaged Host fails without its payload; a development Host logs a warning and starts without Office until `yarn prepare:runtime` ran.
 
 `yarn package:dir` creates an unpacked directory for the current host platform. The packaged-runtime gate rejects an application directory that omits the desktop update and terminal modules, the DSH CLI bootstrap, the bundled pnpm entry, or the physical deployment package. Electron Builder emits the root manifest, desktop runtime, and complete dependency tree under `resources/app/` (`Contents/Resources/app/` on macOS); both Host profile boot and the CLI bootstrap use this physical tree so DSH profile-fallback symlinks never target a virtual ASAR directory.
 
