@@ -1,11 +1,10 @@
 /** Narrow Host capabilities consumed by the existing plugin markets. */
 import { installHostLogging } from './host/logging.ts'
 import { spawn } from 'node:child_process'
-import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { basename, dirname, isAbsolute, join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
-import { bundlePatchPaths, composeEntries, loadOverlayPatches, readProfilePlugins, resolveBundleDir, type ProfilePnpmInvocation } from '@deepseek-ai/dsh-app-boot'
+import type { ProfilePnpmInvocation } from '@deepseek-ai/dsh-app-boot'
 import { installNotifications } from './notifications.ts'
 import { HostPermissions } from './host-permissions.ts'
 import { NEXT_PACKAGE, profileName } from './profiles.ts'
@@ -29,24 +28,11 @@ export function apply(ctx: Context): void {
   const invocation = profile.packageManager
   if (!invocation) throw new Error('Next requires its bundled pnpm invocation')
   const runner = createPackageRunner(invocation, profile.dir)
+  // dshmarket installs through the bundled pnpm; Community Market manages
+  // packages through the official pluginManager service and needs no Desktop
+  // inventory or restart capability.
   ctx.provide('desktopProfiles', { current: { name: profile.name, dir: profile.dir } })
   ctx.provide('desktopPnpm', runner)
-  const shipped = JSON.parse(readFileSync(profile.installAnchor, 'utf8')) as { name: string; dependencies: Record<string, string> }
-  ctx.provide('desktopPlugins', {
-    list: () => readProfilePlugins({ binName: 'dsh-desktop-next', profileDir: profile.dir, installAnchor: profile.installAnchor })
-      .dependencies.filter(item => item.bundle).map(item => {
-        const mutable = item.name !== shipped.name && !Object.hasOwn(shipped.dependencies, item.name)
-          && !item.name.startsWith('@deepseek-ai/')
-        const dir = resolveBundleDir('dsh-desktop-next', item.name, profile.installAnchor, profile.dir)
-        // dsh 0.1.7 lets a bundle declare an ordered list of patch files, not only one.
-        const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as { dsh: { bundle: { patch: string | string[] } } }
-        const rows = composeEntries(bundlePatchPaths(dir, manifest.dsh.bundle).map(file => loadOverlayPatches('dsh-desktop-next', file)))
-        const active = rows.length === 0 || [...ctx.loader.entries()].some(entry =>
-          rows.some(row => row.id === entry.options.id) && !entry.disabled && entry.fiber?.state === 2 /* FiberState.ACTIVE */)
-        return { bundleId: item.name, packageName: item.name, mutable, uninstallable: mutable,
-          status: item.enabled && active ? 'active' : 'disabled' }
-      }),
-  })
   if (process.send) ctx.provide('desktopActions', {
     ...(process.platform === 'darwin' || process.platform === 'win32' ? { openTerminal: () => {
       if (!process.connected || !process.send) throw new Error('Next shell is unavailable')
