@@ -2,6 +2,15 @@ diff --git a/client/client.js b/client/client.js
 index 0899487..d7dac70 100644
 --- a/client/client.js
 +++ b/client/client.js
+@@ -4759,7 +4759,7 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
+ 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+ 				className: Market_module_css_default.banner,
+ 				children: [
+-					/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconWarningOutline16, {
++					/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, {
+ 						size: 14,
+ 						className: Market_module_css_default.bannerIcon
+ 					}),
 @@ -10903,7 +10903,7 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
  					return next;
  				});
