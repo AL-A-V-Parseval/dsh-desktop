@@ -91,6 +91,8 @@ jobs:
         run: yarn install --immutable
       - name: Temporarily skip AA profile smoke in CI
         if: needs.changes.outputs.product == 'true'
+        env:
+          EVENT_NAME: ${{ github.event_name }}
         # Remove this step after AA Host service activation is fixed.
         # Local checks and the standalone verify:aa command remain available.
         run: |
@@ -101,12 +103,22 @@ jobs:
             const manifest = JSON.parse(readFileSync(path, 'utf8'))
             const smoke = ' && yarn run verify:aa'
             if (!manifest.scripts.check.includes(smoke)) throw new Error(`AA check not found in ${workspace}`)
-            manifest.scripts.check = manifest.scripts.check.replace(smoke, '')
+            // On pull requests, verify-desktop-variants already gates shared Desktop source,
+            // so Stable runs build + closure + license checks while Beta runs the full suite.
+            manifest.scripts.check = workspace === 'dsh-plugin-desktop' && process.env.EVENT_NAME === 'pull_request'
+              ? 'yarn run build && yarn run verify:closure && yarn run verify:licenses'
+              : manifest.scripts.check.replace(smoke, '')
             writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`)
           }
           NODE
       - if: needs.changes.outputs.product == 'true'
         run: yarn check
+      - name: Cache Playwright browsers
+        if: needs.changes.outputs.product == 'true'
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('yarn.lock') }}
       - name: Install Chromium for Next window regression
         if: needs.changes.outputs.product == 'true'
         run: yarn workspace dsh-desktop-next exec playwright install --with-deps chromium
@@ -133,7 +145,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: [dsh-plugin-desktop, dsh-plugin-desktop-beta]
+        workspace: ${{ github.event_name == 'pull_request' && fromJSON('["dsh-plugin-desktop-beta"]') || fromJSON('["dsh-plugin-desktop", "dsh-plugin-desktop-beta"]') }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -180,7 +192,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: [dsh-plugin-desktop, dsh-plugin-desktop-beta]
+        workspace: ${{ github.event_name == 'pull_request' && fromJSON('["dsh-plugin-desktop-beta"]') || fromJSON('["dsh-plugin-desktop", "dsh-plugin-desktop-beta"]') }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -213,7 +225,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: [dsh-plugin-desktop, dsh-plugin-desktop-beta]
+        workspace: ${{ github.event_name == 'pull_request' && fromJSON('["dsh-plugin-desktop-beta"]') || fromJSON('["dsh-plugin-desktop", "dsh-plugin-desktop-beta"]') }}
     steps:
       - uses: actions/checkout@v6
         with:

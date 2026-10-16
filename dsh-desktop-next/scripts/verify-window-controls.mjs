@@ -792,8 +792,11 @@ try {
   const webWelcome = webPage.getByRole('button', { name: /^(继续|Continue)$/ })
   await webWelcome.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {})
   if (await webWelcome.isVisible()) await webWelcome.click()
-  // The rc.2 Web entry can open directly when the default model is available.
-  await webPage.getByRole('button', { name: /^(稍后配置|Configure later)$/ }).click({ timeout: 2_000 }).catch(() => {})
+  // The rc.2 Web entry can open directly when the default model is available;
+  // 0.2.1-alpha.5 opens the account sign-in dialog in marker-free Web contexts.
+  const webOnboardingDismiss = webPage.getByRole('dialog', { name: /^(开始使用|Get started)$/ }).getByRole('button', { name: /^(关闭|Close)$/ })
+    .or(webPage.getByRole('button', { name: /^(稍后配置|Configure later)$/ }))
+  await webOnboardingDismiss.first().click({ timeout: 2_000 }).catch(() => {})
   await webPage.locator('[aria-modal=true]').waitFor({ state: 'hidden' })
   await openSettingsPanel(webPage)
   assert.equal(await webPage.locator('.dshDesktopNativeActions').count(), 0)
