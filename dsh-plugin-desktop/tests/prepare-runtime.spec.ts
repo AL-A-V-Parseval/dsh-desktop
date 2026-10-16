@@ -46,10 +46,12 @@ function fixture(): string {
   return root
 }
 
-it('ships both Darwin CPUs, Windows x64 and nothing elsewhere', () => {
-  expect(desktopRuntimeTargets('darwin')).toEqual([{ target: 'mac-arm64', arch: 'arm64' }, { target: 'mac-x64', arch: 'x64' }])
-  expect(desktopRuntimeTargets('win32')).toEqual([{ target: 'win-x64', arch: 'x64' }])
-  expect(desktopRuntimeTargets('linux')).toEqual([])
+it('ships both Darwin CPUs by default or the requested smoke CPU, Windows x64 and nothing elsewhere', () => {
+  expect(desktopRuntimeTargets('darwin', {})).toEqual([{ target: 'mac-arm64', arch: 'arm64' }, { target: 'mac-x64', arch: 'x64' }])
+  expect(desktopRuntimeTargets('darwin', { DSH_MAC_SMOKE_ARCH: 'arm64' })).toEqual([{ target: 'mac-arm64', arch: 'arm64' }])
+  expect(desktopRuntimeTargets('darwin', { DSH_MAC_SMOKE_ARCH: 'x64' })).toEqual([{ target: 'mac-x64', arch: 'x64' }])
+  expect(desktopRuntimeTargets('win32', {})).toEqual([{ target: 'win-x64', arch: 'x64' }])
+  expect(desktopRuntimeTargets('linux', {})).toEqual([])
 })
 
 it('lays out each CPU payload beside its Office resources under the build directory', () => {
