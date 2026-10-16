@@ -48,21 +48,21 @@ function fixture(version = '2.0.0'): {
 function payloadFixture(unpacked: string): string {
   const payload = join(unpacked, 'resources', 'runtime')
   for (const directory of [
-    ['primary-runtime', 'dependencies', 'python', 'bin'],
-    ['primary-runtime', 'dependencies', 'node', 'bin'],
-    ['primary-runtime', 'dependencies', 'pnpm', 'bin'],
-    ['office-skills', 'scripts'],
+    ['x64', 'primary-runtime', 'dependencies', 'python', 'bin'],
+    ['x64', 'primary-runtime', 'dependencies', 'node', 'bin'],
+    ['x64', 'primary-runtime', 'dependencies', 'pnpm', 'bin'],
+    ['x64', 'office-skills', 'scripts'],
   ] as const) {
     mkdirSync(join(payload, ...directory), { recursive: true })
   }
   writeFileSync(
-    join(payload, 'primary-runtime', 'runtime.json'),
+    join(payload, 'x64', 'primary-runtime', 'runtime.json'),
     `${JSON.stringify({ desktopVersion: '2.0.0', platform: 'linux', arch: 'x64', python: '3.12.14' }, undefined, 2)}\n`,
   )
-  writeFileSync(join(payload, 'primary-runtime', 'dependencies', 'python', 'bin', 'python3'), 'python', { mode: 0o755 })
-  writeFileSync(join(payload, 'primary-runtime', 'dependencies', 'node', 'bin', 'node'), 'node', { mode: 0o755 })
-  writeFileSync(join(payload, 'primary-runtime', 'dependencies', 'pnpm', 'bin', 'pnpm.mjs'), 'pnpm')
-  writeFileSync(join(payload, 'office-skills', 'scripts', 'check_office.py'), 'pass\n')
+  writeFileSync(join(payload, 'x64', 'primary-runtime', 'dependencies', 'python', 'bin', 'python3'), 'python', { mode: 0o755 })
+  writeFileSync(join(payload, 'x64', 'primary-runtime', 'dependencies', 'node', 'bin', 'node'), 'node', { mode: 0o755 })
+  writeFileSync(join(payload, 'x64', 'primary-runtime', 'dependencies', 'pnpm', 'bin', 'pnpm.mjs'), 'pnpm')
+  writeFileSync(join(payload, 'x64', 'office-skills', 'scripts', 'check_office.py'), 'pass\n')
   return payload
 }
 
@@ -148,7 +148,7 @@ describe('Linux artifact verification', () => {
   it('rejects a bundled primary runtime prepared for another target', () => {
     const value = fixture()
     writeFileSync(
-      join(value.payload, 'primary-runtime', 'runtime.json'),
+      join(value.payload, 'x64', 'primary-runtime', 'runtime.json'),
       `${JSON.stringify({ desktopVersion: '2.0.0', platform: 'darwin', arch: 'arm64', python: '3.12.14' })}\n`,
     )
 
@@ -158,7 +158,7 @@ describe('Linux artifact verification', () => {
 
   it('rejects a bundled Node.js executable that lost its executable bit', () => {
     const value = fixture()
-    chmodSync(join(value.payload, 'primary-runtime', 'dependencies', 'node', 'bin', 'node'), 0o644)
+    chmodSync(join(value.payload, 'x64', 'primary-runtime', 'dependencies', 'node', 'bin', 'node'), 0o644)
 
     expect(() => verifyLinuxArtifacts({ desktopRoot: value.root, version: '2.0.0' }))
       .toThrow('Node.js executable is not executable')
@@ -166,7 +166,7 @@ describe('Linux artifact verification', () => {
 
   it('rejects an Office skill payload without its document checker', () => {
     const value = fixture()
-    rmSync(join(value.payload, 'office-skills', 'scripts', 'check_office.py'), { force: true })
+    rmSync(join(value.payload, 'x64', 'office-skills', 'scripts', 'check_office.py'), { force: true })
 
     expect(() => verifyLinuxArtifacts({ desktopRoot: value.root, version: '2.0.0' }))
       .toThrow('Office skill checker is missing from the bundled primary runtime')

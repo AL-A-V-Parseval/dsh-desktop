@@ -136,9 +136,17 @@ const requiredPayloadEntries = (arch: string) => [
  * @param payloadRoot - `resources/runtime` of the unpacked application.
  */
 export function assertPrimaryRuntimePayload(payloadRoot: string): void {
-  const architectures = readdirSync(payloadRoot, { withFileTypes: true })
-    .filter(entry => entry.isDirectory() && (entry.name === 'x64' || entry.name === 'arm64'))
-    .map(entry => entry.name)
+  let architectures: string[] = []
+  try {
+    architectures = readdirSync(payloadRoot, { withFileTypes: true })
+      .filter(entry => entry.isDirectory() && (entry.name === 'x64' || entry.name === 'arm64'))
+      .map(entry => entry.name)
+  } catch {
+    // A missing or unreadable payload root is reported below with its own message.
+  }
+  if (architectures.length === 0) {
+    throw new Error(`bundled primary runtime manifest is unreadable: no prepared payload under ${payloadRoot}`)
+  }
   const arch = architectures.length === 1 ? architectures[0] : undefined
   if (arch === undefined) {
     throw new Error(`bundled primary runtime carries ${String(architectures.length)} architecture directories under ${payloadRoot}, expected one`)
