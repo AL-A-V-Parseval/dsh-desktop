@@ -99,6 +99,17 @@
     "node": "^22.19.0 || >=24.0.0"
   },
   "dsh": {
+    "optionalBundles": [
+      "dsh-community-market",
+      "dshmarket",
+      "@agents-anywhere/dsh-bridge-next"
+    ],
+    "exclusiveBundles": [
+      [
+        "dsh-community-market",
+        "dshmarket"
+      ]
+    ],
     "client": {
       "inject": [
         "@deepseek-ai/dsh-api-remotes",
