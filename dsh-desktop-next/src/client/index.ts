@@ -96,7 +96,7 @@ export function apply(ctx: Context): void {
       name: 'shell.overlay', id: 'desktop-next-safe-mode', order: 100, locale: 'desktop-next',
     }, SafeModeNotice))
   }
-  ctx.effect(installWindowStyles, 'Next native materials and header interactions')
+  ctx.effect(installWindowStyles, 'Next native materials and recovery notice')
 }
 
 /** Temporary, metadata-only trace for the AA dialog and its sibling Plugins UI. */
