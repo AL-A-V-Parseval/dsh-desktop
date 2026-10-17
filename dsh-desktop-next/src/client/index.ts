@@ -52,6 +52,7 @@ export function apply(ctx: Context): void {
       features: {
         market: snapshot.input.market === 'community-market',
         dshMarket: snapshot.input.market === 'dsh-market',
+        ...((snapshot.input.market as string) === 'official-market' ? { officialMarket: true } : {}),
         remoteControl: snapshot.input.aaEnabled ?? false,
       },
       onboardingComputerUse: snapshot.computerUse ?? false,
@@ -64,7 +65,7 @@ export function apply(ctx: Context): void {
         const { appVersion: _version, profileName: _profile, platform: _platform, ...selection } = snapshot.input
         await finish(snapshot.profile, {
           ...selection,
-          market: command.features.market ? 'community-market' : command.features.dshMarket ? 'dsh-market' : 'disabled',
+          market: (command.features.market ? 'community-market' : command.features.dshMarket ? 'dsh-market' : command.features.officialMarket ? 'official-market' : 'disabled') as typeof selection.market,
           aaEnabled: command.features.remoteControl,
           computerUse: command.computerUse,
         })
