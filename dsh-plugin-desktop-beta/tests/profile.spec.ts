@@ -18,12 +18,15 @@ import {
   PROFILE_TEMPLATES,
 } from '@deepseek-ai/dsh-app-boot'
 import {
+  configureDesktopOfficialPluginMarket,
+  DEFAULT_OFFICIAL_MARKET_INDEX_URL,
   DESKTOP_PACKAGE_NAME,
   desktopShellModeFromSettings,
   desktopStartupSettingsFromSettings,
   desktopBundleList,
   ensureDesktopProfile,
   prepareDesktopProfile,
+  readDesktopOfficialPluginMarketEnabled,
   migrateDesktopSettingsDocumentSections,
   readDesktopShellMode,
   resolveDesktopSettingsDocument,
@@ -1656,5 +1659,20 @@ describe('desktop profile composition and the recovery deselection ledger', () =
 
     await setDesktopProfileBundleSelected(selectionBootstrap(home), packageName, false)
     expect(() => prepareDesktopProfile(undefined, home, 'darwin')).not.toThrow()
+  })
+
+  it('enables the official Custom Plugin Market bundle and preconfigures the built-in dsh-market source', () => {
+    const home = temporaryHome()
+    const profileDir = ensureDesktopProfile(home)
+    expect(readDesktopOfficialPluginMarketEnabled(profileDir)).toBe(false)
+
+    configureDesktopOfficialPluginMarket(profileDir, true)
+    expect(readDesktopOfficialPluginMarketEnabled(profileDir)).toBe(true)
+    const patch = readFileSync(join(profileDir, 'cordis.patch.yml'), 'utf8')
+    expect(patch).toContain('id: plugin-market')
+    expect(patch).toContain(DEFAULT_OFFICIAL_MARKET_INDEX_URL)
+
+    configureDesktopOfficialPluginMarket(profileDir, false)
+    expect(readDesktopOfficialPluginMarketEnabled(profileDir)).toBe(false)
   })
 })

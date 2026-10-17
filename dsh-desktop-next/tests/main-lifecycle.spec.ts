@@ -636,7 +636,7 @@ it('persists a Profile switch and relaunches the app only after hiding windows a
   } finally { vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
 })
 
-it.each(['complete', 'skip'] as const)('continues first-run setup in the official app and saves before restarting on %s', async outcome => {
+it.each(['complete', 'official', 'skip'] as const)('continues first-run setup in the official app and saves before restarting on %s', async outcome => {
   const home = mkdtempSync(join(tmpdir(), 'next-onboarding-'))
   vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
   fixture.needsOnboarding = true
@@ -657,16 +657,22 @@ it.each(['complete', 'skip'] as const)('continues first-run setup in the officia
     fixture.restart.mockImplementationOnce(async () => {
       expect(manager.onboardingRequired('desktop')).toBe(false)
       expect(manager.features('desktop')).toEqual(outcome === 'skip'
-        ? { market: false, remoteControl: false } : { market: false, dshMarket: true, remoteControl: true })
+        ? { market: false, remoteControl: false }
+        : outcome === 'official'
+          ? { market: false, officialMarket: true, remoteControl: false }
+          : { market: false, dshMarket: true, remoteControl: true })
       expect(manager.computerUseEnabled('desktop')).toBe(outcome === 'complete')
     })
-    await setup(sender, { action: 'finish', profile: 'desktop', ...(outcome === 'complete' ? {
-      selection: { market: 'dsh-market', aaEnabled: true, computerUse: true },
-    } : {}) })
+    await setup(sender, { action: 'finish', profile: 'desktop', ...(outcome === 'skip' ? {} : {
+      selection: { market: outcome === 'official' ? 'official-market' : 'dsh-market', aaEnabled: outcome === 'complete', computerUse: outcome === 'complete' },
+    }) })
     expect(fixture.restart).toHaveBeenCalledOnce()
     expect(fixture.windows).toHaveLength(1)
     expect(window.loadedUrls).toEqual(['dsh-app://app/', 'dsh-app://app/'])
-    expect(await setup(sender, { action: 'read' })).toMatchObject({ required: false })
+    expect(await setup(sender, { action: 'read' })).toMatchObject({
+      required: false,
+      input: { market: outcome === 'skip' ? 'disabled' : outcome === 'official' ? 'official-market' : 'dsh-market' },
+    })
     await expect(setup(sender, { action: 'finish', profile: 'desktop' })).rejects.toThrow('unavailable')
   } finally { vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
 })

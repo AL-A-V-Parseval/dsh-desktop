@@ -144,9 +144,11 @@ import {
 import { routeDesktopStartupFailure } from './startup-failure-routing.ts'
 import { DesktopStartupGeneration } from './startup-generation.ts'
 import {
+  configureDesktopOfficialPluginMarket,
   desktopInstallAnchor,
   healDesktopProfileModuleFallback,
   prepareDesktopProfile,
+  readDesktopOfficialPluginMarketEnabled,
   type SkippedOptionalEntry,
 } from './profile.ts'
 import { DesktopProfileCheckpoint } from './profile-checkpoint.ts'
@@ -1442,7 +1444,12 @@ async function start(): Promise<void> {
     if (setupPending) await beginDesktopSetupWizard(marketUserDataDir, prepared.profile.dir)
     const setupInput = { ...readDesktopSetupWizardSettings(prepared.settingsDocument), appVersion,
       profileName: activeProfileName, platform: runtime.platform,
-      market: marketSelection.requested, aaEnabled: profilePreferences?.aaEnabled === true }
+      market: marketSelection.requested !== 'disabled'
+        ? marketSelection.requested
+        : readDesktopOfficialPluginMarketEnabled(prepared.profile.dir)
+          ? ('official-market' as const)
+          : ('disabled' as const),
+      aaEnabled: profilePreferences?.aaEnabled === true }
     let setupSaving = false
     let setupRestartPending = false
     runtime.setupOnboarding = {
@@ -1476,9 +1483,10 @@ async function start(): Promise<void> {
         setupSaving = true
         try {
           if (selection !== undefined) {
+            const desktopMarket: DesktopMarketProvider = selection.market === 'official-market' ? 'disabled' : selection.market
             profilePreferences = await writeDesktopProfilePreferences(marketUserDataDir, prepared.profile.dir,
-              desktopProfilePreferencesFromSettings(selection, selection.notifications, selection.market, selection.aaEnabled === true))
-            await selectDesktopMarketProvider(marketUserDataDir, selection.market)
+              desktopProfilePreferencesFromSettings(selection, selection.notifications, desktopMarket, selection.aaEnabled === true))
+            await selectDesktopMarketProvider(marketUserDataDir, desktopMarket)
             // A new Profile has no settings document left to import, so save
             // through the live settings scopes the way the mode picker does.
             await applySettings!(normalizeDesktopSetupWizardSettings({
@@ -1489,6 +1497,7 @@ async function start(): Promise<void> {
               networkExposure: selection.networkExposure,
               notifications: selection.notifications,
             }))
+            configureDesktopOfficialPluginMarket(prepared.profile.dir, selection.market === 'official-market')
           }
           // Keep the existing per-Profile marker; a failed save must remain resumable.
           await completeOrSkipDesktopSetupWizard(marketUserDataDir, prepared.profile.dir,

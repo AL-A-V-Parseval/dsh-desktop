@@ -826,6 +826,106 @@ export function syncDesktopManagedProfileBundles(
   }
 }
 
+const OFFICIAL_PLUGIN_MARKET_BUNDLE = '@deepseek-ai/dsh-experimental-plugin-market-bundle'
+const OFFICIAL_PLUGIN_MARKET_ROW_ID = 'plugin-market'
+const OFFICIAL_PLUGIN_MARKET_PACKAGE = '@deepseek-ai/dsh-plugin-market'
+
+/** Built-in dsh-market index URL preconfigured when enabling the official Custom Plugin Market in Setup. */
+export const DEFAULT_OFFICIAL_MARKET_INDEX_URL = 'https://cdn.jsdelivr.net/gh/realguan/dsh-plugin-market@dist/dsh-index.json'
+
+/** Inspect whether the active Profile manifest currently enables the official Custom Plugin Market bundle. */
+export function readDesktopOfficialPluginMarketEnabled(profileDir: string): boolean {
+  if (!existsSync(join(profileDir, 'package.json'))) return false
+  try {
+    const manifest = readProfileManifest(BIN_NAME, profileDir)
+    const rawBundles = (manifest.dsh?.profile as { bundles?: unknown } | undefined)?.bundles
+    return Array.isArray(rawBundles) && rawBundles.includes(OFFICIAL_PLUGIN_MARKET_BUNDLE)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Enable or disable the official Custom Plugin Market bundle in the Profile manifest,
+ * and preconfigure the built-in dsh-market index URL in `cordis.patch.yml` when enabling.
+ */
+export function configureDesktopOfficialPluginMarket(
+  profileDir: string,
+  enabled: boolean,
+): void {
+  if (!existsSync(join(profileDir, 'package.json'))) return
+  const manifest = readProfileManifest(BIN_NAME, profileDir)
+  const rawBundles = (manifest.dsh?.profile as { bundles?: unknown } | undefined)?.bundles
+  if (rawBundles !== undefined
+    && (!Array.isArray(rawBundles) || rawBundles.some(value => typeof value !== 'string'))) {
+    return
+  }
+  const current = rawBundles === undefined ? [] : rawBundles as string[]
+  const next = enabled
+    ? (current.includes(OFFICIAL_PLUGIN_MARKET_BUNDLE) ? current : [...current, OFFICIAL_PLUGIN_MARKET_BUNDLE])
+    : current.filter(name => name !== OFFICIAL_PLUGIN_MARKET_BUNDLE)
+  if (!sameList(current, next)) {
+    writeProfileManifest(profileDir, {
+      ...manifest,
+      dsh: {
+        ...manifest.dsh,
+        profile: {
+          ...manifest.dsh?.profile,
+          bundles: next,
+        },
+      },
+    })
+  }
+  if (!enabled) return
+  configureDesktopOfficialPluginMarketDefaultSource(join(profileDir, PROFILE_PATCH_FILENAME))
+}
+
+function configureDesktopOfficialPluginMarketDefaultSource(patchPath: string): void {
+  if (lstatSync(patchPath, { throwIfNoEntry: false })?.isSymbolicLink()) return
+  let before: string
+  try {
+    before = readFileSync(patchPath, 'utf8')
+  } catch (cause) {
+    if ((cause as NodeJS.ErrnoException).code !== 'ENOENT') throw cause
+    before = '[]\n'
+  }
+  const patchDocument = parseDocument(before, {
+    customTags: [{ tag: 'tag:yaml.org,2002:js', resolve: (value: string) => value }],
+  })
+  if (patchDocument.errors.length > 0 || !isSeq(patchDocument.contents)) return
+  const rows = patchDocument.contents
+  rows.flow = false
+  const index = rows.items.findLastIndex((item, index) => isMap(item)
+    && patchDocument.getIn([index, 'id']) === OFFICIAL_PLUGIN_MARKET_ROW_ID
+    && !item.has('insert')
+    && (!item.has('name') || patchDocument.getIn([index, 'name']) === OFFICIAL_PLUGIN_MARKET_PACKAGE))
+  if (index < 0) {
+    patchDocument.addIn([], {
+      id: OFFICIAL_PLUGIN_MARKET_ROW_ID,
+      config: { indexes: [DEFAULT_OFFICIAL_MARKET_INDEX_URL] },
+    })
+  } else {
+    const config = patchDocument.getIn([index, 'config'], true)
+    if (config === undefined) {
+      patchDocument.setIn([index, 'config'], patchDocument.createNode({
+        indexes: [DEFAULT_OFFICIAL_MARKET_INDEX_URL],
+      }))
+    } else if (isMap(config)) {
+      const rawIndexes = config.toJS(patchDocument) as { indexes?: unknown }
+      const existing = Array.isArray(rawIndexes.indexes)
+        ? rawIndexes.indexes.filter((entry): entry is string => typeof entry === 'string')
+        : []
+      const nextIndexes = existing.includes(DEFAULT_OFFICIAL_MARKET_INDEX_URL)
+        ? existing
+        : [DEFAULT_OFFICIAL_MARKET_INDEX_URL, ...existing]
+      config.set('indexes', patchDocument.createNode(nextIndexes))
+    } else {
+      return
+    }
+  }
+  replaceDocument(patchPath, String(patchDocument))
+}
+
 interface ParsedProfileYaml {
   readonly document: ReturnType<typeof parseDocument>
   readonly value: Record<string, unknown>
