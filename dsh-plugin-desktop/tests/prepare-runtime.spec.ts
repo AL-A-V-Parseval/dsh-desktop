@@ -32,7 +32,7 @@ function writePayload(runtimeRoot: string, arch: DesktopRuntimeArch, options: Pa
     writeFileSync(join(directory, path), content)
   }
   const skills = officeSkillsDirectory(runtimeRoot, arch)
-  for (const path of ['scripts/check_office.py', 'office-docx/SKILL.md', 'office-pptx/SKILL.md', 'office-xlsx/SKILL.md']) {
+  for (const path of ['office/SKILL.md', 'office-docx/SKILL.md', 'office-pptx/SKILL.md', 'office-xlsx/SKILL.md', 'office-render/SKILL.md', 'office-recalculate/SKILL.md', 'office-export-pdf/SKILL.md']) {
     if (options.omit?.includes(`office-skills/${path}`)) continue
     mkdirSync(join(skills, path, '..'), { recursive: true })
     writeFileSync(join(skills, path), '')
@@ -46,10 +46,12 @@ function fixture(): string {
   return root
 }
 
-it('ships both Darwin CPUs, Windows x64 and nothing elsewhere', () => {
-  expect(desktopRuntimeTargets('darwin')).toEqual([{ target: 'mac-arm64', arch: 'arm64' }, { target: 'mac-x64', arch: 'x64' }])
-  expect(desktopRuntimeTargets('win32')).toEqual([{ target: 'win-x64', arch: 'x64' }])
-  expect(desktopRuntimeTargets('linux')).toEqual([])
+it('ships both Darwin CPUs by default or the requested smoke CPU, Windows x64 and nothing elsewhere', () => {
+  expect(desktopRuntimeTargets('darwin', {})).toEqual([{ target: 'mac-arm64', arch: 'arm64' }, { target: 'mac-x64', arch: 'x64' }])
+  expect(desktopRuntimeTargets('darwin', { DSH_MAC_SMOKE_ARCH: 'arm64' })).toEqual([{ target: 'mac-arm64', arch: 'arm64' }])
+  expect(desktopRuntimeTargets('darwin', { DSH_MAC_SMOKE_ARCH: 'x64' })).toEqual([{ target: 'mac-x64', arch: 'x64' }])
+  expect(desktopRuntimeTargets('win32', {})).toEqual([{ target: 'win-x64', arch: 'x64' }])
+  expect(desktopRuntimeTargets('linux', {})).toEqual([])
 })
 
 it('lays out each CPU payload beside its Office resources under the build directory', () => {
@@ -111,10 +113,10 @@ it('rejects missing entry points and Office resources', () => {
   writePayload(python, 'arm64', { omit: ['dependencies/python/bin/python3'] })
   writePayload(python, 'x64')
   expect(() => verifyDesktopRuntimeTree(python, 'darwin', '2.0.0')).toThrow('missing arm64 Python interpreter')
-  const checker = fixture()
-  writePayload(checker, 'arm64')
-  writePayload(checker, 'x64', { omit: ['office-skills/scripts/check_office.py'] })
-  expect(() => verifyDesktopRuntimeTree(checker, 'darwin', '2.0.0')).toThrow('missing x64 Office checker')
+  const router = fixture()
+  writePayload(router, 'arm64')
+  writePayload(router, 'x64', { omit: ['office-skills/office/SKILL.md'] })
+  expect(() => verifyDesktopRuntimeTree(router, 'darwin', '2.0.0')).toThrow('missing x64 office skill')
   const skill = fixture()
   writePayload(skill, 'arm64', { omit: ['office-skills/office-xlsx/SKILL.md'] })
   expect(() => verifyDesktopRuntimeTree(skill, 'darwin', '2.0.0')).toThrow('missing arm64 office-xlsx skill')

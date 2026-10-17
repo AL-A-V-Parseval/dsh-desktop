@@ -4,6 +4,7 @@ import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parsePrimaryRuntime, workspaceDependencyPaths, type PrimaryRuntimeManifest } from '@deepseek-ai/dsh-tool-workspace-dependencies'
+import { macSmokeArchitecture } from './mac-universal.ts'
 import { machOArchitectures, preparePrimaryRuntime, readPrimaryRuntimeLock, rosettaAvailable, smokePrimaryRuntime, type PrimaryRuntimeTarget } from './primary-runtime.ts'
 
 /** CPU of one bundled payload. */
@@ -16,13 +17,20 @@ export interface DesktopRuntimeTarget {
 }
 
 /**
- * Payloads one Desktop package carries: both Darwin CPUs, because macOS releases are universal and the
- * installed slice selects its payload at runtime; Windows x64 only; nothing on other platforms.
+ * Payloads one Desktop package carries: both Darwin CPUs by default (or the single smoke CPU when
+ * `DSH_MAC_SMOKE_ARCH` selects one), because macOS releases are universal and the installed slice
+ * selects its payload at runtime; Windows x64 only; nothing on other platforms.
  * @param platform - Electron platform being packaged.
+ * @param env - Process environment inspected for single-architecture smoke selection.
  * @returns Locked targets and their CPUs.
  */
-export function desktopRuntimeTargets(platform: NodeJS.Platform): readonly DesktopRuntimeTarget[] {
-  if (platform === 'darwin') return [{ target: 'mac-arm64', arch: 'arm64' }, { target: 'mac-x64', arch: 'x64' }]
+export function desktopRuntimeTargets(platform: NodeJS.Platform, env: NodeJS.ProcessEnv = process.env): readonly DesktopRuntimeTarget[] {
+  if (platform === 'darwin') {
+    const arch = macSmokeArchitecture(env)
+    if (arch === 'arm64') return [{ target: 'mac-arm64', arch: 'arm64' }]
+    if (arch === 'x64') return [{ target: 'mac-x64', arch: 'x64' }]
+    return [{ target: 'mac-arm64', arch: 'arm64' }, { target: 'mac-x64', arch: 'x64' }]
+  }
   if (platform === 'win32') return [{ target: 'win-x64', arch: 'x64' }]
   return []
 }
@@ -191,6 +199,18 @@ export interface PrepareDesktopInterpretersOptions {
 export async function prepareDesktopInterpreters(options: PrepareDesktopInterpretersOptions): Promise<string> {
   const platform = options.platform ?? process.platform
   const version = expectedDesktopVersion(options.desktopRoot)
+  const paths = desktopRuntimeBuildPaths(options.desktopRoot)
+  if (options.sign === undefined && process.env.DSH_PACKAGE_CHECK_ALREADY_RAN === '1') {
+    try {
+      const verified = verifyDesktopRuntimeTree(paths.runtime, platform, version)
+      if (verified.length > 0) {
+        ;(options.log ?? console.log)(`Reusing prepared primary runtime for ${verified.map(item => item.arch).join(', ')}`)
+        return paths.runtime
+      }
+    } catch {
+      // Prepared runtime does not exist or is incomplete; materialize it below.
+    }
+  }
   const root = await prepareDesktopRuntime({ desktopRoot: options.desktopRoot, platform, version, ...(options.log === undefined ? {} : { log: options.log }) })
   if (options.sign !== undefined) await options.sign(root)
   verifyDesktopRuntimeTree(root, platform, version)

@@ -145,9 +145,11 @@ import {
 import { routeDesktopStartupFailure } from './startup-failure-routing.ts'
 import { DesktopStartupGeneration } from './startup-generation.ts'
 import {
+  configureDesktopOfficialPluginMarket,
   desktopInstallAnchor,
   healDesktopProfileModuleFallback,
   prepareDesktopProfile,
+  readDesktopOfficialPluginMarketEnabled,
   type SkippedOptionalEntry,
 } from './profile.ts'
 import { DesktopProfileCheckpoint } from './profile-checkpoint.ts'
@@ -1450,7 +1452,12 @@ async function start(): Promise<void> {
     if (setupPending) await beginDesktopSetupWizard(marketUserDataDir, prepared.profile.dir)
     const setupInput = { ...readDesktopSetupWizardSettings(prepared.settingsDocument), appVersion,
       profileName: activeProfileName, platform: runtime.platform,
-      market: marketSelection.requested, aaEnabled: profilePreferences?.aaEnabled === true }
+      market: marketSelection.requested !== 'disabled'
+        ? marketSelection.requested
+        : readDesktopOfficialPluginMarketEnabled(prepared.profile.dir)
+          ? ('official-market' as const)
+          : ('disabled' as const),
+      aaEnabled: profilePreferences?.aaEnabled === true }
     let setupSaving = false
     let setupRestartPending = false
     runtime.setupOnboarding = {
@@ -1484,9 +1491,10 @@ async function start(): Promise<void> {
         setupSaving = true
         try {
           if (selection !== undefined) {
+            const desktopMarket: DesktopMarketProvider = selection.market === 'official-market' ? 'disabled' : selection.market
             profilePreferences = await writeDesktopProfilePreferences(marketUserDataDir, prepared.profile.dir,
-              desktopProfilePreferencesFromSettings(selection, selection.notifications, selection.market, selection.aaEnabled === true))
-            await selectDesktopMarketProvider(marketUserDataDir, selection.market)
+              desktopProfilePreferencesFromSettings(selection, selection.notifications, desktopMarket, selection.aaEnabled === true))
+            await selectDesktopMarketProvider(marketUserDataDir, desktopMarket)
             // A new Profile has no settings document left to import, so save
             // through the live settings scopes the way the mode picker does.
             await applySettings!(normalizeDesktopSetupWizardSettings({
@@ -1497,6 +1505,7 @@ async function start(): Promise<void> {
               networkExposure: selection.networkExposure,
               notifications: selection.notifications,
             }))
+            configureDesktopOfficialPluginMarket(prepared.profile.dir, selection.market === 'official-market')
           }
           // Keep the existing per-Profile marker; a failed save must remain resumable.
           await completeOrSkipDesktopSetupWizard(marketUserDataDir, prepared.profile.dir,
@@ -1689,8 +1698,22 @@ async function start(): Promise<void> {
       }
       startupStage = 'host-boot'
       lifecycleRecorder.transitionStartupStage(startupStage)
+      let effectiveMarket = prepared.market.effective
+      let effectiveAa = prepared.aaEnabled
       const releasePackageResolver = installProfilePackageResolver(prepared.bareModuleBaseUrl)
-      const profileBoot = createDesktopProfileBoot(prepared, desktopPnpmBootstrap)
+      const profileBoot = createDesktopProfileBoot(prepared, desktopPnpmBootstrap, {
+        onManagedBundlesChanged: state => {
+          effectiveMarket = state.effectiveMarket
+          effectiveAa = state.effectiveAa
+          void enqueueProfilePreferencesWrite(current => desktopProfilePreferencesFromSettings(
+            current,
+            current.notifications,
+            state.requestedMarket,
+            state.requestedAa,
+          )).then(() => selectDesktopMarketProvider(marketUserDataDir, state.requestedMarket))
+            .catch(() => {})
+        },
+      })
       const ctx = await boot(
         BIN_NAME,
         prepared.rootConfig,
@@ -1730,14 +1753,12 @@ async function start(): Promise<void> {
             openTerminal: () => { runtime.openTerminal() },
             requestRestart: () => runtime.requestRestart(),
           })
-          if (prepared.market.effective === 'community-market') {
-            await hostCtx.plugin(DesktopPluginsService, {
-              profileName: activeProfileName,
-              homeDir,
-              statePath: pluginManagementStatePath,
-              installAnchor: desktopInstallAnchor(),
-            })
-          }
+          await hostCtx.plugin(DesktopPluginsService, {
+            profileName: activeProfileName,
+            homeDir,
+            statePath: pluginManagementStatePath,
+            installAnchor: desktopInstallAnchor(),
+          })
           if (logSink !== undefined) {
             fileExporter = new FileExporter(logSink)
             hostCtx.logger.exporter(fileExporter)
@@ -1804,12 +1825,12 @@ async function start(): Promise<void> {
           }, 'dsh-plugin-desktop: pending Desktop settings restart')
           const readMarket = () => desktopMarketSnapshotWithEffective(
             desktopProfileMarketSnapshot(readProfilePreferences().market),
-            prepared.market.effective,
+            effectiveMarket,
           )
           hostCtx.provide('desktopSettingsController', new DesktopSettingsController({
             profiles: hostCtx.desktopProfiles,
             readMarket,
-            readAa: () => ({ requested: readProfilePreferences().aaEnabled === true, effective: prepared.aaEnabled }),
+            readAa: () => ({ requested: readProfilePreferences().aaEnabled === true, effective: effectiveAa }),
             selectAa: async enabled => {
               await enqueueProfilePreferencesWrite(current => desktopProfilePreferencesFromSettings(
                 current,
@@ -1849,7 +1870,7 @@ async function start(): Promise<void> {
               ))
               return desktopMarketSnapshotWithEffective(
                 await selectDesktopMarketProvider(marketUserDataDir, provider),
-                prepared.market.effective,
+                effectiveMarket,
               )
             },
             scheduleRestart: scheduleSettingsRestart,

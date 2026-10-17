@@ -91,7 +91,7 @@ const dshResolution = (name: string): unknown =>
 describe('published package surface', () => {
   it('keeps the private workspace version-neutral and versions the Beta package', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('2.0.17-beta.2')
+    expect(manifest.version).toBe('2.0.18-beta.2')
   })
 
   it('runs all desktop editions and community market typechecks from the root command', () => {
@@ -865,7 +865,7 @@ describe('published package surface', () => {
 
   it('fixes the installed application identity', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('2.0.17-beta.2')
+    expect(manifest.version).toBe('2.0.18-beta.2')
     expect(manifest.name).toBe('dsh-plugin-desktop-beta')
     expect(manifest.bin).toEqual({
       'dsh-desktop-beta': 'lib/bin.js',
@@ -1048,7 +1048,7 @@ describe('published package surface', () => {
     expect(manifest.build?.linux?.extraResources).toEqual([{ from: 'runtime', to: 'runtime' }])
     // electron-builder must not re-sign the pre-signed payloads, and the universal merge keeps the identical payloads as they are.
     expect(manifest.build?.mac?.signIgnore).toContain('/Contents/Resources/runtime/(?:arm64|x64)/primary-runtime(?:/|$)')
-    expect(manifest.build?.mac?.x64ArchFiles).toMatch(/^\{\*\*\/node_modules\/\{.+\},Contents\/Resources\/runtime\/\*\*\}$/u)
+    expect(manifest.build?.mac?.x64ArchFiles).toMatch(/^\{\*\*\/node_modules\/\{.+\},Contents\/Resources\/runtime\/\*\*,Contents\/Resources\/runtime\/\*\*\/\.\*\/\*\*\}$/u)
     expect(manifest.scripts?.['prepare:runtime']).toBe('node scripts/prepare-runtime.ts')
     for (const name of ['@deepseek-ai/dsh-skill-office', '@deepseek-ai/dsh-tool-workspace-dependencies']) {
       expect(manifest.dependencies?.[name], name).toBe(runtimeVersion)
@@ -1065,8 +1065,9 @@ describe('published package surface', () => {
       ciWorkflow.indexOf('  upstream-command-windows:'),
     )
 
+    const matrixSelector = "workspace: ${{ github.event_name == 'pull_request' && fromJSON('[\"dsh-plugin-desktop-beta\"]') || fromJSON('[\"dsh-plugin-desktop\", \"dsh-plugin-desktop-beta\"]') }}"
     expect(windowsJob).not.toContain('- run: yarn check')
-    expect(windowsJob).toContain('workspace: [dsh-plugin-desktop, dsh-plugin-desktop-beta]')
+    expect(windowsJob).toContain(matrixSelector)
     expect(windowsJob).toContain('- run: yarn workspace ${{ matrix.workspace }} check:win-package:platform')
     expect(windowsJob).toContain('run: yarn workspace ${{ matrix.workspace }} dist:win')
     expect(windowsJob).toContain('run: yarn workspace ${{ matrix.workspace }} dist:win-portable')
@@ -1074,7 +1075,7 @@ describe('published package surface', () => {
     // Smoke artifacts are never published, so CI skips their compression.
     expect(windowsJob.match(/DSH_WINDOWS_PACKAGE_COMPRESSION: store/g)).toHaveLength(2)
     expect(macosJob).not.toContain('- run: yarn check')
-    expect(macosJob).toContain('workspace: [dsh-plugin-desktop, dsh-plugin-desktop-beta]')
+    expect(macosJob).toContain(matrixSelector)
     expect(macosJob).toContain('- run: yarn workspace ${{ matrix.workspace }} check:mac-package:platform')
     expect(macosJob).toContain('run: yarn workspace ${{ matrix.workspace }} dist:mac-smoke')
     expect(macosJob).toContain('DSH_PACKAGE_CHECK_ALREADY_RAN: \'1\'')

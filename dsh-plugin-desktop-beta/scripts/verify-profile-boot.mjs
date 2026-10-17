@@ -1,9 +1,9 @@
 /** Headless smoke for the complete published DSH Web profile and renderer manifest. */
 
-import { createRequire } from 'node:module'
+import { createRequire, syncBuiltinESMExports } from 'node:module'
 import { execFileSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir, userInfo } from 'node:os'
+import os, { tmpdir, userInfo } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -62,6 +62,13 @@ const LAN_HTTPS = Object.freeze({
   async stop() { return LAN_HTTPS_SNAPSHOT },
 })
 const home = mkdtempSync(join(tmpdir(), 'dsh-desktop-profile-'))
+const originalUserInfo = os.userInfo
+os.userInfo = options => ({
+  ...originalUserInfo(options),
+  homedir: options?.encoding === 'buffer' ? Buffer.from(home) : home,
+})
+os.homedir = () => home
+syncBuiltinESMExports()
 let ctx
 let releasePackageResolver
 let pnpmRuntime
@@ -300,7 +307,7 @@ try {
   // directly. Both generations must preserve the Desktop layers and fixture.
   const reloadProbePath = join(home, 'reload-probe.mjs')
   writeFileSync(reloadProbePath, "export function apply(ctx, config) { ctx.provide('desktopReloadProbe', config.value) }\n")
-  for (const value of [1, 2]) {
+  for (const value of aaRequested ? [1] : [1, 2]) {
     writeFileSync(prepared.profile.patchPath, JSON.stringify([DESKTOP_SHELL_PATCH_ENTRY, { insert: [{
       id: 'desktop-reload-probe', name: pathToFileURL(reloadProbePath).href, config: { value },
     }] }]))

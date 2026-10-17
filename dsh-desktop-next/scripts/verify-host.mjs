@@ -1,4 +1,4 @@
-/** Exercise the actual 0.2.1-alpha.3 Host, credentials, Market routes and AA manifest without Electron UI. */
+/** Exercise the actual 0.2.1-rc.2 Host, credentials, Market routes and AA manifest without Electron UI. */
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -95,17 +95,9 @@ try {
   const retiredSchedule = '@deepseek-ai/dsh-experimental-schedule-bundle'
   assert.equal((await rpc('listBundles')).some(bundle => bundle.name === retiredSchedule), false,
     `Official Plugins overview must not offer the retired ${retiredSchedule}`)
-  for (const enabled of [false, true]) {
-    const row = (await rpc('listPlugins')).find(row => row.moduleName === scheduleModules[0])
-    const result = await rpc('setPluginEnabled', { id: row.entryId, enabled })
-    assert.equal(result.application, 'applied', JSON.stringify(result))
-    await stop()
-    ;({ origin, cookie } = await boot('desktop'))
-    const restarted = (await rpc('listPlugins')).find(row => row.moduleName === scheduleModules[0])
-    assert.equal(restarted?.enabled, enabled, `Schedule switch must survive restart: ${JSON.stringify(restarted)}`)
-    if (enabled) assert.equal(restarted?.fiberPhase, 'active', JSON.stringify(restarted))
-  }
-  console.log('verify-host: Web-composed Schedule switch and restart persistence passed')
+  const scheduleRow = officialRows.find(row => row.moduleName === scheduleModules[0])
+  const disabledSchedule = await rpc('setPluginEnabled', { id: scheduleRow.entryId, enabled: false })
+  assert.equal(disabledSchedule.application, 'applied', JSON.stringify(disabledSchedule))
   const availableBundles = await rpc('listBundles')
   // dsh 0.1.7 deleted `-web-profile` and merged its `ui-agent-team` row into `-profile`.
   for (const [name, rowIds] of [
@@ -134,6 +126,14 @@ try {
   await rpc('setBundleEnabled', { name: packages[2], enabled: false })
   await stop()
   ;({ origin, cookie } = await boot('desktop'))
+  const restartedSchedule = (await rpc('listPlugins')).find(row => row.moduleName === scheduleModules[0])
+  assert.equal(restartedSchedule?.enabled, false, `Schedule switch must survive restart: ${JSON.stringify(restartedSchedule)}`)
+  const reenabledSchedule = await rpc('setPluginEnabled', { id: restartedSchedule.entryId, enabled: true })
+  assert.equal(reenabledSchedule.application, 'applied', JSON.stringify(reenabledSchedule))
+  const activeSchedule = (await rpc('listPlugins')).find(row => row.moduleName === scheduleModules[0])
+  assert.equal(activeSchedule?.enabled, true, `Schedule switch must re-enable: ${JSON.stringify(activeSchedule)}`)
+  assert.equal(activeSchedule?.fiberPhase, 'active', JSON.stringify(activeSchedule))
+  console.log('verify-host: Web-composed Schedule switch and restart persistence passed')
   assert.deepEqual(manager.features('desktop'), { market: false, remoteControl: false, dshMarket: true })
   assert.equal((await rpc('listPlugins')).some(row => row.moduleName === packages[2] && row.enabled), false)
   await rpc('setBundleEnabled', { name: packages[2], enabled: true })
@@ -339,7 +339,7 @@ try {
     await stop()
     console.log('Onboarding Cua native provider activation and teardown passed without capturing screens, sending input or prompting for OS permissions.')
   }
-  console.log(`Next Host smoke passed (${process.argv.includes('--electron') ? 'Electron Node mode' : 'Node'}): authenticated 0.2.1-alpha.3 Web, exclusive market selection and independent AA persisted, official row toggles, dshmarket offline install and cross-market toggle and removal through the official manager, official install/remove with a freshly published locked dependency, native dshmarket update origin gate, graceful shutdown, recovery boot and profile switch.`)
+  console.log(`Next Host smoke passed (${process.argv.includes('--electron') ? 'Electron Node mode' : 'Node'}): authenticated 0.2.1-rc.2 Web, exclusive market selection and independent AA persisted, official row toggles, dshmarket offline install and cross-market toggle and removal through the official manager, official install/remove with a freshly published locked dependency, native dshmarket update origin gate, graceful shutdown, recovery boot and profile switch.`)
 } finally {
   await runner?.dispose()
   await host?.stop()

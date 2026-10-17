@@ -172,7 +172,7 @@ Plugin authors should use the supported contract imports, lifecycle rules, and a
 
 ## Packaging and updates
 
-The product version is `2.0.18-next`. Run from the repository root:
+The product version is `2.0.19-next`. Run from the repository root:
 
 ```sh
 corepack yarn package:dir:next

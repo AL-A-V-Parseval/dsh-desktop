@@ -126,7 +126,8 @@ export function verifyMacSmoke(
     ) {
       throw new Error(`packaged application has an invalid main executable: ${executablePath}`)
     }
-    for (const slice of options.executableSlices ?? macSmokeExecutableSlices('universal')) {
+    const slices = options.executableSlices ?? macSmokeExecutableSlices('universal')
+    for (const slice of slices) {
       options.run('lipo', [executablePath, '-verify_arch', slice])
     }
 
@@ -142,7 +143,7 @@ export function verifyMacSmoke(
       }
     }
 
-    for (const entry of MACOS_UNIVERSAL_NATIVE_ENTRIES) {
+    for (const entry of MACOS_UNIVERSAL_NATIVE_ENTRIES.filter(entry => slices.includes(entry.arch))) {
       const nativePath = join(unpackedRoot, entry.path)
       if (!options.exists(nativePath)) {
         throw new Error(`universal application is missing ${nativePath}`)
