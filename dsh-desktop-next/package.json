@@ -10,8 +10,8 @@
     "node": "^22.19.0 || >=24.0.0"
   },
   "scripts": {
-    "build": "tsdown && vite build --config vite.client.config.ts && vite build --config vite.native-ui.config.ts",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.packaging.json --noEmit",
+    "build": "node ../scripts/run-parallel.mjs \"tsdown\" \"vite build --config vite.client.config.ts\" \"vite build --config vite.native-ui.config.ts\"",
+    "typecheck": "node ../scripts/run-parallel.mjs \"tsc --noEmit\" \"tsc -p tsconfig.packaging.json --noEmit\"",
     "test": "vitest run",
     "verify:host": "node scripts/verify-host.mjs",
     "verify:host:electron": "node scripts/verify-host.mjs --electron",
@@ -21,7 +21,7 @@
     "verify:protocol": "electron scripts/verify-protocol.mjs",
     "verify:plugin-frames": "node scripts/verify-plugin-frames.mjs",
     "verify:sidebar-browser": "electron scripts/verify-sidebar-browser.mjs",
-    "check": "yarn build && yarn typecheck && yarn test && yarn verify:frontend && yarn verify:host && yarn verify:desktop-runtime && yarn verify:safe-cleanup",
+    "check": "yarn build && node ../scripts/run-parallel.mjs \"yarn typecheck\" \"yarn test\" \"yarn verify:frontend\" \"yarn verify:host\" \"yarn verify:desktop-runtime\" \"yarn verify:safe-cleanup\"",
     "dev": "yarn build && yarn prepare:runtime && node scripts/start.mjs",
     "start": "yarn prepare:runtime && node scripts/start.mjs",
     "verify:desktop-runtime": "node scripts/verify-desktop-runtime.mjs",
