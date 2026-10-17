@@ -748,6 +748,31 @@ virtualStoreDirMaxLength: 60
     }))
   })
 
+  it.each(['desktop', 'web', 'work'])('offers the Browser in %s while preserving explicit user patch overrides', (profileName) => {
+    const home = temporaryHome()
+    const template = PROFILE_TEMPLATES.web
+    if (template === undefined) throw new Error('test requires the shipped Web template')
+    const profileDir = profileName === 'desktop'
+      ? ensureDesktopProfile(home)
+      : join(home, 'profiles', profileName)
+    if (profileName !== 'desktop') {
+      initProfile(profileDir, template.bundles)
+    }
+    const browserRow = () => composeEntries([prepareDesktopProfile(undefined, home, 'darwin', profileName).patches])
+      .find(row => row.id === 'ui-sidebar-browser')
+
+    expect(browserRow()).toEqual({
+      id: 'ui-sidebar-browser',
+      name: '@deepseek-ai/dsh-client-ui-sidebar-browser',
+      disabled: false,
+    })
+
+    for (const disabled of [true, false]) {
+      writeFileSync(join(profileDir, 'cordis.patch.yml'), `- id: ui-sidebar-browser\n  disabled: ${disabled}\n`)
+      expect(browserRow()?.disabled).toBe(disabled)
+    }
+  })
+
   it('keeps a custom layout and withdraws incompatible browser and LAN access', () => {
     const home = temporaryHome()
     writeDesktopShellPreferences(home, [
