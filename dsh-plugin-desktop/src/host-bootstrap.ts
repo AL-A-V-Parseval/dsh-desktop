@@ -116,8 +116,22 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
       profilePreferencesStopping = true
       await profilePreferencesWriteTail
     }
+    let effectiveMarket = prepared.market.effective
+    let effectiveAa = prepared.aaEnabled
     const releasePackageResolver = installProfilePackageResolver(prepared.bareModuleBaseUrl)
-    const profileBoot = createDesktopProfileBoot(prepared, desktopPnpmBootstrap)
+    const profileBoot = createDesktopProfileBoot(prepared, desktopPnpmBootstrap, {
+      onManagedBundlesChanged: state => {
+        effectiveMarket = state.effectiveMarket
+        effectiveAa = state.effectiveAa
+        void enqueueProfilePreferencesWrite(current => desktopProfilePreferencesFromSettings(
+          current,
+          current.notifications,
+          state.requestedMarket,
+          state.requestedAa,
+        )).then(() => selectDesktopMarketProvider(marketUserDataDir, state.requestedMarket))
+          .catch(() => {})
+      },
+    })
     const ctx = await boot(
       BIN_NAME,
       prepared.rootConfig,
@@ -148,14 +162,12 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
           openTerminal: () => { runtime.openTerminal() },
           requestRestart: () => runtime.requestRestart(),
         })
-        if (prepared.market.effective === 'community-market') {
-          await hostCtx.plugin(DesktopPluginsService, {
-            profileName: activeProfileName,
-            homeDir,
-            statePath: pluginManagementStatePath,
-            installAnchor: desktopInstallAnchor(),
-          })
-        }
+        await hostCtx.plugin(DesktopPluginsService, {
+          profileName: activeProfileName,
+          homeDir,
+          statePath: pluginManagementStatePath,
+          installAnchor: desktopInstallAnchor(),
+        })
         if (logSink !== undefined) {
           fileExporter = new FileExporter(logSink)
           hostCtx.logger.exporter(fileExporter)
@@ -222,12 +234,12 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
         }, 'dsh-plugin-desktop: pending Desktop settings restart')
         const readMarket = () => desktopMarketSnapshotWithEffective(
           desktopProfileMarketSnapshot(readProfilePreferences().market),
-          prepared.market.effective,
+          effectiveMarket,
         )
         hostCtx.provide('desktopSettingsController', new DesktopSettingsController({
           profiles: hostCtx.desktopProfiles,
           readMarket,
-          readAa: () => ({ requested: readProfilePreferences().aaEnabled === true, effective: prepared.aaEnabled }),
+          readAa: () => ({ requested: readProfilePreferences().aaEnabled === true, effective: effectiveAa }),
           selectAa: async enabled => {
             await enqueueProfilePreferencesWrite(current => desktopProfilePreferencesFromSettings(
               current,
@@ -267,7 +279,7 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
             ))
             return desktopMarketSnapshotWithEffective(
               await selectDesktopMarketProvider(marketUserDataDir, provider),
-              prepared.market.effective,
+              effectiveMarket,
             )
           },
           scheduleRestart: scheduleSettingsRestart,

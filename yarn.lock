@@ -3213,7 +3213,7 @@ __metadata:
 
 "@deepseek-ai/dsh-hmr@patch:@deepseek-ai/dsh-hmr@file%3Avendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-hmr-0.2.1-rc.2.tgz#./patches/dsh-hmr@0.2.1-rc.2.patch::locator=deepseek-harness-desktop%40workspace%3A.":
   version: 0.2.1-rc.2
-  resolution: "@deepseek-ai/dsh-hmr@patch:@deepseek-ai/dsh-hmr@file%3Avendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-hmr-0.2.1-rc.2.tgz%23vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-hmr-0.2.1-rc.2.tgz%3A%3Ahash=127000&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/dsh-hmr@0.2.1-rc.2.patch::version=0.2.1-rc.2&hash=79d3c1&locator=deepseek-harness-desktop%40workspace%3A."
+  resolution: "@deepseek-ai/dsh-hmr@patch:@deepseek-ai/dsh-hmr@file%3Avendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-hmr-0.2.1-rc.2.tgz%23vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-hmr-0.2.1-rc.2.tgz%3A%3Ahash=127000&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/dsh-hmr@0.2.1-rc.2.patch::version=0.2.1-rc.2&hash=4fbe4c&locator=deepseek-harness-desktop%40workspace%3A."
   dependencies:
     "@babel/code-frame": "npm:^7.29.0"
     "@deepseek-ai/schemastery": "npm:~3.18.5"
@@ -3227,7 +3227,7 @@ __metadata:
     "@deepseek-ai/cordis-plugin-timer": ~1.1.7
     "@deepseek-ai/dsh-app-boot": 0.2.1-rc.2
     "@deepseek-ai/dsh-cmdline": 0.2.1-rc.2
-  checksum: 10c0/b3d6b574e81483262ded8192d6565e90e4e0a732042baa884601af23e4cdc9436582d1fe29b0348f369ad6dd7d0cb78eea1cf7fea2506264177d79509bed6e57
+  checksum: 10c0/aa7fb8aeb46aeb743d171968fb2e5a057c0db3487b3d6054269a16ab841a28fdbcc5245370c72f2a355d7f2733ea67af237e76d1c507c9dbe08c584dc21ff0e7
   languageName: node
   linkType: hard
 

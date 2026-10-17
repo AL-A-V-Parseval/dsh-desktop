@@ -749,6 +749,83 @@ export function ensureDesktopProfile(home: string = resolveDshHome()): string {
   return dir
 }
 
+const MANAGED_MARKET_BUNDLES = new Set<string>([
+  DESKTOP_MARKET_IDENTITIES.community.packageName,
+  DESKTOP_MARKET_IDENTITIES.dshMarket.packageName,
+])
+
+/** Read the Market provider and AA toggle state encoded in the Profile manifest's bundle list. */
+export function readDesktopManagedProfileBundles(profileDir: string): {
+  market: DesktopMarketProvider
+  aaEnabled: boolean
+} {
+  if (!existsSync(join(profileDir, 'package.json'))) {
+    return { market: 'disabled', aaEnabled: false }
+  }
+  const manifest = readProfileManifest(BIN_NAME, profileDir)
+  const rawBundles = (manifest.dsh?.profile as { bundles?: unknown } | undefined)?.bundles
+  if (!Array.isArray(rawBundles)) {
+    return { market: 'disabled', aaEnabled: false }
+  }
+  const bundles = rawBundles.filter((value): value is string => typeof value === 'string')
+  const dshMarketIndex = bundles.lastIndexOf(DESKTOP_MARKET_IDENTITIES.dshMarket.packageName)
+  const communityIndex = bundles.lastIndexOf(DESKTOP_MARKET_IDENTITIES.community.packageName)
+  const market: DesktopMarketProvider = dshMarketIndex < 0 && communityIndex < 0
+    ? 'disabled'
+    : dshMarketIndex > communityIndex
+      ? 'dsh-market'
+      : 'community-market'
+  const aaEnabled = bundles.includes(AA_PACKAGE_NAME)
+  return { market, aaEnabled }
+}
+
+/**
+ * Synchronize the Profile manifest's `dsh.profile.bundles` list with the active
+ * Market provider and AA toggle state so `dsh-plugin-manager` reports and
+ * toggles the exact bundles that Desktop is running.
+ */
+export function syncDesktopManagedProfileBundles(
+  profileDir: string,
+  state: { market: DesktopMarketProvider; aaEnabled: boolean },
+): void {
+  if (!existsSync(join(profileDir, 'package.json'))) return
+  const manifest = readProfileManifest(BIN_NAME, profileDir)
+  const rawBundles = (manifest.dsh?.profile as { bundles?: unknown } | undefined)?.bundles
+  if (rawBundles !== undefined
+    && (!Array.isArray(rawBundles) || rawBundles.some(value => typeof value !== 'string'))) {
+    return
+  }
+  const current = rawBundles === undefined ? [] : rawBundles as string[]
+  const wantedMarketBundle = state.market === 'dsh-market'
+    ? DESKTOP_MARKET_IDENTITIES.dshMarket.packageName
+    : state.market === 'community-market'
+      ? DESKTOP_MARKET_IDENTITIES.community.packageName
+      : undefined
+  const next = current.filter(name => {
+    if (MANAGED_MARKET_BUNDLES.has(name)) return name === wantedMarketBundle
+    if (name === AA_PACKAGE_NAME) return state.aaEnabled
+    return true
+  })
+  if (wantedMarketBundle !== undefined && !next.includes(wantedMarketBundle)) {
+    next.push(wantedMarketBundle)
+  }
+  if (state.aaEnabled && !next.includes(AA_PACKAGE_NAME)) {
+    next.push(AA_PACKAGE_NAME)
+  }
+  if (!sameList(current, next)) {
+    writeProfileManifest(profileDir, {
+      ...manifest,
+      dsh: {
+        ...manifest.dsh,
+        profile: {
+          ...manifest.dsh?.profile,
+          bundles: next,
+        },
+      },
+    })
+  }
+}
+
 interface ParsedProfileYaml {
   readonly document: ReturnType<typeof parseDocument>
   readonly value: Record<string, unknown>
