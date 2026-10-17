@@ -1,6 +1,6 @@
 {
   "name": "dsh-desktop-next",
-  "version": "2.0.18-next",
+  "version": "2.0.19-next",
   "private": true,
   "description": "Experimental upstream-inspired DSH Desktop with Profiles, recovery, remote control and Community Market",
   "license": "MIT",
@@ -213,7 +213,7 @@
     "@deepseek-ai/dsh-workspace": "0.2.1-rc.2",
     "@deepseek-ai/schemastery": "^3.18.5",
     "dsh-community-market": "0.1.0-dev.0",
-    "dshmarket": "1.66.33",
+    "dshmarket": "1.66.34",
     "mdast-util-from-markdown": "^2.0.3",
     "mdast-util-gfm": "^3.1.0",
     "mdast-util-to-string": "^4.0.0",
