@@ -14,8 +14,8 @@ import { en as desktopEn, zh as desktopZh, type DesktopSettingsLocaleKey } from 
 import { ComputerUseSettings } from './computer-use.tsx'
 import {
   BUILT_IN_MARKET_SOURCES, COMMUNITY_MARKET as COMMUNITY, configureSingleMarketToOfficial, DSH_MARKET as MARKET,
-  importMarketSourcesToOfficial, marketToggleTargets, OFFICIAL_MARKET, removeMarketSourcesFromOfficial,
-  resolveActiveMarketSource, toggleMarketEndpointInOfficial,
+  importMarketSourcesToOfficial, marketToggleTargets, OFFICIAL_CONFIGURABLE_MARKET_SOURCES, OFFICIAL_MARKET,
+  removeMarketSourcesFromOfficial, resolveActiveMarketSource, toggleMarketEndpointInOfficial,
   type BuiltInMarketKey, type MarketName, type MarketRuntimeState,
 } from './market-toggle.ts'
 
@@ -314,8 +314,8 @@ function MarketSourcesDialog({ open, onClose, context, bundles, preferredMarket,
         <div className="dshNextMarketSourceNoticeCopy">
           <IconWarningOutlineRegular size={14} aria-hidden="true" />
           <span>{t(
-            '“快速配置”即为配置所有插件市场的所有默认源：会自动开启官方的“自定义插件市场”插件，直接配置下方三个内置插件市场的默认源，并将当前正在使用的插件源同步为选中源。',
-            '"Quick configuration" configures all default sources of all plugin markets: it automatically enables the official "Custom Plugin Market" plugin, configures the default sources of the three built-in markets below, and syncs the currently active source.',
+            '“快速配置”会自动开启官方的“自定义插件市场”插件，直接配置下方已适配官方索引格式的内置插件市场（dsh-market）默认源，并将其同步为选中源。',
+            '"Quick configuration" automatically enables the official "Custom Plugin Market" plugin, configures the default source of the adapted built-in plugin market below (dsh-market), and syncs it as the selected source.',
           )}</span>
         </div>
         <Button variant="primary" size="sm" disabled={importing} onClick={() => { void handleImport() }}>
@@ -329,34 +329,19 @@ function MarketSourcesDialog({ open, onClose, context, bundles, preferredMarket,
             <strong>{t('当前使用的插件市场', 'Currently active plugin market')}</strong>
             {resolution.enabled && <Tag>{zh ? activeMarketDef.title.zh : activeMarketDef.title.en}</Tag>}
             {resolution.enabled && activeMarketDef.bundle === COMMUNITY && <Tag>Beta</Tag>}
-            {resolution.enabled && resolution.region && <Tag>{resolution.region === 'china' ? t('国内镜像区', 'China mirror') : t('国际源 Global', 'Global')}</Tag>}
             {officialEnabled && <Tag tone="info">{t('官方自定义插件市场', 'Official Custom Plugin Market')}</Tag>}
           </div>
-          {resolution.enabled ? (
-            <>
-              <p className="dshDesktopSettingsHint">
-                {t(`当前生效源：${resolution.desktopActiveUrl ?? resolution.syncUrl}（快速配置同步选中：${resolution.syncUrl}）`,
-                  `Active source: ${resolution.desktopActiveUrl ?? resolution.syncUrl} (synced on quick config: ${resolution.syncUrl})`)}
-              </p>
-              {officialEnabled && (
-                <span className="dshNextPermissionStatus" role="status">
-                  <StateDot state="done" />
-                  {t(`已开启官方“自定义插件市场”插件（已配置 ${String(configuredUrls.length)} 个索引源）`,
-                    `Official "Custom Plugin Market" plugin enabled (${String(configuredUrls.length)} index sources configured)`)}
-                </span>
-              )}
-            </>
-          ) : officialEnabled ? (
+          {officialEnabled ? (
             <span className="dshNextPermissionStatus" role="status">
               <StateDot state="done" />
               {t(`已开启官方“自定义插件市场”插件（已配置 ${String(configuredUrls.length)} 个索引源）`,
                 `Official "Custom Plugin Market" plugin enabled (${String(configuredUrls.length)} index sources configured)`)}
             </span>
-          ) : (
+          ) : !resolution.enabled ? (
             <p className="dshDesktopSettingsHint">
               {t('当前没有配置插件市场', 'No plugin market is currently configured')}
             </p>
-          )}
+          ) : null}
         </div>
       </div>
       <div className="dshNextMarketSourceSectionHeader" role="group" aria-label={t('官方自定义插件市场配置', 'Official Custom Plugin Market configuration')}>
@@ -379,7 +364,7 @@ function MarketSourcesDialog({ open, onClose, context, bundles, preferredMarket,
             disabled={importing || officialLocked} onChange={enabled => { void handleToggleOfficialMarket(enabled) }} />
         </div>
       </div>
-      {officialEnabled && BUILT_IN_MARKET_SOURCES.map(marketDef => {
+      {officialEnabled && OFFICIAL_CONFIGURABLE_MARKET_SOURCES.map(marketDef => {
         const isCurrentMarket = resolution.enabled && resolution.marketKey === marketDef.key
         const isMarketConfigured = marketDef.sources.some(source => configuredSet.has(source.url))
         return <div key={marketDef.key} className="dshNextPermissionRow" role="group"
