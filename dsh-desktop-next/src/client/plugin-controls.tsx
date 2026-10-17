@@ -344,26 +344,38 @@ function MarketSourcesDialog({ open, onClose, context, bundles, preferredMarket,
           ) : null}
         </div>
       </div>
-      <div className="dshNextMarketSourceSectionHeader" role="group" aria-label={t('官方自定义插件市场配置', 'Official Custom Plugin Market configuration')}>
-        <div className="dshNextMarketSourceHeaderMain">
-          <strong>{t('可供官方“自定义插件市场”配置的插件源', 'Plugin sources available for the official Custom Plugin Market')}</strong>
-          <p className="dshDesktopSettingsHint">
-            {officialEnabled
-              ? t(
-                '下方为可供官方“自定义插件市场”使用的内置插件源：点击插件市场右侧的“添加 / 重置”可一键添加或清空该市场下的全部插件源；点击单个插件源右侧的“配置此源 / 删除配置”可单独添加或移除对应源。',
-                'Built-in sources available for the official "Custom Plugin Market": click "Add / Reset" on a market to add or clear all of its sources, or click "Configure source / Remove configuration" on an individual source to add or remove it separately.',
-              )
-              : t(
-                '开启右侧开关或点击上方“快速配置”以启用官方“自定义插件市场”，启用后可在下方配置与管理内置插件源。',
-                'Turn on the switch on the right or click "Quick configuration" above to enable the official "Custom Plugin Market" and manage built-in sources below.',
-              )}
-          </p>
+      <div className="dshNextPermissionRow" role="group" aria-label={t('官方自定义插件市场配置', 'Official Custom Plugin Market configuration')}>
+        <div className="dshNextPermissionCopy">
+          <div className="dshNextMarketSourceHeaderMain">
+            <div className="dshNextMarketSourceTitle">
+              <strong>{t('自定义插件市场', 'Custom plugin markets')}</strong>
+              {officialRow?.version && <Tag>{`v${officialRow.version}`}</Tag>}
+              <Tag tone="info">{t('实验性', 'Experimental')}</Tag>
+            </div>
+            {officialEnabled && <code className="dshNextMarketSourceUrl">{OFFICIAL_MARKET}</code>}
+            <p className="dshDesktopSettingsHint">
+              {officialEnabled
+                ? t(
+                  '在插件页添加「发现」标签页，从你添加的插件市场索引浏览和安装插件。',
+                  'Adds a Discover tab to Plugins for browsing and installing bundles from plugin market indexes you add.',
+                )
+                : t(
+                  '开启右侧开关或点击上方“快速配置”以启用官方“自定义插件市场”，启用后可在下方配置与管理内置插件源。',
+                  'Turn on the switch on the right or click "Quick configuration" above to enable the official "Custom Plugin Market" and manage built-in sources below.',
+                )}
+            </p>
+          </div>
         </div>
         <div className="dshNextPluginActions">
           <Switch label={t('启用官方自定义插件市场', 'Enable official Custom Plugin Market')} checked={officialEnabled}
             disabled={importing || officialLocked} onChange={enabled => { void handleToggleOfficialMarket(enabled) }} />
         </div>
       </div>
+      {officialEnabled && <div className="dshNextMarketSourceSectionHeader">
+        <div className="dshNextMarketSourceHeaderMain">
+          <strong>{t('可供官方“自定义插件市场”配置的插件源', 'Plugin sources available for the official Custom Plugin Market')}</strong>
+        </div>
+      </div>}
       {officialEnabled && OFFICIAL_CONFIGURABLE_MARKET_SOURCES.map(marketDef => {
         const isCurrentMarket = resolution.enabled && resolution.marketKey === marketDef.key
         const isMarketConfigured = marketDef.sources.some(source => configuredSet.has(source.url))
