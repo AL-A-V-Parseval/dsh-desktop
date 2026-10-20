@@ -33,8 +33,59 @@ async function readCommunityMarketSources(signal?: AbortSignal): Promise<MarketR
   return Array.isArray(payload.sources) ? payload.sources : undefined
 }
 
+interface BundlesCacheEntry {
+  loaded: boolean
+  bundles: BundleInfo[]
+  preferredMarket: MarketName
+}
+
+const bundlesCache = new WeakMap<Context, BundlesCacheEntry>()
+
+function getBundlesCache(context: Context): BundlesCacheEntry {
+  let entry = bundlesCache.get(context)
+  if (!entry) {
+    const official = readOfficialBundles(context)
+    const community = official?.find(row => row.name === COMMUNITY)
+    const market = official?.find(row => row.name === MARKET)
+    const preferredMarket: MarketName = market?.enabled && !community?.enabled ? MARKET : COMMUNITY
+    entry = {
+      loaded: official !== undefined,
+      bundles: official ?? [],
+      preferredMarket,
+    }
+    bundlesCache.set(context, entry)
+  } else if (!entry.loaded) {
+    const official = readOfficialBundles(context)
+    if (official !== undefined) {
+      entry.loaded = true
+      entry.bundles = official
+      const community = official.find(row => row.name === COMMUNITY)
+      const market = official.find(row => row.name === MARKET)
+      if (market?.enabled && !community?.enabled) entry.preferredMarket = MARKET
+      else if (community?.enabled && !market?.enabled) entry.preferredMarket = COMMUNITY
+    }
+  }
+  return entry
+}
+
+function warmBundlesCache(context: Context): void {
+  const listBundles = context.remote?.pluginManager?.listBundles
+  if (typeof listBundles !== 'function') return
+  const cache = getBundlesCache(context)
+  void listBundles().then(result => {
+    if (!result.ok) return
+    cache.bundles = result.value
+    cache.loaded = true
+    const community = result.value.find(row => row.name === COMMUNITY)
+    const market = result.value.find(row => row.name === MARKET)
+    if (market?.enabled && !community?.enabled) cache.preferredMarket = MARKET
+    else if (community?.enabled && !market?.enabled) cache.preferredMarket = COMMUNITY
+  }).catch(() => {})
+}
+
 export function registerPluginControls(ctx: Context): void {
   ctx.inject?.(['remote', 'remote.pluginManager', 'remote.pluginMarket'], inner => {
+    warmBundlesCache(inner)
     inner.slots.inject('plugins.overview', () => inner.slots.register({
       name: 'plugins.overview',
       id: 'desktop-plugins',
@@ -54,11 +105,12 @@ export function PluginControls({
   const t = (cn: string, en: string): string => zh ? cn : en
   const desktopCopy = zh ? desktopZh : desktopEn
   const desktopText = (key: string): string => Object.hasOwn(desktopCopy, key) ? desktopCopy[key as DesktopSettingsLocaleKey] : key
-  const [bundles, setBundles] = useState<BundleInfo[]>([])
+  const cache = getBundlesCache(context)
+  const [bundles, setBundles] = useState<BundleInfo[]>(() => cache.bundles)
   const [revision, refresh] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => !cache.loaded)
   const [busy, setBusy] = useState(false)
-  const [preferredMarket, setPreferredMarket] = useState<MarketName>(COMMUNITY)
+  const [preferredMarket, setPreferredMarket] = useState<MarketName>(() => cache.preferredMarket)
   const pending = useRef(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -71,21 +123,34 @@ export function PluginControls({
   }, [context])
   useEffect(() => {
     let disposed = false
-    setLoading(true)
+    if (!cache.loaded) setLoading(true)
     void context.remote.pluginManager.listBundles().then(result => {
       if (disposed) return
       if (!result.ok) throw new Error(result.error.message)
+      cache.bundles = result.value
+      cache.loaded = true
       setBundles(result.value)
-    }).catch(failure => { if (!disposed) { setBundles([]); setError(String(failure)) } })
-      .finally(() => { if (!disposed) setLoading(false) })
+    }).catch(failure => {
+      if (!disposed) {
+        if (!cache.loaded) setBundles([])
+        setError(String(failure))
+      }
+    }).finally(() => { if (!disposed) setLoading(false) })
     return () => { disposed = true }
-  }, [context, revision])
+  }, [cache, context, revision])
   const community = bundles.find(row => row.name === COMMUNITY)
   const market = bundles.find(row => row.name === MARKET)
+  const remoteRow = bundles.find(row => row.name === REMOTE)
   useEffect(() => {
-    if (community?.enabled && !market?.enabled) setPreferredMarket(COMMUNITY)
-    if (market?.enabled && !community?.enabled) setPreferredMarket(MARKET)
-  }, [community?.enabled, market?.enabled])
+    if (community?.enabled && !market?.enabled) {
+      cache.preferredMarket = COMMUNITY
+      setPreferredMarket(COMMUNITY)
+    }
+    if (market?.enabled && !community?.enabled) {
+      cache.preferredMarket = MARKET
+      setPreferredMarket(MARKET)
+    }
+  }, [cache, community?.enabled, market?.enabled])
   const change = async (names: readonly string[], enabled: boolean): Promise<void> => {
     if (pending.current || loading) return
     pending.current = true
@@ -99,7 +164,10 @@ export function PluginControls({
         if (change.application === 'failed' || change.application === 'cancelled') throw new Error(change.error?.diagnostic ?? t('无法更改插件状态。', 'Could not change the plugin state.'))
         if (change.application === 'restart-required') setNotice(t('已保存，请重启后台服务以应用。', 'Saved. Restart the background service to apply.'))
         if (change.application === 'overridden') setNotice(t('已保存，但当前配置覆盖了此选择。', 'Saved, but another configuration overrides this choice.'))
-        if (enabled && (name === COMMUNITY || name === MARKET)) setPreferredMarket(name)
+        if (enabled && (name === COMMUNITY || name === MARKET)) {
+          cache.preferredMarket = name
+          setPreferredMarket(name)
+        }
       }
     } catch (failure) { setError(failure instanceof Error ? failure.message : String(failure)) }
     finally { pending.current = false; setBusy(false); refresh(value => value + 1) }
@@ -138,7 +206,8 @@ export function PluginControls({
     <div className="dshNextPluginSections">
       <PluginCard title={t('远程控制', 'Remote Control')} description={remoteDescription(t)}
         icon={<PluginArtworkDefault size={36} />} onOpen={() => { onOpenBundle(REMOTE) }}>
-        <RemoteControlSettings context={context} t={t} />
+        <RemoteControlSettings context={context} t={t} row={remoteRow} loading={loading}
+          onChanged={() => { refresh(value => value + 1) }} />
       </PluginCard>
     </div>
     {notice && <p role="status" className="dshDesktopSettingsHint">{notice}</p>}
@@ -454,31 +523,16 @@ function PluginCard({ title, description, icon, onOpen, children }: {
   </div>
 }
 
-function RemoteControlSettings({ context, t }: { context: Context; t: Translate }) {
-  const [row, setRow] = useState<BundleInfo>()
-  const [revision, refresh] = useState(0)
-  const [loading, setLoading] = useState(true)
+function RemoteControlSettings({ context, t, row, loading, onChanged }: {
+  context: Context
+  t: Translate
+  row: BundleInfo | undefined
+  loading: boolean
+  onChanged(): void
+}) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  useEffect(() => {
-    const reload = (): void => { refresh(value => value + 1) }
-    const off = context.remote.$on('plugin-manager/changed', reload)
-    const reset = context.on('connection/reset', reload)
-    window.addEventListener('focus', reload)
-    return () => { off(); reset(); window.removeEventListener('focus', reload) }
-  }, [context])
-  useEffect(() => {
-    let disposed = false
-    setLoading(true)
-    void context.remote.pluginManager.listBundles().then(result => {
-      if (disposed) return
-      if (!result.ok) throw new Error(result.error.message)
-      setRow(result.value.find(bundle => bundle.name === REMOTE))
-    }).catch(failure => { if (!disposed) { setRow(undefined); setError(String(failure)) } })
-      .finally(() => { if (!disposed) setLoading(false) })
-    return () => { disposed = true }
-  }, [context, revision])
   const change = async (enabled: boolean): Promise<void> => {
     if (busy || loading || !row) return
     setBusy(true); setError(''); setNotice('')
@@ -490,7 +544,7 @@ function RemoteControlSettings({ context, t }: { context: Context; t: Translate 
       if (change.application === 'restart-required') setNotice(t('已保存，请重启后台服务以应用。', 'Saved. Restart the background service to apply.'))
       if (change.application === 'overridden') setNotice(t('已保存，但当前配置覆盖了此选择。', 'Saved, but another configuration overrides this choice.'))
     } catch (failure) { setError(failure instanceof Error ? failure.message : String(failure)) }
-    finally { setBusy(false); refresh(value => value + 1) }
+    finally { setBusy(false); onChanged() }
   }
   const openPanel = (): void => {
     const trigger = document.querySelector<HTMLButtonElement>('[data-slot="sidebar.footer.action"] button[aria-haspopup="dialog"][aria-label="远程控制"], [data-slot="sidebar.footer.action"] button[aria-haspopup="dialog"][aria-label="Remote Control"], [data-slot="sidebar.footer.action"] button[aria-haspopup="dialog"][aria-label="Mobile connection"], [data-slot="sidebar.footer.action"] button[aria-haspopup="dialog"][aria-label="手机连接"], [data-slot="sidebar.footer.action"] button[aria-haspopup="dialog"][aria-label="Agents Anywhere"]')
@@ -507,6 +561,41 @@ function RemoteControlSettings({ context, t }: { context: Context; t: Translate 
     {notice && <span role="status" className="dshDesktopSettingsHint">{notice}</span>}
     {error && <span role="alert" className="dshDesktopSettingsError">{error}</span>}
   </div>
+}
+
+function readOfficialBundles(context: Context): BundleInfo[] | undefined {
+  try {
+    const get = (context as { get?: (key: string) => unknown }).get
+    if (typeof get !== 'function') return undefined
+    const slots = get.call(context, 'slots') as {
+      readonly _core?: {
+        readonly entries?: (key: string) => readonly {
+          readonly options?: { readonly id?: string; readonly key?: string }
+          readonly inject?: () => {
+            readonly hooks?: {
+              readonly pluginManager?: {
+                readonly getSnapshot?: () => {
+                  readonly status?: string
+                  readonly packages?: readonly BundleInfo[]
+                }
+              }
+            }
+          }
+        }[]
+      }
+    } | undefined
+    const mainEntries = slots?._core?.entries?.('main')
+    const overlayEntries = slots?._core?.entries?.('shell.overlay')
+    const entry = mainEntries?.find(item => item.options?.key === 'plugins')
+      ?? overlayEntries?.find(item => item.options?.id === 'plugin-manager.refresh-toast')
+    const snapshot = entry?.inject?.()?.hooks?.pluginManager?.getSnapshot?.()
+    if ((snapshot?.status === 'ready' || snapshot?.status === 'error') && Array.isArray(snapshot.packages)) {
+      return [...snapshot.packages]
+    }
+  } catch {
+    // Fallback to direct RPC when the official plugin manager store is unavailable.
+  }
+  return undefined
 }
 
 function reloadDiscoverIndexesIfMounted(context: Context): void {

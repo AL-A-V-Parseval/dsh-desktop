@@ -16,7 +16,7 @@
     "dsh-codex-signin"
   ],
   "resolutions": {
-    "@agents-anywhere/dsh-bridge-next": "patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c58d98da25a23.r2e406d2a.tgz#./patches/agents-anywhere-connector-httpx.patch",
+    "@agents-anywhere/dsh-bridge-next": "patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.ca67a3f5b7715.r2e406d2a.tgz#./patches/agents-anywhere-connector-httpx.patch",
     "app-builder-lib@npm:26.15.7": "patch:app-builder-lib@npm%3A26.15.7#./patches/app-builder-lib@26.15.7.patch",
     "open@npm:11.0.1": "patch:open@npm%3A11.0.1#./patches/open@11.0.1.patch",
     "open@npm:^11.0.0": "patch:open@npm%3A11.0.1#./patches/open@11.0.1.patch",
@@ -499,8 +499,8 @@
     "@deepseek-ai/dsh-client-ui-chat@npm:^0.2.1-rc.2": "file:vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-client-ui-chat-0.2.1-rc.2.tgz",
     "@deepseek-ai/dsh-client-ui-commands@npm:0.2.1-rc.2": "file:vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-client-ui-commands-0.2.1-rc.2.tgz",
     "@deepseek-ai/dsh-client-ui-commands@npm:^0.2.1-rc.2": "file:vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-client-ui-commands-0.2.1-rc.2.tgz",
-    "@deepseek-ai/dsh-client-ui-conversation@npm:0.2.1-rc.2": "patch:@deepseek-ai/dsh-client-ui-conversation@file%3Avendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-client-ui-conversation-0.2.1-rc.2.tgz#./patches/dsh-client-ui-conversation@0.2.1-rc.2.patch",
-    "@deepseek-ai/dsh-client-ui-conversation@npm:^0.2.1-rc.2": "patch:@deepseek-ai/dsh-client-ui-conversation@file%3Avendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-client-ui-conversation-0.2.1-rc.2.tgz#./patches/dsh-client-ui-conversation@0.2.1-rc.2.patch",
+    "@deepseek-ai/dsh-client-ui-conversation@npm:0.2.1-rc.2": "file:vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-client-ui-conversation-0.2.1-rc.2.tgz",
+    "@deepseek-ai/dsh-client-ui-conversation@npm:^0.2.1-rc.2": "file:vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-client-ui-conversation-0.2.1-rc.2.tgz",
     "@deepseek-ai/dsh-client-ui-deepseek-model-label-1017@npm:0.2.1-rc.2": "file:vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-client-ui-deepseek-model-label-1017-0.2.1-rc.2.tgz",
     "@deepseek-ai/dsh-client-ui-deepseek-model-label-1017@npm:^0.2.1-rc.2": "file:vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-client-ui-deepseek-model-label-1017-0.2.1-rc.2.tgz",
     "@deepseek-ai/dsh-client-ui-deliverables@npm:0.2.1-rc.2": "file:vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-client-ui-deliverables-0.2.1-rc.2.tgz",
@@ -715,10 +715,10 @@
     "@deepseek-ai/dsh-webhook@npm:^0.2.1-rc.2": "file:vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-webhook-0.2.1-rc.2.tgz",
     "@deepseek-ai/dsh-webhook-github@npm:0.2.1-rc.2": "file:vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-webhook-github-0.2.1-rc.2.tgz",
     "@deepseek-ai/dsh-webhook-github@npm:^0.2.1-rc.2": "file:vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-webhook-github-0.2.1-rc.2.tgz",
-    "dshmarket@npm:1.66.35": "patch:dshmarket@npm%3A1.66.35#./.yarn/patches/dshmarket-desktop.patch",
     "sharp@npm:0.35.5": "patch:sharp@npm%3A0.35.5#~/.yarn/patches/sharp-npm-0.35.5-3bf79c44f8.patch",
     "sharp@npm:^0.35.3": "patch:sharp@npm%3A0.35.5#~/.yarn/patches/sharp-npm-0.35.5-3bf79c44f8.patch",
-    "sharp@npm:^0.35.5": "patch:sharp@npm%3A0.35.5#~/.yarn/patches/sharp-npm-0.35.5-3bf79c44f8.patch"
+    "sharp@npm:^0.35.5": "patch:sharp@npm%3A0.35.5#~/.yarn/patches/sharp-npm-0.35.5-3bf79c44f8.patch",
+    "dshmarket@npm:1.66.44": "patch:dshmarket@npm%3A1.66.44#./.yarn/patches/dshmarket-desktop.patch"
   },
   "dependenciesMeta": {
     "@deepseek-ai/dsh-subprocess-local": {

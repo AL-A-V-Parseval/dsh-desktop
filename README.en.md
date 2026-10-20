@@ -171,6 +171,14 @@ All core capabilities come from upstream and these open-source projects:
 - [Cordis](https://github.com/cordiverse/cordis)
 - [Koishi](https://koishi.chat/)
 
+## About Us
+
+United by a passion for open source, we collaborate to turn the possibilities of AI into accessible tools and meaningful experiences.
+
+<p align="center">
+  <a href="https://github.com/anywhere-labs/about-us"><img src="https://img.shields.io/badge/Meet%20the%20Team-Anywhere%20Labs-4D6BFE?style=for-the-badge" alt="Meet the Team"></a>
+</p>
+
 ## License
 
 [MIT License](LICENSE).

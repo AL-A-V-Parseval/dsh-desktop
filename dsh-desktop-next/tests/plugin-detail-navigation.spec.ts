@@ -1,14 +1,30 @@
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { runInNewContext } from 'node:vm'
-import { expect, it, vi } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
-import { registerPluginControls } from '../src/client/plugin-controls.tsx'
 
+const hooks = vi.hoisted(() => ({ effects: [] as (() => unknown)[], states: [] as unknown[], cursor: 0 }))
+vi.mock('react', async importOriginal => ({
+  ...await importOriginal<typeof import('react')>(),
+  useEffect: (effect: () => unknown) => { hooks.effects.push(effect) },
+  useRef: (current: unknown) => ({ current }),
+  useState: (initial: unknown) => {
+    const index = hooks.cursor++
+    if (!(index in hooks.states)) hooks.states[index] = typeof initial === 'function' ? (initial as () => unknown)() : initial
+    return [hooks.states[index], (next: unknown) => {
+      hooks.states[index] = typeof next === 'function' ? (next as (prev: unknown) => unknown)(hooks.states[index]) : next
+    }]
+  },
+}))
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
   Button: 'button', PluginArtworkDefault: 'svg', Switch: 'input', StateDot: 'span',
   Toast: 'aside', Modal: 'dialog', IconSettingsOutlineRegular: 'svg',
+  IconWarningOutlineRegular: 'svg', Tag: 'span',
 }))
+import { registerPluginControls } from '../src/client/plugin-controls.tsx'
+
+afterEach(() => { hooks.effects = []; hooks.states = []; hooks.cursor = 0; vi.unstubAllGlobals() })
 
 type Node = { type: string | ((props: any) => Node); props: Record<string, any> }
 const jsx = (type: Node['type'], props: Node['props']): Node => ({ type, props })
@@ -228,4 +244,83 @@ it('lets composite item details reuse the official component list, live state an
   const updatedBody = render(component(app.page(), 'ItemDetail')!)
   const updatedSlot = nodes(updatedBody).find(node => node.props.name === 'plugins.item' && node.props.owner.view === 'page')!
   expect(updatedSlot.props.owner.renderComponents(['@deepseek-ai/dsh-schedule']).props.rows[0].enabled).toBe(false)
+})
+
+it('seeds PluginControls, RemoteControlSettings, and ComputerUseSettings from the official snapshot and warmed cache without disabling switches on remount', async () => {
+  vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
+  const packages = [
+    { name: 'dsh-community-market', enabled: true },
+    { name: 'dshmarket', enabled: false },
+    { name: '@agents-anywhere/dsh-bridge-next', enabled: true },
+  ]
+  const cuaRow = {
+    entryId: 'include:cua',
+    moduleName: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-native',
+    enabled: true,
+    fiberPhase: 'active',
+  }
+  const listBundles = vi.fn(async () => ({ ok: true as const, value: packages }))
+  const listPlugins = vi.fn(async () => ({ ok: true as const, value: [cuaRow] }))
+  let OverviewView: ((props: any) => Node) | undefined
+  const ctx: any = {
+    get: (key: string) => key === 'slots' ? ctx.slots : undefined,
+    on: () => () => {},
+    inject: (_services: unknown, callback: (context: unknown) => void) => { callback(ctx) },
+    remote: {
+      $on: () => () => {},
+      pluginManager: { listBundles, listPlugins, setBundleEnabled: vi.fn(), setPluginEnabled: vi.fn() },
+      pluginMarket: { listIndexes: vi.fn(async () => ({ ok: true as const, value: [] })) },
+    },
+    slots: {
+      _core: {
+        entries: (name: string) => name === 'main' ? [{
+          options: { key: 'plugins' },
+          inject: () => ({
+            hooks: {
+              pluginManager: {
+                getSnapshot: () => ({ status: 'ready', packages }),
+              },
+            },
+          }),
+        }] : [],
+      },
+      inject: (_name: string, callback: () => unknown) => { callback() },
+      register: (options: { name: string }, view: (props: any) => Node) => {
+        if (options.name === 'plugins.overview') OverviewView = view
+        return () => {}
+      },
+    },
+  }
+  registerPluginControls(ctx as Context)
+  await vi.waitFor(() => {
+    expect(listBundles).toHaveBeenCalledTimes(1)
+    expect(listPlugins).toHaveBeenCalledTimes(1)
+  })
+
+  // Simulate remounting the Installed Plugins page while background refresh RPCs are still in flight
+  listBundles.mockReturnValue(new Promise(() => {}))
+  listPlugins.mockReturnValue(new Promise(() => {}))
+  hooks.states = []
+  hooks.cursor = 0
+  hooks.effects = []
+
+  const tree = OverviewView!({
+    context: ctx,
+    t: (key: string) => key === 'language' ? 'zh' : key,
+    onOpenBundle: vi.fn(),
+    onOpenItem: vi.fn(),
+  })
+  const marketSwitch = nodes(tree).find(node => node.type === 'input' && node.props.label === '启用插件市场')!
+  expect(marketSwitch.props.checked).toBe(true)
+  expect(marketSwitch.props.disabled).toBe(false)
+
+  const remoteNode = render(component(tree, 'RemoteControlSettings')!)
+  const remoteSwitch = nodes(remoteNode).find(node => node.type === 'input' && node.props.label === '启用远程控制')!
+  expect(remoteSwitch.props.checked).toBe(true)
+  expect(remoteSwitch.props.disabled).toBe(false)
+
+  const cuaNode = render(component(tree, 'ComputerUseSettings')!)
+  const cuaSwitch = nodes(cuaNode).find(node => node.type === 'input' && node.props.label === '启用 Computer Use')!
+  expect(cuaSwitch.props.checked).toBe(true)
+  expect(cuaSwitch.props.disabled).toBe(false)
 })

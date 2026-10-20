@@ -171,6 +171,14 @@ DSH_AA_SOURCE_REF=pinned corepack yarn package:dir
 - [Cordis](https://github.com/cordiverse/cordis)
 - [Koishi](https://koishi.chat/)
 
+## 关于我们
+
+我们因对开源的热爱而相聚，以协作推动创新，共同将 AI 的可能性转化为触手可及的工具与体验。
+
+<p align="center">
+  <a href="https://github.com/anywhere-labs/about-us"><img src="https://img.shields.io/badge/%E8%AE%A4%E8%AF%86%E6%88%91%E4%BB%AC%E7%9A%84%E5%9B%A2%E9%98%9F-Anywhere%20Labs-4D6BFE?style=for-the-badge" alt="认识我们的团队"></a>
+</p>
+
 ## License
 
 本项目遵循 [MIT License](LICENSE)。
