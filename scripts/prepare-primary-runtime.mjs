@@ -28,8 +28,12 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
-import AdmZip from 'adm-zip'
-import { x as extractTar } from 'tar'
+
+// Root scripts are outside Yarn's workspace-hoisted dependency trees. Resolve
+// archive tools from the Desktop workspace that declares them, not the root.
+const archiveRequire = createRequire(new URL('../dsh-plugin-desktop/package.json', import.meta.url))
+const AdmZip = archiveRequire('adm-zip')
+const { x: extractTar } = archiveRequire('tar')
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const lockPath = join(repositoryRoot, 'deepseek-harness', 'scripts', 'primary-runtime', 'lock.json')

@@ -16,8 +16,10 @@ function loadConnectorBoundary(workspace) {
   const start = source.indexOf('//#region src/host/connector/logs.ts')
   const end = source.indexOf('//#region src/host/desktop/detect.ts', start)
   assert.ok(start >= 0 && end > start)
-  assert.match(source.slice(start, end), /\.\.\.connectorEnvironment\(process\.env\)/u)
-  return runInNewContext(`${source.slice(start, end)}; ({ connectorEnvironment, materializeConnectorProject, ConnectorLogs })`, {
+  const environment = /env: \{\n([\s\S]*?)\n\s*AA_CONNECTOR_OWNER_KIND:/u.exec(source.slice(start, end))?.[1]
+  assert.ok(environment, 'Connector spawn environment must be present')
+  const connectorEnvironment = value => runInNewContext(`({${environment}\n})`, { process: { env: value } })
+  const boundary = runInNewContext(`${source.slice(start, end)}; ({ materializeConnectorProject, ConnectorLogs })`, {
     execFile, promisify, stripVTControlCharacters, join, relative, createHash, setTimeout, clearTimeout,
     access, cp, mkdtemp, readFile, readdir, rename, rm,
     process: { platform: process.platform, env: {} },
@@ -25,6 +27,7 @@ function loadConnectorBoundary(workspace) {
     resolveUv: async () => 'uv',
     DEFAULT_CONNECTOR_SETTINGS: { syncIntervalSeconds: 30 },
   })
+  return { ...boundary, connectorEnvironment }
 }
 
 for (const workspace of AA_WORKSPACES) {
@@ -79,7 +82,7 @@ for (const workspace of AA_WORKSPACES) {
     const { connectorEnvironment, materializeConnectorProject } = loadConnectorBoundary(workspace)
     const environment = connectorEnvironment(env)
     assert.equal(environment.NO_PROXY, 'localhost,127.0.0.1,::1,::1,.example.com')
-    assert.equal(environment.no_proxy, 'internal.test,::1')
+    assert.equal(environment.no_proxy, 'internal.test, ::1 ')
     assert.equal(environment.HTTPS_PROXY, env.HTTPS_PROXY)
     assert.deepEqual(env, original)
     const project = await materializeConnectorProject({ stateRoot, connectorSourceDir: source })
