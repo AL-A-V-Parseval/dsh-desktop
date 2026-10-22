@@ -2,7 +2,7 @@
 
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
-import { dirname, join, relative, resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { prepareFsExtForElectron } from './prepare-fs-ext.ts'
 import { electronBuilderEnvironment } from './electron-builder-environment.ts'
@@ -14,6 +14,29 @@ const LINUX_SIGNING_KEYS = [
   'CSC_LINK',
   'CSC_NAME',
 ] as const
+
+const LINUX_COMPRESSION_LEVELS = new Set(['store', 'normal', 'maximum'])
+
+/**
+ * Read an optional electron-builder compression override for unsigned CI
+ * artifacts. Single-threaded xz compression dominates the Linux job while the
+ * CI artifacts are never published, so CI may select `store`; release builds
+ * leave the variable unset and keep the default compression.
+ * @param environment - Environment of the packaging process.
+ * @returns The override, or `undefined` to keep the package configuration.
+ */
+export function linuxCompressionOverride(
+  environment: NodeJS.ProcessEnv,
+): string | undefined {
+  const value = environment.DSH_LINUX_PACKAGE_COMPRESSION
+  if (value === undefined || value === '') return undefined
+  if (!LINUX_COMPRESSION_LEVELS.has(value)) {
+    throw new Error(
+      `DSH_LINUX_PACKAGE_COMPRESSION must be store, normal, or maximum; received ${JSON.stringify(value)}`,
+    )
+  }
+  return value
+}
 
 /** Injectable native Linux packaging boundary used by focused tests. */
 export interface LinuxPackageOptions {
@@ -92,66 +115,13 @@ export function createLinuxPackageOptions(verifier = './verify-linux-artifacts.t
     builderCli: require.resolve('electron-builder/cli.js'),
     prepareRuntime: () => {
       prepareFsExtForElectron({ platform: 'linux', arch: 'x64', desktopRoot })
-      // Upstream ships no interpreter payload on Linux, so this confirms the upstream
-      // tree declares none; the fork's own payload below then publishes to
-      // resources/runtime through the package's extraResources entry.
       verifyPreparedDesktopRuntime(desktopRoot, 'linux')
-      preparePrimaryRuntimePayload({
-        workspaceRoot,
-        desktopRoot,
-        env: process.env,
-        nodeExecutable: process.execPath,
-        run,
-        log: message => { console.log(message) },
-      })
     },
     verifier: fileURLToPath(new URL(verifier, import.meta.url)),
     nodeExecutable: process.execPath,
     run,
     log: message => console.log(message),
   }
-}
-
-/**
- * Prepare the bundled primary runtime payload for the Linux x64 target.
- *
- * The payload is assembled from the lock pinned by the upstream checkout and
- * cached by digest, so repeated packaging runs do not download it again. An
- * unchanged payload is copied into `runtime/`, which Electron Builder then
- * publishes to `resources/runtime` through the Linux target's `extraResources`.
- */
-export function preparePrimaryRuntimePayload(options: {
-  /** Repository root containing the preparation script and the upstream checkout. */
-  readonly workspaceRoot: string
-  /** Desktop package root receiving `runtime/`. */
-  readonly desktopRoot: string
-  /** Environment inherited by the preparation command. */
-  readonly env: NodeJS.ProcessEnv
-  /** Node executable running package-local scripts. */
-  readonly nodeExecutable: string
-  /** Execute one packaging command. */
-  readonly run: (
-    command: string,
-    args: readonly string[],
-    cwd: string,
-    env: NodeJS.ProcessEnv,
-  ) => void
-  /** Report non-secret packaging progress. */
-  readonly log: (message: string) => void
-}): void {
-  options.log('Preparing the bundled primary runtime payload (Node.js, Python, pnpm and Office skills).')
-  options.run(
-    options.nodeExecutable,
-    [
-      join(options.workspaceRoot, 'scripts', 'prepare-primary-runtime.mjs'),
-      '--target',
-      'linux-x64',
-      '--desktop',
-      relative(options.workspaceRoot, options.desktopRoot),
-    ],
-    options.workspaceRoot,
-    options.env,
-  )
 }
 
 /** Run the shared host and Node release gates before packaging. */
@@ -177,9 +147,13 @@ export function packageLinuxArtifacts(
   options: LinuxPackageOptions = createLinuxPackageOptions(),
 ): void {
   assertLinuxPackageHost(options)
+  const compression = linuxCompressionOverride(options.env)
 
   const cleanEnvironment = withoutLinuxSigningSecrets(options.env)
   options.log('Building unsigned Linux x64 AppImage and Debian package; signing is a separate release step.')
+  if (compression !== undefined) {
+    options.log(`Packaging the Linux artifacts with ${compression} compression.`)
+  }
   if (options.env.DSH_PACKAGE_CHECK_ALREADY_RAN !== '1') {
     options.run(
       'corepack',
@@ -203,6 +177,8 @@ export function packageLinuxArtifacts(
       'never',
       '--config.npmRebuild=false',
       '--config.electronFuses.onlyLoadAppFromAsar=false',
+      ...(compression === undefined ? [] : [`--config.compression=${compression}`]),
+      ...(compression === 'store' ? ['--config.deb.compression=gz'] : []),
     ],
     options.desktopRoot,
     electronBuilderEnvironment({

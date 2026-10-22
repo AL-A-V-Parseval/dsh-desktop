@@ -8,12 +8,13 @@ import { packageDirectory } from '../../dsh-plugin-desktop-beta/scripts/package-
 import { releaseMac } from '../../dsh-plugin-desktop-beta/scripts/release-mac.ts'
 import { adaptMacReleaseEnvironment, assertMacReleaseReady, withoutMacReleaseSecrets } from '../../dsh-plugin-desktop-beta/scripts/release-preflight.ts'
 import { packageMacSmoke } from '../../dsh-plugin-desktop-beta/scripts/package-mac.ts'
-import { packageLinuxArtifacts, preparePrimaryRuntimePayload } from '../../dsh-plugin-desktop-beta/scripts/package-linux.ts'
+import { packageLinuxArtifacts } from '../../dsh-plugin-desktop-beta/scripts/package-linux.ts'
 import { createWindowsPackageOptions, packageWindowsInstaller } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
 import { prepareNextMacRuntime } from './mac-runtime.ts'
 import { runNextPackagingCommand } from './packaging-command.ts'
-import { expectedNextVersion, nextRuntimeBuildPaths, nextRuntimeTargets, prepareNextRuntime, primaryRuntimeDirectory, smokeNextRuntime, verifyNextRuntimeTree } from './prepare-runtime.ts'
+import { expectedNextVersion, nextRuntimeBuildPaths, nextRuntimeTargets, prepareNextRuntime, primaryRuntimeDirectory, reusableNextRuntimeTree, smokeNextRuntime, verifyNextRuntimeTree } from './prepare-runtime.ts'
 import { signMacRuntime, withMacSigningIdentity } from './sign-runtime.ts'
+import { packagingStep, packagingStepSync } from './packaging-step.ts'
 
 const desktopRoot = fileURLToPath(new URL('..', import.meta.url))
 const workspaceRoot = resolve(desktopRoot, '..')
@@ -48,7 +49,13 @@ const run = (command: string, args: readonly string[], cwd: string, env: NodeJS.
     ? [...withoutRebuildFlag, `--config.extraMetadata.version=${TEST_BUILD_VERSION}`, `--config.buildVersion=${TEST_BUILD_VERSION}`]
     : withoutRebuildFlag
   if (TEST_BUILD_VERSION !== undefined && isBuilder) console.log(`Packaging with test build version ${TEST_BUILD_VERSION}; source manifests are unchanged.`)
-  runNextPackagingCommand(command, forwarded, cwd, env, workspaceRoot)
+  const isPreflight = (args.includes('run') && args.includes('check')) || args.some(arg => arg.includes('check:win-package'))
+  const stage = isBuilder ? 'builder:total' : isPreflight ? 'build:package-preflight' : 'package:command'
+  const measuredArgs = isBuilder && env.DSH_DESKTOP_PACKAGING_RUN_DIR !== undefined
+    ? ['--import', new URL('./packaging-builder.mjs', import.meta.url).href, ...forwarded]
+    : forwarded
+  const builderEnv = isBuilder ? { ...env, DSH_NEXT_WINDOWS_FAST_COMPRESSION: '1' } : env
+  packagingStepSync(stage, () => runNextPackagingCommand(command, measuredArgs, cwd, builderEnv, workspaceRoot))
 }
 const listCodeSigningIdentities = (env: NodeJS.ProcessEnv): string => {
   const result = spawnSync('security', ['find-identity', '-v', '-p', 'codesigning'], { env, encoding: 'utf8' })
@@ -56,27 +63,39 @@ const listCodeSigningIdentities = (env: NodeJS.ProcessEnv): string => {
   return result.stdout
 }
 
+let interpretersVerified = false
+
 /**
  * Prepare every interpreter payload the platform ships, sign them when a release identity is given,
  * then check and execute the final bytes. electron-builder copies the tree as extra resources.
  */
 async function prepareInterpreters(sign?: (runtimeRoot: string) => Promise<void>): Promise<void> {
-  const root = await prepareNextRuntime({ desktopRoot, platform: process.platform, version: buildVersion })
+  const paths = nextRuntimeBuildPaths(desktopRoot)
+  const reusable = packagingStepSync('runtime:check-reuse', () => reusableNextRuntimeTree(paths.runtime, process.platform, buildVersion))
+  if (reusable.length > 0 && sign === undefined) {
+    console.log(`Reusing prepared primary runtime for ${reusable.map(item => item.arch).join(', ')}`)
+    interpretersVerified = true
+    return
+  }
+  const root = reusable.length > 0
+    ? paths.runtime
+    : await packagingStep('runtime:prepare-primary', () => prepareNextRuntime({ desktopRoot, platform: process.platform, version: buildVersion }))
   if (sign !== undefined) await sign(root)
-  verifyNextRuntimeTree(root, process.platform, buildVersion)
-  smokeNextRuntime(root, process.platform)
+  packagingStepSync('runtime:verify-primary', () => verifyNextRuntimeTree(root, process.platform, buildVersion))
+  packagingStepSync('runtime:smoke-primary', () => smokeNextRuntime(root, process.platform))
+  interpretersVerified = true
 }
 /**
  * Materialize and seal the payload electron-builder archives. A separate process keeps the
  * manifest transformer it borrows from electron-builder out of this entry point.
  * @param platform - Platform being packaged.
  */
-const preparePayload = (platform: NodeJS.Platform): void => {
+const preparePayload = (platform: NodeJS.Platform): void => packagingStepSync('payload:total', () => {
   const result = spawnSync(process.execPath, [join(desktopRoot, 'scripts', 'prepare-payload.ts'), '--platform', platform,
     ...(TEST_BUILD_VERSION === undefined ? [] : ['--version', TEST_BUILD_VERSION])], { cwd: desktopRoot, env: process.env, stdio: 'inherit' })
   if (result.error) throw result.error
   if (result.status !== 0) throw new Error(`Next payload preparation exited with ${String(result.status)}`)
-}
+})
 /**
  * The shared flows call this right before electron-builder: the interpreter payloads were prepared
  * before they started and must still verify, and the archive payload is prepared now.
@@ -84,7 +103,9 @@ const preparePayload = (platform: NodeJS.Platform): void => {
  */
 const prepareRuntime = (platform: NodeJS.Platform = process.platform): void => {
   if (platform === 'darwin') prepareNextMacRuntime(desktopRoot)
-  verifyNextRuntimeTree(nextRuntimeBuildPaths(desktopRoot).runtime, platform, buildVersion)
+  if (!interpretersVerified || platform !== process.platform) {
+    verifyNextRuntimeTree(nextRuntimeBuildPaths(desktopRoot).runtime, platform, buildVersion)
+  }
   preparePayload(platform)
 }
 const mode = process.argv[2]
@@ -118,6 +139,7 @@ if (mode === 'dir') {
 } else if (mode === 'linux') {
   // Next runs its own gates, then reuses Beta's shared unsigned AppImage/deb step.
   run('corepack', ['yarn', 'run', 'check:linux-package'], desktopRoot, process.env)
+  await prepareInterpreters()
   packageLinuxArtifacts({
     env: { ...process.env, DSH_PACKAGE_CHECK_ALREADY_RAN: '1' },
     platform: process.platform,
@@ -127,17 +149,7 @@ if (mode === 'dir') {
     desktopRoot,
     builderCli: require.resolve('electron-builder/cli.js'),
     prepareRuntime: () => {
-      preparePrimaryRuntimePayload({
-        workspaceRoot,
-        desktopRoot,
-        env: process.env,
-        nodeExecutable: process.execPath,
-        run,
-        log: message => { console.log(message) },
-      })
-      // Electron Builder's beforePack hook resolves the Office closure inside the sealed
-      // archive payload, so upstream's payload preparation has to run here too. Its
-      // interpreter verify is a no-op on Linux, where upstream ships no such payload.
+      // Use upstream's arch-scoped interpreter tree and sealed application payload.
       prepareRuntime(process.platform)
     },
     verifier: join(desktopRoot, 'scripts/verify-linux-artifacts.ts'),

@@ -25,7 +25,7 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
   expect(next.build.mac.mergeASARs).toBe(false)
   // Electron's own fs and dlopen read the archive; child processes, shells and nativeImage need these physically.
   expect(next.build.asarUnpack).toEqual(expect.arrayContaining(['**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper',
-    '**/@vscode/ripgrep-*/bin/rg', '**/@dataiku/uv-*/bin/uv', '**/node_modules/@deepseek-ai/libreoffice-kit-*/**/*', '**/node_modules/pnpm/**/*',
+    '**/@vscode/ripgrep-*/bin/rg', '**/@dataiku/uv-*/bin/uv', '**/meshcall-router-*/bin/*', '**/node_modules/@deepseek-ai/libreoffice-kit-*/**/*', '**/node_modules/pnpm/**/*',
     '**/node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**/*', '**/node_modules/@deepseek-ai/dsh-agent-preset/**/*',
     '**/node_modules/@deepseek-ai/dsh-skill-badge/**/*']))
   // The prepared tree is archived verbatim, as upstream archives its prepared dsh tree: one file set for the
@@ -52,10 +52,8 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
   // macOS also carries the manifest copy the updaters shipped in 2.0.14-next through 2.0.17-next read beside the archive.
   expect(next.build.mac.extraResources).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }, { from: '.desktop-build/payload/package.json', to: 'app/package.json' }])
   expect(next.build.win.extraResources).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }])
+  expect(next.build.linux.extraResources).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }])
   expect(next.build.extraResources).toBeUndefined()
-  // This fork carries the primary runtime on Linux too, so the entry lives on the
-  // Linux target (upstream ships no payload there).
-  expect(next.build.linux.extraResources).toEqual([{ from: 'runtime', to: 'runtime' }])
   expect(next.build.mac.signIgnore).toContain('/Contents/Resources/runtime/(?:arm64|x64)/primary-runtime(?:/|$)')
   expect(next.scripts['prepare:runtime']).toBe('node scripts/prepare-runtime.ts')
   // Like upstream Desktop's dev launcher, every development launch prepares the payload before the shell starts.

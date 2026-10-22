@@ -159,7 +159,7 @@
     "icons:export": "node ../scripts/export-app-icons.mjs --channel stable"
   },
   "dependencies": {
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c43434415e1d6.r2e406d2a.tgz",
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c6fb6b165d490.r2e406d2a.tgz",
     "@deepseek-ai/cordis": "4.0.5",
     "@deepseek-ai/cordis-plugin-group": "1.0.5",
     "@deepseek-ai/cordis-plugin-include": "1.0.10",
@@ -340,11 +340,11 @@
     "adm-zip": "^0.6.0",
     "dsh-codex-signin": "0.1.0",
     "dsh-community-market": "0.1.0-dev.0",
-    "dshmarket": "1.66.44",
+    "dshmarket": "1.66.47",
     "fs-ext": "2.1.1",
-    "koffi": "3.1.5",
+    "koffi": "3.1.1",
     "node-addon-require-builtin": "^0.1.9",
-    "pnpm": "11.8.0",
+    "pnpm": "11.28.5",
     "react": "18.3.1",
     "selfsigned": "5.5.0",
     "semver": "^7.8.5",
@@ -352,7 +352,7 @@
     "yaml": "^2.9.0"
   },
   "peerDependencies": {
-    "electron": "44.0.0"
+    "electron": "44.7.0"
   },
   "devDependencies": {
     "@base-ui/react": "^1.7.0",
@@ -371,7 +371,7 @@
     "builder-util": "26.15.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "electron": "44.0.0",
+    "electron": "44.7.0",
     "electron-builder": "26.15.7",
     "extract-zip": "2.0.1",
     "fflate": "0.8.2",
@@ -453,7 +453,7 @@
         "\\.(?:pak|dat|wasm)$",
         "/Contents/Resources/runtime/(?:arm64|x64)/primary-runtime(?:/|$)"
       ],
-      "x64ArchFiles": "{**/node_modules/{@dataiku/uv-darwin-*/**,@deepseek-ai/node-addon-system-darwin-*/**,node-pty/prebuilds/darwin-*/**,fs-ext/prebuilds/darwin-*/**,node-addon-require-builtin-darwin-*/**,@vscode/ripgrep-darwin-*/**,@img/sharp-darwin-*/**,@img/sharp-libvips-darwin-*/**,@koromix/koffi-darwin-*/**,@deepseek-ai/libreoffice-kit-darwin-*/**,sherpa-onnx-darwin-*/**},Contents/Resources/runtime/**,Contents/Resources/runtime/**/.*/**}",
+      "x64ArchFiles": "{**/node_modules/{@dataiku/uv-darwin-*/**,@deepseek-ai/node-addon-system-darwin-*/**,node-pty/prebuilds/darwin-*/**,fs-ext/prebuilds/darwin-*/**,node-addon-require-builtin-darwin-*/**,@vscode/ripgrep-darwin-*/**,@img/sharp-darwin-*/**,@img/sharp-libvips-darwin-*/**,@koromix/koffi-darwin-*/**,@deepseek-ai/libreoffice-kit-darwin-*/**,meshcall-router-darwin-*/**,sherpa-onnx-darwin-*/**},Contents/Resources/runtime/**,Contents/Resources/runtime/**/.*/**}",
       "asar": false
     },
     "win": {
@@ -517,7 +517,7 @@
       "asar": false,
       "extraResources": [
         {
-          "from": "runtime",
+          "from": ".desktop-build/runtime",
           "to": "runtime"
         }
       ]
