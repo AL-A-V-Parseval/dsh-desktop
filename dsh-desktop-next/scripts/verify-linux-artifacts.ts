@@ -121,7 +121,8 @@ const requiredPayloadEntries = (arch: string) => [
   ['Python interpreter', [arch, 'primary-runtime', 'dependencies', 'python', 'bin', 'python3'], true],
   ['Node.js executable', [arch, 'primary-runtime', 'dependencies', 'node', 'bin', 'node'], true],
   ['pnpm entry', [arch, 'primary-runtime', 'dependencies', 'pnpm', 'bin', 'pnpm.mjs'], false],
-  ['Office skill checker', [arch, 'office-skills', 'scripts', 'check_office.py'], false],
+  ...['office', 'office-docx', 'office-pptx', 'office-xlsx', 'office-render', 'office-recalculate', 'office-export-pdf']
+    .map(skill => [`Office ${skill} skill`, [arch, 'office-skills', skill, 'SKILL.md'], false] as const),
 ] as const
 
 /**

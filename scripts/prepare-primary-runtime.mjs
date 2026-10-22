@@ -444,8 +444,11 @@ export function verifyPrimaryRuntime(output, target, version) {
     if ((statSync(path).mode & 0o111) === 0) fail(`bundled ${label} is not executable: ${path}`)
   }
   const officeRoot = join(resolve(output), expected.arch, 'office-skills')
-  if (!existsSync(join(officeRoot, 'scripts', 'check_office.py'))) {
-    fail(`Office skill assets are missing from ${officeRoot}`)
+  for (const skill of ['office', 'office-docx', 'office-pptx', 'office-xlsx', 'office-render', 'office-recalculate', 'office-export-pdf']) {
+    const entry = join(officeRoot, skill, 'SKILL.md')
+    if (!statSync(entry, { throwIfNoEntry: false })?.isFile()) {
+      fail(`Office skill assets are missing from ${entry}`)
+    }
   }
   return { root, officeRoot, manifest, bytes: directoryBytes(root) + directoryBytes(officeRoot) }
 }
@@ -461,7 +464,7 @@ export function smokePrimaryRuntime(root, manifest, officeRoot) {
     'import decimal, xml.parsers.expat, lzma, uuid, numpy, pandas;'
     + ' assert numpy.arange(4).sum() == 6; assert pandas.DataFrame({"n": [1, 2]}).n.sum() == 3'], options)
   execFileSync(entries.python, ['-I', '-B', smokeScript, JSON.stringify(manifest.pythonPackages),
-    manifest.python, join(officeRoot, 'scripts', 'check_office.py')], options)
+    manifest.python], options)
   execFileSync(entries.python, ['-I', '-B', '-m', 'pip', 'check'], options)
   execFileSync(entries.node, ['-e', `if (process.versions.node !== ${JSON.stringify(manifest.node)}) process.exit(1)`], options)
   execFileSync(entries.node, [entries.pnpm, '--version'], options)

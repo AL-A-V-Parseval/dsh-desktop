@@ -51,7 +51,6 @@ function payloadFixture(unpacked: string): string {
     ['x64', 'primary-runtime', 'dependencies', 'python', 'bin'],
     ['x64', 'primary-runtime', 'dependencies', 'node', 'bin'],
     ['x64', 'primary-runtime', 'dependencies', 'pnpm', 'bin'],
-    ['x64', 'office-skills', 'scripts'],
   ] as const) {
     mkdirSync(join(payload, ...directory), { recursive: true })
   }
@@ -62,7 +61,11 @@ function payloadFixture(unpacked: string): string {
   writeFileSync(join(payload, 'x64', 'primary-runtime', 'dependencies', 'python', 'bin', 'python3'), 'python', { mode: 0o755 })
   writeFileSync(join(payload, 'x64', 'primary-runtime', 'dependencies', 'node', 'bin', 'node'), 'node', { mode: 0o755 })
   writeFileSync(join(payload, 'x64', 'primary-runtime', 'dependencies', 'pnpm', 'bin', 'pnpm.mjs'), 'pnpm')
-  writeFileSync(join(payload, 'x64', 'office-skills', 'scripts', 'check_office.py'), 'pass\n')
+  for (const skill of ['office', 'office-docx', 'office-pptx', 'office-xlsx', 'office-render', 'office-recalculate', 'office-export-pdf']) {
+    const directory = join(payload, 'x64', 'office-skills', skill)
+    mkdirSync(directory, { recursive: true })
+    writeFileSync(join(directory, 'SKILL.md'), '# Office skill\n')
+  }
   return payload
 }
 
@@ -164,11 +167,11 @@ describe('Linux artifact verification', () => {
       .toThrow('Node.js executable is not executable')
   })
 
-  it('rejects an Office skill payload without its document checker', () => {
+  it.each(['office', 'office-docx', 'office-pptx', 'office-xlsx', 'office-render', 'office-recalculate', 'office-export-pdf'])('rejects an Office skill payload without %s', skill => {
     const value = fixture()
-    rmSync(join(value.payload, 'x64', 'office-skills', 'scripts', 'check_office.py'), { force: true })
+    rmSync(join(value.payload, 'x64', 'office-skills', skill, 'SKILL.md'), { force: true })
 
     expect(() => verifyLinuxArtifacts({ desktopRoot: value.root, version: '2.0.0' }))
-      .toThrow('Office skill checker is missing from the bundled primary runtime')
+      .toThrow(`Office ${skill} skill is missing from the bundled primary runtime`)
   })
 })
