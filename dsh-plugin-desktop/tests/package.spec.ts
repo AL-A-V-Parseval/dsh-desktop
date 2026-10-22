@@ -1269,12 +1269,12 @@ describe('published package surface', () => {
   it('packages the native-compiled Koffi Windows runtime', () => {
     const lockfile = readFileSync(new URL('yarn.lock', workspaceRoot), 'utf8')
 
-    expect(manifest.dependencies?.koffi).toBe('3.1.5')
+    expect(manifest.dependencies?.koffi).toBe('3.1.1')
     expect(workspaceManifest.resolutions).toMatchObject({
-      'koffi@npm:^3.1.0': '3.1.5',
+      'koffi@npm:^3.1.0': '3.1.1',
     })
-    expect(lockfile).toContain('"koffi@npm:3.1.5":')
-    expect(lockfile).toContain('@koromix/koffi-win32-x64@npm:3.1.5')
+    expect(lockfile).toContain('"koffi@npm:3.1.1":')
+    expect(lockfile).toContain('@koromix/koffi-win32-x64@npm:3.1.1')
     expect(lockfile).not.toContain('"koffi@npm:3.1.4":')
     expect(lockfile).not.toContain('@koromix/koffi-win32-x64@npm:3.1.4')
   })

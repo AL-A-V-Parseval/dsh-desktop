@@ -1,7 +1,7 @@
 diff --git a/dist/pnpm.mjs b/dist/pnpm.mjs
 --- a/dist/pnpm.mjs
 +++ b/dist/pnpm.mjs
-@@ -148308,14 +148308,15 @@ function detectMinReleaseAgeViolation(args) {
+@@ -148308,13 +148308,14 @@ function detectMinReleaseAgeViolation(args) {
    if (Array.isArray(excludeResult) && excludeResult.includes(args.version))
      return void 0;
    const ts = new Date(args.publishedAt).getTime();
@@ -18,7 +18,6 @@ diff --git a/dist/pnpm.mjs b/dist/pnpm.mjs
 +    reason: `was published at ${new Date(ts).toISOString()}, within the minimumReleaseAge cutoff (${new Date(cutoff).toISOString()})`
    };
  }
- var init_releaseAgePolicy = __esm({
 @@ -149376,8 +149377,9 @@ function createPackageVersionPolicyOrThrow(patterns, key) {
    }
  }
@@ -43,3 +42,23 @@ diff --git a/dist/pnpm.mjs b/dist/pnpm.mjs
    const excludePolicy = createOptionalExcludePolicy(opts3.minimumReleaseAgeExclude, "minimumReleaseAgeExclude");
    const trustExcludePolicy = createOptionalExcludePolicy(opts3.trustPolicyExclude, "trustPolicyExclude");
    const mergedRegistriesByPrefix = normalizeRegistriesByPrefix(opts3.registriesByPrefix);
+@@ -150161,16 +150165,18 @@ async function runPolicyChecks(settings, pin, scope) {
+   });
+ }
+ function snapshotVerifierPolicy(opts3, mergedRegistriesByPrefix) {
++  const configuredMinimumReleaseAge = Number(opts3.minimumReleaseAge);
++  const minimumReleaseAge = Number.isFinite(configuredMinimumReleaseAge) && configuredMinimumReleaseAge > 0 ? configuredMinimumReleaseAge : 0;
+   const sortedRegistriesByPrefix = Object.fromEntries(Object.entries(mergedRegistriesByPrefix).sort(([aliasA], [aliasB]) => aliasA.localeCompare(aliasB)));
+   return {
+     // Marks runs that enforced the tarball-URL binding.
+     tarballUrlBinding: true,
+     revisionHistoryBinding: true,
+     // Same cache identity rule for the missing-integrity structural check.
+     integrityRequired: true,
+     variationResolutionsVerified: true,
+     namedRegistriesRouting: createHash3("sha256").update(JSON.stringify(sortedRegistriesByPrefix)).digest("hex"),
+-    minimumReleaseAge: opts3.minimumReleaseAge ?? 0,
++    minimumReleaseAge,
+     minimumReleaseAgeExclude: sortUniquePatterns(opts3.minimumReleaseAgeExclude),
+     trustPolicy: opts3.trustPolicy ?? null,
+     trustPolicyExclude: sortUniquePatterns(opts3.trustPolicyExclude),
