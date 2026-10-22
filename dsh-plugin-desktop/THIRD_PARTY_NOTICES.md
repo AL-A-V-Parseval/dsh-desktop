@@ -345,8 +345,8 @@ the package names, versions, and licenses for transparency.
 | @deepseek-ai/node-addon-system-darwin-arm64 | 0.1.2 | BSD-3-Clause |
 | @deepseek-ai/node-addon-system-darwin-x64 | 0.1.2 | BSD-3-Clause |
 | @deepseek-ai/schemastery | 3.18.5 | MIT |
-| @earendil-works/pi-ai | 1.2.0 | MIT |
-| @earendil-works/pi-telemetry | 1.2.0 | MIT |
+| @earendil-works/pi-ai | 1.1.0 | MIT |
+| @earendil-works/pi-telemetry | 1.1.0 | MIT |
 | @eslint-community/regexpp | 4.12.2 | MIT |
 | @google/genai | 2.21.0 | Apache-2.0 |
 | @img/colour | 1.1.0 | MIT |
@@ -557,7 +557,7 @@ the package names, versions, and licenses for transparency.
 | pkce-challenge | 5.0.1 | MIT |
 | pkijs | 3.4.0 | BSD-3-Clause |
 | pngjs | 5.0.0 | MIT |
-| pnpm | 11.8.0 | MIT |
+| pnpm | 11.28.5 | MIT |
 | powershell-utils | 0.2.1 | MIT |
 | pretty-ms | 9.3.1 | MIT |
 | protobufjs | 7.6.5 | BSD-3-Clause |
