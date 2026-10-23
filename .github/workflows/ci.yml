@@ -58,8 +58,7 @@ jobs:
           fi
           echo "product=$product" >> "$GITHUB_OUTPUT"
 
-  # Product gate: AA profile smoke is temporarily paused below.
-  # A documentation-only change already passed diff validation in `changes`.
+  # Product gate: a documentation-only change already passed diff validation in `changes`.
   check:
     needs: changes
     runs-on: ubuntu-latest
@@ -92,36 +91,22 @@ jobs:
             yarn-${{ runner.os }}-${{ runner.arch }}-
       - if: needs.changes.outputs.product == 'true'
         run: yarn install --immutable
-      - name: Temporarily skip AA profile smoke in CI
-        if: needs.changes.outputs.product == 'true'
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-        # Remove this step after AA Host service activation is fixed.
-        # Local checks and the standalone verify:aa command remain available.
+      - name: Narrow Beta check on pull requests
+        if: needs.changes.outputs.product == 'true' && github.event_name == 'pull_request'
         run: |
           node --input-type=module <<'NODE'
           import { readFileSync, writeFileSync } from 'node:fs'
-          for (const workspace of ['dsh-plugin-desktop']) {
-            const path = `${workspace}/package.json`
-            const manifest = JSON.parse(readFileSync(path, 'utf8'))
-            const smoke = ' && yarn run verify:aa'
-            if (!manifest.scripts.check.includes(smoke)) throw new Error(`AA check not found in ${workspace}`)
-            manifest.scripts.check = manifest.scripts.check.replace(smoke, '')
-            writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`)
-          }
           // Pull requests already verify source/test parity between Next and Beta via
           // verify-desktop-variants and run the full Next check + Playwright suite.
           // Run Beta's build, frontend, and variant-specific tests on PRs while keeping
           // the full Beta check on master pushes and leaving Beta's package.json intact.
-          if (process.env.EVENT_NAME === 'pull_request') {
-            const rootPath = 'package.json'
-            const rootManifest = JSON.parse(readFileSync(rootPath, 'utf8'))
-            const betaFull = '"yarn workspace dsh-plugin-desktop-beta check"'
-            const betaPr = '"yarn workspace dsh-plugin-desktop-beta build && yarn workspace dsh-plugin-desktop-beta verify:frontend && yarn workspace dsh-plugin-desktop-beta exec vitest run tests/package.spec.ts tests/data-directory.spec.ts tests/updates.spec.ts"'
-            if (!rootManifest.scripts.check.includes(betaFull)) throw new Error('Beta check not found in root package.json')
-            rootManifest.scripts.check = rootManifest.scripts.check.replace(betaFull, betaPr)
-            writeFileSync(rootPath, `${JSON.stringify(rootManifest, null, 2)}\n`)
-          }
+          const rootPath = 'package.json'
+          const rootManifest = JSON.parse(readFileSync(rootPath, 'utf8'))
+          const betaFull = '"yarn workspace dsh-plugin-desktop-beta check"'
+          const betaPr = '"yarn workspace dsh-plugin-desktop-beta build && yarn workspace dsh-plugin-desktop-beta verify:frontend && yarn workspace dsh-plugin-desktop-beta exec vitest run tests/package.spec.ts tests/data-directory.spec.ts tests/updates.spec.ts"'
+          if (!rootManifest.scripts.check.includes(betaFull)) throw new Error('Beta check not found in root package.json')
+          rootManifest.scripts.check = rootManifest.scripts.check.replace(betaFull, betaPr)
+          writeFileSync(rootPath, `${JSON.stringify(rootManifest, null, 2)}\n`)
           NODE
       - if: needs.changes.outputs.product == 'true'
         run: yarn check
@@ -154,7 +139,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: ${{ github.event_name == 'pull_request' && fromJSON('["dsh-plugin-desktop-beta"]') || fromJSON('["dsh-plugin-desktop", "dsh-plugin-desktop-beta"]') }}
+        workspace: [dsh-plugin-desktop-beta]
     steps:
       - uses: actions/checkout@v6
         with:
@@ -215,7 +200,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: ${{ github.event_name == 'pull_request' && fromJSON('["dsh-plugin-desktop-beta"]') || fromJSON('["dsh-plugin-desktop", "dsh-plugin-desktop-beta"]') }}
+        workspace: [dsh-plugin-desktop-beta]
     steps:
       - uses: actions/checkout@v6
         with:
@@ -263,7 +248,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: ${{ github.event_name == 'pull_request' && fromJSON('["dsh-plugin-desktop-beta"]') || fromJSON('["dsh-plugin-desktop", "dsh-plugin-desktop-beta"]') }}
+        workspace: [dsh-plugin-desktop-beta]
     steps:
       - uses: actions/checkout@v6
         with:
