@@ -11,8 +11,8 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { createHash, randomUUID } from 'node:crypto'
-import { basename, dirname, join, posix, win32 } from 'node:path'
-import { assertDesktopProfileName } from './profile-manager.ts'
+import { basename, dirname, join, win32 } from 'node:path'
+import { profileName as assertDesktopProfileName } from './profiles.ts'
 import { PNPM_IGNORE_MINIMUM_RELEASE_AGE } from './pnpm-policy.ts'
 
 const RUN_AS_NODE = 'ELECTRON_RUN_AS_NODE'
@@ -24,6 +24,7 @@ const WINDOWS_DSH_BOOTSTRAP = 'DSH_DESKTOP_DSH_BOOTSTRAP'
 const WINDOWS_ELECTRON_VERSION = 'DSH_DESKTOP_ELECTRON_VERSION'
 const WINDOWS_PNPM_ENTRY = 'DSH_DESKTOP_PNPM_ENTRY'
 const WINDOWS_PROFILE_DIRECTORY = 'DSH_DESKTOP_PROFILE_DIRECTORY'
+const WINDOWS_TERMINAL_MODE = 'DSH_DESKTOP_TERMINAL_MODE'
 const WINDOWS_PRODUCT_VERSION = 'DSH_DESKTOP_PRODUCT_VERSION'
 const WINDOWS_SHIM_DIRECTORY = 'DSH_DESKTOP_SHIM_DIRECTORY'
 const WINDOWS_POWERSHELL_WELCOME = 'DSH_DESKTOP_POWERSHELL_WELCOME'
@@ -37,6 +38,7 @@ const WINDOWS_GENERATED_ENVIRONMENT_KEYS = new Set([
   WINDOWS_PNPM_ENTRY,
   WINDOWS_PROFILE_DIRECTORY,
   WINDOWS_PRODUCT_VERSION,
+  WINDOWS_TERMINAL_MODE,
   WINDOWS_SHIM_DIRECTORY,
   WINDOWS_POWERSHELL_WELCOME,
   WINDOWS_CMD_WELCOME,
@@ -49,7 +51,7 @@ const WINDOWS_SHELL_COMMANDS = ['pwsh.exe', 'powershell.exe', 'cmd.exe'] as cons
 const ELECTRON_HEADERS_URL = 'https://electronjs.org/headers'
 
 /** Platforms with a native terminal launch contract owned by DSH Desktop. */
-export type DesktopTerminalPlatform = 'darwin' | 'linux' | 'win32'
+export type DesktopTerminalPlatform = 'darwin' | 'win32'
 
 /** Process launcher injected by the Electron adapter. */
 export type DesktopTerminalSpawn = (
@@ -67,14 +69,6 @@ export type DesktopTerminalExecutableResolver = (
   environment: Readonly<NodeJS.ProcessEnv>,
   exists: DesktopTerminalExecutableExists,
 ) => string | undefined
-
-/** Optional Linux terminal accepting the welcome script after its argument prefix. */
-export interface LinuxTerminalLauncher {
-  /** Terminal executable, for example `konsole`. */
-  executable: string
-  /** Arguments placed before the welcome script. */
-  arguments?: readonly string[]
-}
 
 /** Optional Windows terminal accepting a selected shell command after its argument prefix. */
 export interface WindowsTerminalLauncher {
@@ -100,6 +94,8 @@ export interface DesktopTerminalOptions {
   profileName: string
   /** Product version displayed in the welcome message. */
   productVersion: string
+  /** Explain whether commands modify the temporary runtime or the original Profile. */
+  mode?: 'normal' | 'safe' | 'recovery'
   /** Absolute working directory of the selected profile. */
   profileDir: string
   /** Harness home exported as `DSH_HOME` inside the terminal. */
@@ -110,12 +106,6 @@ export interface DesktopTerminalOptions {
   spawn: DesktopTerminalSpawn
   /** Environment copied into the terminal child; defaults to `process.env`. */
   environment?: NodeJS.ProcessEnv
-  /** Optional Linux terminal wrapper. Known emulators are discovered when omitted. */
-  linuxTerminal?: LinuxTerminalLauncher
-  /** Linux executable existence probe; defaults to `existsSync`. */
-  linuxExecutableExists?: DesktopTerminalExecutableExists
-  /** Linux executable resolver; defaults to a `PATH` lookup. */
-  linuxExecutableResolver?: DesktopTerminalExecutableResolver
   /** Optional Windows terminal wrapper. Windows Terminal is discovered when omitted. */
   windowsTerminal?: WindowsTerminalLauncher
   /** Windows executable existence probe; defaults to `existsSync`. */
@@ -168,9 +158,9 @@ interface DesktopTerminalFiles {
 
 /** Reject values that cannot be represented safely in generated command files. */
 function assertScriptValue(label: string, value: string): void {
-  if (value.length === 0) throw new Error(`dsh-plugin-desktop: terminal ${label} must not be empty`)
+  if (value.length === 0) throw new Error(`dsh-plugin-desktop-beta: terminal ${label} must not be empty`)
   if (/[\0\r\n]/.test(value)) {
-    throw new Error(`dsh-plugin-desktop: terminal ${label} must not contain NUL or newlines`)
+    throw new Error(`dsh-plugin-desktop-beta: terminal ${label} must not contain NUL or newlines`)
   }
 }
 
@@ -182,7 +172,7 @@ function quoteSh(value: string): string {
 /** Escape printable text following an `echo(` batch builtin. */
 function escapeBatchText(value: string): string {
   if (/\r|\n/.test(value)) {
-    throw new Error('dsh-plugin-desktop: terminal Windows welcome text must not contain newlines')
+    throw new Error('dsh-plugin-desktop-beta: terminal Windows welcome text must not contain newlines')
   }
   return value
     .replaceAll('^', '^^')
@@ -221,7 +211,7 @@ function prepareStateDirectory(stateDir: string): void {
   mkdirSync(stateDir, { recursive: true, mode: STATE_DIRECTORY_MODE })
   const stat = lstatSync(stateDir)
   if (!stat.isDirectory() || stat.isSymbolicLink()) {
-    throw new Error(`dsh-plugin-desktop: terminal state path is not a private directory: ${stateDir}`)
+    throw new Error(`dsh-plugin-desktop-beta: terminal state path is not a private directory: ${stateDir}`)
   }
   chmodSync(stateDir, STATE_DIRECTORY_MODE)
 }
@@ -337,6 +327,12 @@ function macBashRc(options: DesktopTerminalOptions, shimDir: string): string {
   ].join('\n')
 }
 
+function terminalModeLabel(mode: DesktopTerminalOptions['mode']): string {
+  if (mode === 'safe') return '安全模式临时环境 / Safe mode: temporary environment'
+  if (mode === 'recovery') return '恢复修复终端：原 Profile / Recovery terminal: original Profile'
+  return '正常环境 / Normal environment'
+}
+
 /** Build the macOS script opened by LaunchServices in the user's terminal. */
 function macWelcome(
   options: DesktopTerminalOptions,
@@ -355,6 +351,7 @@ function macWelcome(
     `cd ${quoteSh(options.profileDir)}`,
     "printf '\\033[2J\\033[3J\\033[H'",
     `printf '%s\\n' ${quoteSh(`DSH Desktop ${options.productVersion} terminal`)}`,
+    `printf '%s\\n' ${quoteSh(terminalModeLabel(options.mode))}`,
     `printf '%s\\n' ${quoteSh(`Profile: ${options.profileName}`)}`,
     `printf '%s\\n' ${quoteSh(`Profile directory: ${options.profileDir}`)}`,
     `printf '%s\\n' ${quoteSh(`Harness home: ${options.homeDir}`)}`,
@@ -378,7 +375,7 @@ function macWelcome(
     '  *)',
     '    export DSH_DESKTOP_USER_ZDOTDIR="${ZDOTDIR:-${HOME:-}}"',
     `    export ZDOTDIR=${quoteSh(options.stateDir)}`,
-    '    exec "${SHELL:-/bin/sh}" -i',
+    '    exec /bin/zsh -i',
     '    ;;',
     'esac',
     '',
@@ -398,6 +395,7 @@ function windowsWelcome(): string {
     `$env:${PATH} = (@($dshDesktopShimDir) + $dshDesktopPath) -join ';'`,
     `Set-Location -LiteralPath $env:${WINDOWS_PROFILE_DIRECTORY}`,
     `Write-Host ("DSH Desktop {0} terminal" -f $env:${WINDOWS_PRODUCT_VERSION})`,
+    `Write-Host $env:${WINDOWS_TERMINAL_MODE}`,
     `Write-Host ("Profile: {0}" -f $env:${DEFAULT_PROFILE})`,
     `Write-Host ("Profile directory: {0}" -f $env:${WINDOWS_PROFILE_DIRECTORY})`,
     `Write-Host ("Harness home: {0}" -f $env:${DSH_HOME})`,
@@ -424,6 +422,7 @@ function windowsCmdWelcome(): string {
     `set "${RUN_AS_NODE}="`,
     `cd /d "!${WINDOWS_PROFILE_DIRECTORY}!"`,
     `echo(DSH Desktop !${WINDOWS_PRODUCT_VERSION}! terminal`,
+    `echo(!${WINDOWS_TERMINAL_MODE}!`,
     `echo(Profile: !${DEFAULT_PROFILE}!`,
     `echo(Profile directory: !${WINDOWS_PROFILE_DIRECTORY}!`,
     `echo(Harness home: !${DSH_HOME}!`,
@@ -441,8 +440,8 @@ function windowsCmdWelcome(): string {
 
 /** Create command shims and the interactive welcome script. */
 function prepareDesktopTerminalFiles(options: DesktopTerminalOptions): DesktopTerminalFiles {
-  if (options.platform !== 'darwin' && options.platform !== 'linux' && options.platform !== 'win32') {
-    throw new Error(`dsh-plugin-desktop: terminal is unsupported on ${options.platform}`)
+  if (options.platform !== 'darwin' && options.platform !== 'win32') {
+    throw new Error(`dsh-plugin-desktop-beta: terminal is unsupported on ${options.platform}`)
   }
   assertDesktopProfileName(options.profileName)
   for (const [label, value] of [
@@ -459,13 +458,13 @@ function prepareDesktopTerminalFiles(options: DesktopTerminalOptions): DesktopTe
   prepareStateDirectory(options.stateDir)
   const shimDir = join(options.stateDir, 'bin')
   prepareStateDirectory(shimDir)
-  if (options.platform === 'darwin' || options.platform === 'linux') {
+  if (options.platform === 'darwin') {
     const files: DesktopTerminalFiles = {
       shimDir,
       dshShimPath: join(shimDir, 'dsh'),
       pnpmShimPath: join(shimDir, 'pnpm'),
       nodeShimPath: join(shimDir, 'node'),
-      welcomePath: join(options.stateDir, options.platform === 'darwin' ? 'welcome.command' : 'welcome.sh'),
+      welcomePath: join(options.stateDir, 'welcome.command'),
     }
     const bashRcPath = join(options.stateDir, 'bashrc')
     replacePrivateFile(files.dshShimPath, macDshShim(options), EXECUTABLE_FILE_MODE)
@@ -493,7 +492,7 @@ function prepareDesktopTerminalFiles(options: DesktopTerminalOptions): DesktopTe
     replacePrivateFile(windowsCmdWelcomePath, windowsCmdWelcome(), PRIVATE_FILE_MODE)
     return files
   }
-  throw new Error(`dsh-plugin-desktop: terminal is unsupported on ${options.platform}`)
+  throw new Error(`dsh-plugin-desktop-beta: terminal is unsupported on ${options.platform}`)
 }
 
 /** Copy the Host environment and scope desktop command discovery to one terminal child. */
@@ -527,6 +526,7 @@ function terminalEnvironment(options: DesktopTerminalOptions, files: DesktopTerm
     env[WINDOWS_PNPM_ENTRY] = options.pnpmBinPath
     env[WINDOWS_PROFILE_DIRECTORY] = options.profileDir
     env[WINDOWS_PRODUCT_VERSION] = options.productVersion
+    env[WINDOWS_TERMINAL_MODE] = terminalModeLabel(options.mode)
     env[WINDOWS_SHIM_DIRECTORY] = files.shimDir
     env[WINDOWS_POWERSHELL_WELCOME] = files.welcomePath
     if (files.windowsCmdWelcomePath !== undefined) env[WINDOWS_CMD_WELCOME] = files.windowsCmdWelcomePath
@@ -569,68 +569,6 @@ function defaultWindowsExecutableResolver(
   return candidates.find(candidate => exists(candidate))
 }
 
-/** Known Linux terminal emulators with the argv prefix that precedes a command. */
-const LINUX_TERMINALS: readonly { readonly command: string; readonly arguments: readonly string[] }[] = [
-  { command: 'xdg-terminal-exec', arguments: [] },
-  { command: 'gnome-terminal', arguments: ['--'] },
-  { command: 'kgx', arguments: ['--'] },
-  { command: 'ptyxis', arguments: ['--'] },
-  { command: 'konsole', arguments: ['-e'] },
-  { command: 'kitty', arguments: [] },
-  { command: 'alacritty', arguments: ['-e'] },
-  { command: 'wezterm', arguments: ['start', '--'] },
-  { command: 'foot', arguments: [] },
-  { command: 'ghostty', arguments: ['-e'] },
-  { command: 'xfce4-terminal', arguments: ['-x'] },
-  { command: 'mate-terminal', arguments: ['-x'] },
-  { command: 'tilix', arguments: ['-e'] },
-  { command: 'terminator', arguments: ['-x'] },
-  { command: 'x-terminal-emulator', arguments: ['-e'] },
-  { command: 'urxvt', arguments: ['-e'] },
-  { command: 'rxvt', arguments: ['-e'] },
-  { command: 'xterm', arguments: ['-e'] },
-]
-
-/** Resolve one Linux terminal from an explicit path or the inherited `PATH`. */
-function defaultLinuxExecutableResolver(
-  command: string,
-  environment: Readonly<NodeJS.ProcessEnv>,
-  exists: DesktopTerminalExecutableExists,
-): string | undefined {
-  if (command.includes('/')) return exists(command) ? command : undefined
-  const inheritedPath = environment[PATH]
-  if (inheritedPath === undefined) return undefined
-  for (const dir of inheritedPath.split(':')) {
-    if (dir.length === 0) continue
-    const candidate = posix.join(dir, command)
-    if (exists(candidate)) return candidate
-  }
-  return undefined
-}
-
-/** Select a Linux terminal emulator, preferring an explicit wrapper or `$TERMINAL`. */
-function resolveLinuxTerminal(
-  options: DesktopTerminalOptions,
-  environment: Readonly<NodeJS.ProcessEnv>,
-): LinuxTerminalLauncher {
-  if (options.linuxTerminal !== undefined) return options.linuxTerminal
-  const exists = options.linuxExecutableExists ?? existsSync
-  const resolveExecutable = options.linuxExecutableResolver ?? defaultLinuxExecutableResolver
-  const preferred = environment.TERMINAL
-  const candidates = preferred === undefined || preferred.length === 0
-    ? LINUX_TERMINALS
-    : [{ command: preferred, arguments: [] as readonly string[] }, ...LINUX_TERMINALS]
-  for (const candidate of candidates) {
-    const executable = resolveExecutable(candidate.command, environment, exists)
-    if (executable === undefined) continue
-    assertScriptValue(`${candidate.command} executable`, executable)
-    return { executable, arguments: candidate.arguments }
-  }
-  throw new Error(
-    'dsh-plugin-desktop: terminal requires xdg-terminal-exec, konsole, gnome-terminal, alacritty, kitty, foot, or another terminal emulator on Linux',
-  )
-}
-
 interface ResolvedWindowsShell {
   kind: 'powershell' | 'cmd'
   executable: string
@@ -660,7 +598,7 @@ function resolveWindowsShell(
       executable,
     }
   }
-  throw new Error('dsh-plugin-desktop: terminal requires pwsh.exe, powershell.exe, or cmd.exe on Windows')
+  throw new Error('dsh-plugin-desktop-beta: terminal requires pwsh.exe, powershell.exe, or cmd.exe on Windows')
 }
 
 /** Convert one selected Windows shell into an argv-only launch. */
@@ -671,7 +609,7 @@ function windowsShellArgv(
   if (shell.kind === 'cmd') {
     const welcome = files.windowsCmdWelcomePath
     if (welcome === undefined) {
-      throw new Error('dsh-plugin-desktop: terminal did not generate the Windows command prompt welcome script')
+      throw new Error('dsh-plugin-desktop-beta: terminal did not generate the Windows command prompt welcome script')
     }
     return ['/D', '/K', 'call', welcome]
   }
@@ -696,7 +634,7 @@ function resolveWindowsCommandProcessor(
   const resolveExecutable = options.windowsExecutableResolver ?? defaultWindowsExecutableResolver
   const executable = resolveExecutable('cmd.exe', environment, exists)
   if (executable === undefined) {
-    throw new Error('dsh-plugin-desktop: terminal requires cmd.exe to create a visible Windows console')
+    throw new Error('dsh-plugin-desktop-beta: terminal requires cmd.exe to create a visible Windows console')
   }
   assertScriptValue('cmd.exe executable', executable)
   return executable
@@ -712,7 +650,7 @@ function windowsLaunchBroker(
   return [
     '@echo off',
     'setlocal EnableDelayedExpansion',
-    `start "DSH Desktop" /D "!${WINDOWS_PROFILE_DIRECTORY}!" ${target}`,
+    `start "DSH Desktop Beta" /D "!${WINDOWS_PROFILE_DIRECTORY}!" ${target}`,
     'exit /b %errorlevel%',
     '',
   ].join('\r\n')
@@ -726,11 +664,11 @@ function reportLaunchError(options: DesktopTerminalOptions, cause: Error): void 
       return
     } catch (reportCause) {
       const detail = reportCause instanceof Error ? reportCause.message : String(reportCause)
-      process.stderr.write(`dsh-plugin-desktop: terminal error reporter failed: ${detail}\n`)
+      process.stderr.write(`dsh-plugin-desktop-beta: terminal error reporter failed: ${detail}\n`)
       return
     }
   }
-  process.stderr.write(`dsh-plugin-desktop: failed to open terminal: ${cause.message}\n`)
+  process.stderr.write(`dsh-plugin-desktop-beta: failed to open terminal: ${cause.message}\n`)
 }
 
 /**
@@ -750,10 +688,6 @@ export function openDesktopTerminal(options: DesktopTerminalOptions): DesktopTer
   if (options.platform === 'darwin') {
     command = '/usr/bin/open'
     args = ['-a', 'Terminal', files.welcomePath]
-  } else if (options.platform === 'linux') {
-    const linuxTerminal = resolveLinuxTerminal(options, env)
-    command = linuxTerminal.executable
-    args = [...(linuxTerminal.arguments ?? []), files.welcomePath]
   } else {
     const shell = resolveWindowsShell(options, env)
     const shellArgs = windowsShellArgv(shell, files)

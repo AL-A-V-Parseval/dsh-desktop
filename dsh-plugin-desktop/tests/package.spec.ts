@@ -838,7 +838,7 @@ describe('published package surface', () => {
 
   it('fixes the installed application identity', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('2.0.18-linux.1')
+    expect(manifest.version).toBe('2.0.18-linux.2')
     expect(manifest.build?.productName).toBe('DSH Desktop')
     expect(manifest.build?.appId).toBe('ai.deepseek.dsh.desktop')
     expect(manifest.build?.asar).toBe(false)
@@ -1023,7 +1023,7 @@ describe('published package surface', () => {
       ciWorkflow.indexOf('  upstream-command-windows:'),
     )
 
-    const matrixSelector = "workspace: ${{ github.event_name == 'pull_request' && fromJSON('[\"dsh-plugin-desktop-beta\"]') || fromJSON('[\"dsh-plugin-desktop\", \"dsh-plugin-desktop-beta\"]') }}"
+    const matrixSelector = 'workspace: [dsh-plugin-desktop-beta]'
     expect(windowsJob).not.toContain('- run: yarn check')
     expect(windowsJob).toContain(matrixSelector)
     expect(windowsJob).toContain('- run: yarn workspace ${{ matrix.workspace }} check:win-package:platform')
@@ -1271,7 +1271,7 @@ describe('published package surface', () => {
 
     expect(manifest.dependencies?.koffi).toBe('3.1.1')
     expect(workspaceManifest.resolutions).toMatchObject({
-      'koffi@npm:^3.1.0': '3.1.5',
+      'koffi@npm:^3.1.0': '3.1.1',
     })
     expect(lockfile).toContain('"koffi@npm:3.1.1":')
     expect(lockfile).toContain('@koromix/koffi-win32-x64@npm:3.1.1')

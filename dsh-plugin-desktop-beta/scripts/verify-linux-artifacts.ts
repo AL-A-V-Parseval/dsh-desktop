@@ -1,4 +1,4 @@
-/** Verify the unsigned Linux x64 AppImage and deb artifacts plus the unpacked executable. */
+/** Verify the unsigned Linux x64 AppImage and deb artifacts plus the unpacked executable (Next channel). */
 
 import { closeSync, openSync, readFileSync, readSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -191,8 +191,8 @@ export function verifyLinuxArtifacts(
   options: LinuxArtifactVerificationOptions = defaultOptions(),
 ): LinuxArtifacts {
   const distDir = join(options.desktopRoot, 'dist')
-  const appImagePath = join(distDir, `DSH-Desktop-Beta-${options.version}-x86_64.AppImage`)
-  const debPath = join(distDir, `DSH-Desktop-Beta-${options.version}-amd64.deb`)
+  const appImagePath = join(distDir, `DSH-Desktop-Next-${options.version}-x86_64.AppImage`)
+  const debPath = join(distDir, `DSH-Desktop-Next-${options.version}-amd64.deb`)
   const applicationPath = join(distDir, 'linux-unpacked', 'dsh-desktop-beta')
   const payloadPath = join(distDir, 'linux-unpacked', 'resources', 'runtime')
 
