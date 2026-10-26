@@ -4778,6 +4778,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@deepseek-ai/dsh-storage-json@patch:@deepseek-ai/dsh-storage-json@file%3Avendor/dsh-runtime/0.2.1-rc.3/deepseek-ai-dsh-storage-json-0.2.1-rc.3.tgz#./patches/dsh-storage-json@0.2.1-rc.3.patch::locator=deepseek-harness-desktop%40workspace%3A.":
+  version: 0.2.1-rc.3
+  resolution: "@deepseek-ai/dsh-storage-json@patch:@deepseek-ai/dsh-storage-json@file%3Avendor/dsh-runtime/0.2.1-rc.3/deepseek-ai-dsh-storage-json-0.2.1-rc.3.tgz%23vendor/dsh-runtime/0.2.1-rc.3/deepseek-ai-dsh-storage-json-0.2.1-rc.3.tgz%3A%3Ahash=fc7a6e&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/dsh-storage-json@0.2.1-rc.3.patch::version=0.2.1-rc.3&hash=7f384d&locator=deepseek-harness-desktop%40workspace%3A."
+  dependencies:
+    "@deepseek-ai/schemastery": "npm:~3.18.5"
+  peerDependencies:
+    "@deepseek-ai/cordis": ~4.0.5
+    "@deepseek-ai/dsh-storage": 0.2.1-rc.3
+  checksum: 10c0/08f54b428a89324975776265e7cf7f84a0ae2af0f62ea9c817e07a2249854173e5cd36b36afe5556e25c80ef668662a780d12fedb8e0ed4be6551f8cc8b53fcc
+  languageName: node
+  linkType: hard
+
 "@deepseek-ai/dsh-storage@file:vendor/dsh-runtime/0.2.1-rc.3/deepseek-ai-dsh-storage-0.2.1-rc.3.tgz::locator=deepseek-harness-desktop%40workspace%3A.":
   version: 0.2.1-rc.3
   resolution: "@deepseek-ai/dsh-storage@file:vendor/dsh-runtime/0.2.1-rc.3/deepseek-ai-dsh-storage-0.2.1-rc.3.tgz#vendor/dsh-runtime/0.2.1-rc.3/deepseek-ai-dsh-storage-0.2.1-rc.3.tgz::hash=288260&locator=deepseek-harness-desktop%40workspace%3A."
