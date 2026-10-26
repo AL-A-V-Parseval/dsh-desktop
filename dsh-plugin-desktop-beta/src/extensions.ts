@@ -2,7 +2,6 @@
 import { installComputerUseCommand } from './host/computer-use-command.ts'
 import { installHostLogging } from './host/logging.ts'
 import { spawn } from 'node:child_process'
-import { createRequire } from 'node:module'
 import { basename, dirname, isAbsolute, join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type { ProfilePnpmInvocation } from '@deepseek-ai/dsh-app-boot'
@@ -10,7 +9,9 @@ import { installNotifications } from './notifications.ts'
 import { HostPermissions } from './host-permissions.ts'
 import { NEXT_PACKAGE, profileName } from './profiles.ts'
 import { PNPM_IGNORE_MINIMUM_RELEASE_AGE } from './pnpm-policy.ts'
-import { unpackedPath } from './asar-archive-policy.ts'
+
+// scripts/verify-host.mjs reads the entry through the built extensions module.
+export { bundledPnpmEntry } from './bundled-pnpm.ts'
 
 export const name = 'desktop-next-capabilities'
 export const inject = ['profileContext']
@@ -113,15 +114,4 @@ export function createPackageRunner(invocation: ProfilePnpmInvocation, directory
       await current?.done.catch(() => {})
     },
   }
-}
-
-/**
- * Entry of the pnpm this installation carries. Electron runs it as a separate Node-mode process
- * with its own workers, so a packaged Next uses the copy unpacked beside app.asar.
- * @param anchor - Manifest the installation resolves packages from.
- * @returns Absolute physical path of `pnpm.mjs`.
- */
-export function bundledPnpmEntry(anchor: string): string {
-  const require = createRequire(anchor)
-  return unpackedPath(join(dirname(require.resolve('pnpm')), 'bin', 'pnpm.mjs'))
 }
