@@ -26,7 +26,7 @@ import { desktopLanAddresses } from './lan-addresses.ts'
 import { createLanHttpsCertificate, lanHttpsCertificateDiagnostic } from './lan-https-certificate.ts'
 import { desktopTerminalStateDirectory, openDesktopTerminal } from './desktop-terminal.ts'
 import { bundledPnpmEntry, createPackageRunner } from './extensions.ts'
-import { applyDesktopPackageAgePolicy } from './pnpm-policy.ts'
+import { applyDesktopPackageManagerPolicy } from './pnpm-policy.ts'
 import { auxiliaryWindowChromeOptions, auxiliaryWindowHasCustomFrame } from '../../dsh-plugin-desktop/src/auxiliary-window-options.ts'
 import { cleanupDisposableTree } from '../../dsh-plugin-desktop/src/disposable-tree.ts'
 import { installEditingContextMenu } from '../../dsh-plugin-desktop/src/context-menu.ts'
@@ -49,7 +49,7 @@ import { DESKTOP_SHUTDOWN_TIMEOUT_MS } from '../../dsh-plugin-desktop/src/shutdo
 import { isDesktopRendererStatus, NextRendererRecovery } from './renderer-recovery.ts'
 
 // Inherit the package policy across the Host and every runtime child process.
-applyDesktopPackageAgePolicy(process.env)
+applyDesktopPackageManagerPolicy(process.env)
 
 const root = dirname(NEXT_PACKAGE)
 // Read once: an in-app relaunch inherits this process's environment, not later user variables.
