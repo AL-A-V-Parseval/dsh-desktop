@@ -15,14 +15,18 @@ function loadConnector(workspace, environment) {
   const source = readFileSync(new URL(`../${workspace}/node_modules/@agents-anywhere/dsh-bridge-next/lib/index.js`, import.meta.url), 'utf8')
   const start = source.indexOf('\n// src/host/connector/logs.ts\n')
   const end = source.indexOf('\n// src/host/desktop/process.ts\n', start)
-  assert.ok(start >= 0 && end > start)
-  return runInNewContext(`${source.slice(start, end)}; SourceConnector`, {
+  const environmentStart = source.indexOf('\nconst PYPI_SIMPLE = ')
+  const environmentEnd = source.indexOf('\nasync function resolveUv(', environmentStart)
+  assert.ok(start >= 0 && end > start && environmentStart >= 0 && environmentEnd > environmentStart)
+  // Include the real index policy helper; leave executable discovery stubbed so
+  // this launch-boundary test never starts uv or downloads a Python environment.
+  return runInNewContext(`${source.slice(environmentStart, environmentEnd)}\n${source.slice(start, end)}; SourceConnector`, {
     execFile, promisify, stripVTControlCharacters, dirname, join, relative, createHash, setTimeout, clearTimeout,
     access, cp, mkdtemp, readFile, readdir, rename, rm,
     process: { platform: process.platform, env: environment },
     readJson$1: async () => [], writeJson: async () => {}, mkdir,
     resolveUv: async () => 'uv',
-    DEFAULT_CONNECTOR_SETTINGS: { syncIntervalSeconds: 30 },
+    DEFAULT_CONNECTOR_SETTINGS: { syncIntervalSeconds: 30, uvPypiIndexUrl: '' },
   })
 }
 
@@ -74,6 +78,7 @@ for (const workspace of AA_WORKSPACES) {
       NO_PROXY: 'localhost,127.0.0.1,::1,[::1],.example.com',
       no_proxy: 'internal.test, [::1] ',
       HTTPS_PROXY: 'http://127.0.0.1:7890',
+      UV_INDEX: 'https://inherited.invalid/simple',
     }
     const original = { ...env }
     const Connector = loadConnector(workspace, env)
@@ -88,6 +93,10 @@ for (const workspace of AA_WORKSPACES) {
     assert.equal(launched.env.NO_PROXY, 'localhost,127.0.0.1,::1,::1,.example.com')
     assert.equal(launched.env.no_proxy, 'internal.test, ::1 ')
     assert.equal(launched.env.HTTPS_PROXY, env.HTTPS_PROXY)
+    assert.equal(launched.env.UV_INDEX, undefined)
+    assert.equal(launched.env.UV_DEFAULT_INDEX, 'https://pypi.org/simple')
+    assert.equal(launched.env.UV_INDEX_URL, 'https://pypi.org/simple')
+    assert.equal(launched.env.PIP_INDEX_URL, 'https://pypi.org/simple')
     assert.deepEqual(env, original)
     assert.ok(launched.cwd.startsWith(join(stateRoot, 'connector-source') + sep))
     assert.equal(launchedArgs[launchedArgs.indexOf('--directory') + 1], launched.cwd)

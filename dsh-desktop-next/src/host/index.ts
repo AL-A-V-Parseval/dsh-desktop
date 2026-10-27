@@ -1,6 +1,6 @@
 /** Alpha.2 shared Web profile runner, hosted by an Electron Node-mode child. */
 import { auditHostPlugins, configureHostLogging, hostLog, hostOperation } from './logging.ts'
-import { basename, delimiter, join, resolve } from 'node:path'
+import { basename, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { inspect } from 'node:util'
 import { loadLayeredEnv } from '@deepseek-ai/dsh-app-boot'
@@ -8,13 +8,12 @@ import { runProfile } from '@deepseek-ai/dsh/profile-boot'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import { loadNextProfile, NEXT_PACKAGE, readNextProfilePatches } from '../profiles.ts'
-import { bundledPnpmEntry } from '../extensions.ts'
-import { withDesktopPnpmPolicy } from '../pnpm-policy.ts'
+import { bundledPnpmInvocation } from '../bundled-pnpm.ts'
 import { configureNextBrowserAccess } from '../desktop-browser-access.ts'
 import { parsePreferences } from '../desktop-preferences.ts'
 import { atomicJson } from '../private-files.ts'
 import type NextWebServer from '../webserver.ts'
-import { disableAsarArchiveView, unpackedPath } from '../asar-archive-policy.ts'
+import { disableAsarArchiveView } from '../asar-archive-policy.ts'
 import { maskSecrets } from '../mask-secrets.ts'
 import { parseSystemProxyProbe, SYSTEM_PROXY_ENV, withSystemProxy } from '../system-proxy.ts'
 import { watchPlatformLogin, type PlatformLoginAccount } from './platform-login.ts'
@@ -71,15 +70,7 @@ export async function main(): Promise<void> {
       readPatches: profilePatches => readNextProfilePatches(projectDir, home,
         [join(runtimeDir, 'host.cordis.patch.yml'), join(projectDir, 'desktop-next.cordis.patch.json'), runtimePatch], profilePatches) },
     patchFiles: [join(runtimeDir, 'host.cordis.patch.yml'), join(projectDir, 'desktop-next.cordis.patch.json'), runtimePatch], args: ['--no-open', '--port', String(preferences.port)],
-    packageManager: {
-      command: process.execPath, args: ['--expose-internals', bundledPnpmEntry(NEXT_PACKAGE), ...withDesktopPnpmPolicy([])],
-      env: {
-        DSH_DESKTOP_NODE_EXECUTABLE: process.execPath,
-        ...(process.versions.electron ? { ELECTRON_RUN_AS_NODE: '1' } : {}),
-        // Package scripts execute the shims through the shell, which cannot enter app.asar.
-        PATH: `${unpackedPath(join(runtimeDir, 'scripts', 'node-bin'))}${delimiter}${process.env.PATH ?? ''}`,
-      },
-    },
+    packageManager: bundledPnpmInvocation(runtimeDir),
   })
   const send = (value: object): Promise<void> => new Promise((resolveSend, reject) => {
     if (!process.connected || !process.send) return resolveSend()

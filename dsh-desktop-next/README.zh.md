@@ -56,7 +56,7 @@ Next 的 macOS 打包与 Stable、Beta 一样，直接使用分层 `.icon` 源�
 - **首次引导：** 先按桌面端自己的 Profile 完成记录或主动重新打开请求判断是否显示桌面设置。需要引导时，在启动 Host 之前先打开轻量独立欢迎窗口，展示 Next 六步引导流程：欢迎、插件市场、远程控制、Computer Use（含现有系统权限弹窗）、浏览器访问、恢复说明。返回保留草稿；完成时保存 Profile 功能、浏览器访问设置和 Computer Use provider，最后记录完成，随后按所选配置一次性启动 Host 并打开主窗口；跳过保留原配置并启动 Host。主窗口打开后，通过续接槽展示 DeepSeek 账号登录引导卡片（完成引导后），随后交由官方按账号、API Key 和官方进度独立判断是否显示账号引导；两者不代替对方完成或重置记录。未完成的引导下次继续，已完成的 Profile 不自动重复，安全模式和恢复模式绕过桌面引导。“桌面设置 → 桌面工具 → 设置向导”可确认重启并带入当前配置。
 - **插件市场：** 新 Profile 默认不启用插件市场。官方**插件**页顶部的开关可启用或停用上次在当前页面选择的市场；没有选择记录时默认启用 `dsh-community-market`。也可直接选择 `dsh-community-market` 或 `dshmarket`。选项复用旧版桌面的名称、说明和仓库链接。选择一个市场时，官方插件管理器会在同一次操作中停用另一个，并保留已安装的插件。社区市场保留侧边栏入口；dshmarket 保留**设置 → 插件市场**入口。社区市场沿用发现、来源管理、安装预览、确认安装、启用/停用开关和卸载流程。包操作通过官方插件管理器执行，无需重启即可生效；macOS 和 Windows 也支持市场中的终端入口。
 - **手机远控：** 在**插件**页顶部通过独立开关启用 `@agents-anywhere/dsh-bridge-next`（默认关闭）。开关左侧的齿轮打开现有手机连接弹窗，也可从侧边栏进入；启用后齿轮才可使用。AA 使用默认状态目录（`~/.agents-anywhere/dsh-bridge-next`），与 Stable/Beta 及其他 Next Profile 共享登录、设备绑定和 Connector 设置。启用状态仍按 Profile 保存；切换 Profile 会停止旧 Host 和其中的远控连接。旧版 Next 生成的逐 Profile 状态目录覆盖会在下次 Host 启动时移除。原状态目录保留，不自动合并凭据；只在旧隔离目录中登录过的用户可能需要重新登录。多个版本同时运行时，仍受 AA 的共享状态所有权检查约束。
-- **桌面工具：** 打开数据、Profile 和日志目录，刷新界面，打开开发者工具，导出诊断，以及打开 macOS/Windows 终端。终端提供当前安装的 `dsh`、`pnpm` 和基于 Electron 的 `node`；应用处于安全模式时，终端仍选择原 Profile。
+- **桌面工具：** 打开数据、Profile 和日志目录，刷新界面，打开开发者工具，导出诊断，以及打开 macOS/Windows 终端。终端提供当前安装的 `dsh`、`pnpm` 和基于 Electron 的 `node`，其中 `dsh` 的插件命令始终使用内置 pnpm，与终端 `PATH` 解析到哪个 `pnpm` 无关；应用处于安全模式时，终端仍选择原 Profile。
 
 市场、远程控制和 Computer Use 位于普通插件列表上方，并与列表的内容宽度对齐。远程控制和 Computer Use 上下排列，设置齿轮位于各自开关左侧。两个市场和远控 bundle 不再重复显示为普通插件卡片。开关仍调用官方管理器，选择保存在当前 Profile 中；已有 Profile 如果同时开启了两个市场，会提示用户选择其中一个。两个市场安装的 bundle 插件仍在普通列表中管理，可继续启用、停用和卸载。dshmarket 自己的插件停用逻辑保持原样。旧 `desktop-next.features.json` 中的选择只迁移一次到 `package.json`，以后启动遵循官方管理器的设置。
 
@@ -134,6 +134,12 @@ corepack yarn workspace dsh-desktop-next verify:host --computer-use
 桌面设置中的“备份”会暂停 Host，把当前数据目录复制到所选位置下一个带时间戳的新文件夹，完成后重新启动 Host。备份不包含 `electron-user-data` 中的窗口和浏览器缓存；目录内的链接会改为指向备份自身。备份本身就是一个可用的数据目录，需要时可以直接切换过去。重置数据目录之前请先备份，再在恢复助手中操作。
 
 普通 Web Profile 无需在 `package.json` 中声明 `dsh-desktop-next`；Next 仅在自身 Host 启动和配置重组时提供该能力。已有的旧 Next Profile 会在备份清单后移除这个历史 bundle 条目，避免 Stable 或 CLI 打开同一 Profile 时载入 Next 能力。
+
+### Windows 下以管理员身份启动
+
+在部分 Windows 环境中，应用以管理员身份运行时，Chromium 沙箱无法创建 GPU 进程和渲染进程；不加处理的话，这样的启动约一秒后会无声退出。因此，打包版 Next 如果以拆分令牌中提权的一半启动（UAC 开启时），例如通过“以管理员身份运行”、管理员终端或提权的安装程序启动，会在启动任何子进程之前用桌面 shell 的普通令牌重新启动一次自身，做法与 Chromium 的 `base::win::RunDeElevated` 相同。重新启动的进程沿用原有参数和工作目录，环境变量按用户配置重新生成。如需保留有意的管理员启动，请加上 `--next-keep-elevated`。关闭 UAC 或使用内置 Administrator 账户时没有可以回到的普通令牌，这类启动会保持提权。
+
+如果 Windows 上沙箱化的 GPU 进程或渲染进程仍然无法启动，Next 会显示原生对话框后退出，而不是直接消失。对话框按当前提权状态说明可能原因和取消“以管理员身份运行”的方法，给出 Chromium 沙箱错误码，并说明临时绕过参数 `--no-sandbox`：它会关闭所有页面的沙箱，包括侧边栏浏览器打开的网站。桌面日志以 `sandbox.launch-failed` 记录这次失败。
 
 ## 架构与来源
 
