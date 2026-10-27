@@ -1,13 +1,26 @@
 /** Electron-only tray, materials, and user-turn notifications. */
 import { unpackedPath } from './asar-archive-policy.ts'
 import { join } from 'node:path'
-import { Menu, nativeImage, nativeTheme, Notification, Tray, type BrowserWindow } from 'electron'
+import { BrowserWindow, Menu, nativeImage, nativeTheme, Notification, Tray, type MenuItemConstructorOptions } from 'electron'
 import { desktopMenu } from './desktop-menu.ts'
 import { notificationCopy, notificationEnabled } from './notifications.ts'
 import type { DesktopCommand, DesktopPreferences, DesktopState, DesktopNotification } from './desktop-contract.ts'
 import { windowMaterial } from './window-material.ts'
 import { IPC } from './ipc.ts'
 import { updateLabel } from './update-state.ts'
+
+/** Keep native accelerators and tray actions, without a persistent Linux menu strip. */
+export function refreshApplicationMenu(items: MenuItemConstructorOptions[]): void {
+  Menu.setApplicationMenu(process.platform === 'win32' ? null : Menu.buildFromTemplate([
+    { label: 'DSH Desktop Beta', submenu: items }, { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' },
+  ]))
+  if (process.platform === 'linux') {
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.setAutoHideMenuBar(true)
+      window.setMenuBarVisibility(false)
+    }
+  }
+}
 
 export function applyWindowMaterial(window: BrowserWindow, preferences: DesktopPreferences): void {
   const material = windowMaterial(preferences)
@@ -37,9 +50,7 @@ export class NativeDesktop {
   }
   items() { return desktopMenu(this.options.state(), this.options.language(), this.options.show, this.options.run) }
   refresh(): void {
-    if (process.platform !== 'win32') Menu.setApplicationMenu(Menu.buildFromTemplate([
-      { label: 'DSH Desktop Beta', submenu: this.items() }, { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' },
-    ]))
+    refreshApplicationMenu(this.items())
     if (!this.available) return
     const state = this.options.state()
     this.tray!.setToolTip(`DSH Desktop Beta · ${state.selected} · ${state.phase}${state.updates && state.updates.phase !== 'idle' ? ` · ${updateLabel(state.updates, this.options.language())}` : ''}`)

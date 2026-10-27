@@ -22,7 +22,7 @@ import { resolveDesktopShellEnvironment } from './shell-environment.ts'
 import { ensureUtf8Locale } from './shell-locale.ts'
 import { DEFAULT_PROFILE, NATIVE_ACCESS_HEADER, type DesktopCommand, type DesktopState, type DesktopSettingsPage } from './desktop-contract.ts'
 import { portsChanged, parsePreferences } from './desktop-preferences.ts'
-import { NativeDesktop, applyWindowMaterial } from './native-desktop.ts'
+import { NativeDesktop, applyWindowMaterial, refreshApplicationMenu } from './native-desktop.ts'
 import { desktopLanAddresses } from './lan-addresses.ts'
 import { createLanHttpsCertificate, lanHttpsCertificateDiagnostic } from './lan-https-certificate.ts'
 import { desktopTerminalStateDirectory, openDesktopTerminal } from './desktop-terminal.ts'
@@ -272,6 +272,7 @@ function createWindow(preload: string, primary = false): BrowserWindow {
     show: false, title: 'DSH NEXT',
     ...(process.platform !== 'darwin' ? { icon: unpackedPath(join(root, 'build', process.platform === 'win32' ? 'app-icon.ico' : 'app-icon.png')) } : {}),
     ...(!primary ? auxiliaryWindowChromeOptions() : {}),
+    ...(process.platform === 'linux' ? { autoHideMenuBar: true } : {}),
     ...(process.platform === 'win32' && primary ? {
       titleBarStyle: 'hidden' as const,
       titleBarOverlay: { height: WINDOWS_TITLEBAR_HEIGHT, color: WINDOWS_CAPTION_FILL,
@@ -1196,9 +1197,7 @@ async function main(): Promise<void> {
   }
   native.createTray()
   updates.start()
-  Menu.setApplicationMenu(process.platform === 'win32' ? null : Menu.buildFromTemplate([
-    { label: 'DSH NEXT', submenu: native.items() }, { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' },
-  ]))
+  refreshApplicationMenu(native.items())
   if (process.platform === 'win32') {
     ipcMain.handle(IPC.windowsMenu, (event, name: unknown, x: unknown, y: unknown) => {
       assertSender(event, mainWindow, APP_URL)

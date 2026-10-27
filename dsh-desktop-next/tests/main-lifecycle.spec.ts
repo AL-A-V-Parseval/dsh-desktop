@@ -14,7 +14,7 @@ afterEach(() => { for (const listener of process.listeners('uncaughtExceptionMon
 const fixture = vi.hoisted(() => ({
   windows: [] as any[], trays: [] as any[], handlers: new Map<string, (...args: any[]) => any>(),
   load: vi.fn(), report: vi.fn(), plugin: vi.fn(), pluginDone: vi.fn(), diagnosticAppend: vi.fn(),
-  terminalTarget: vi.fn(), openTerminal: vi.fn(), popup: vi.fn(),
+  terminalTarget: vi.fn(), openTerminal: vi.fn(), popup: vi.fn(), applicationMenu: undefined as any,
   stop: vi.fn(async () => {}),
   close: vi.fn(async () => {}), start: vi.fn(async () => {}), preferences: { closeToTray: true, browserAccess: false, networkExposure: 'loopback' as 'loopback' | 'lan' },
   phase: 'ready' as 'ready' | 'error',
@@ -86,7 +86,9 @@ vi.mock('electron', async () => {
     requestSingleInstanceLock: () => { fixture.lockPaths.push(fixture.appPaths.get('userData')!); return fixture.ownsInstance }, exit: vi.fn(), relaunch: vi.fn(), focus: vi.fn(), quit: vi.fn(() => app.emit('before-quit', { preventDefault() {} })),
   })
   class BrowserWindow extends EventEmitter {
+    static getAllWindows() { return fixture.windows.filter(window => !window.destroyed) }
     visible = false
+    menuBarVisible = true
     loadedUrls: string[] = []
     webContents = Object.assign(new EventEmitter(), { id: fixture.windows.length + 1,
       mainFrame: { url: '' }, getURL: () => this.webContents.mainFrame.url, setWindowOpenHandler() {}, send: vi.fn(), isDestroyed: () => false,
@@ -97,6 +99,7 @@ vi.mock('electron', async () => {
       super()
       this.size = { width: options.width, height: options.height }
       this.minSize = { width: options.minWidth, height: options.minHeight }
+      this.menuBarVisible = !options.autoHideMenuBar
       fixture.windows.push(this)
     }
     destroyed = false
@@ -115,6 +118,8 @@ vi.mock('electron', async () => {
     setBackgroundColor() {}
     setBackgroundMaterial() {}
     setTitleBarOverlay = vi.fn()
+    setAutoHideMenuBar = vi.fn((value: boolean) => { this.options.autoHideMenuBar = value })
+    setMenuBarVisibility = vi.fn((value: boolean) => { this.menuBarVisible = value })
     setProgressBar = vi.fn()
     async loadURL(url: string) {
       this.webContents.mainFrame.url = url; this.loadedUrls.push(url)
@@ -139,7 +144,7 @@ vi.mock('electron', async () => {
     clipboard: {}, dialog: { showMessageBox: vi.fn(async () => ({ response: 0 })), showMessageBoxSync: vi.fn(() => 0), showOpenDialog: vi.fn(async () => ({ canceled: true, filePaths: [] })) }, shell: { showItemInFolder: vi.fn() }, safeStorage: {}, nativeTheme: { shouldUseDarkColors: true, on() {} },
     nativeImage: { createFromPath: () => ({ isEmpty: () => false, setTemplateImage() {} }) },
     // Templates stay plain arrays for tray assertions; the popup spy is non-enumerable.
-    Menu: { buildFromTemplate: (items: any) => Object.defineProperty(items, 'popup', { value: (options: unknown) => fixture.popup(items, options), configurable: true }), setApplicationMenu() {} },
+    Menu: { buildFromTemplate: (items: any) => Object.defineProperty(items, 'popup', { value: (options: unknown) => fixture.popup(items, options), configurable: true }), setApplicationMenu(menu: any) { fixture.applicationMenu = menu } },
     protocol: { registerSchemesAsPrivileged() {}, handle() {} },
     session: { defaultSession: { webRequest: { onBeforeSendHeaders() {} }, setPermissionCheckHandler() {}, setPermissionRequestHandler() {}, setDisplayMediaRequestHandler() {}, on() {} } },
     systemPreferences: { getMediaAccessStatus: () => 'not-determined', askForMediaAccess: vi.fn(async () => false), isTrustedAccessibilityClient: () => false },
@@ -153,6 +158,7 @@ beforeEach(async () => {
   fixture.windows.length = 0; fixture.trays.length = 0; fixture.handlers.clear()
   fixture.appPaths.clear(); fixture.lockPaths.length = 0; fixture.ownsInstance = true; fixture.runtimeOptions = undefined
   fixture.locationRoot = mkdtempSync(join(tmpdir(), 'next-location-root-'))
+  fixture.applicationMenu = undefined
   fixture.phase = 'ready'
   fixture.needsOnboarding = false; fixture.corruptProfile = false; fixture.restart.mockReset(); fixture.hostReady = false
   fixture.plugin.mockReset(); fixture.pluginDone.mockReset().mockResolvedValue({ exitCode: 0 });
@@ -172,6 +178,48 @@ beforeEach(async () => {
 afterEach(() => {
   for (const window of fixture.windows) if (!window.destroyed) window.destroy()
   rmSync(fixture.locationRoot, { recursive: true, force: true })
+})
+
+it('hides the Linux native menu at launch and after menu refresh without dropping menu accelerators or tray actions', async () => {
+  const platform = Object.getOwnPropertyDescriptor(process, 'platform')!
+  Object.defineProperty(process, 'platform', { ...platform, value: 'linux' })
+  const home = mkdtempSync(join(tmpdir(), 'next-linux-menu-'))
+  vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
+  try {
+    await import('../src/main.ts')
+    await vi.waitFor(() => expect(fixture.windows).toHaveLength(1))
+    const main = fixture.windows[0]
+    expect(main.options.autoHideMenuBar).toBe(true)
+    expect(main.menuBarVisible).toBe(false)
+    expect(fixture.applicationMenu.map((item: any) => item.role)).toEqual([undefined, 'editMenu', 'viewMenu', 'windowMenu'])
+    expect(fixture.applicationMenu[0].submenu.at(-1).accelerator).toBe('CmdOrCtrl+Q')
+    expect(fixture.trays[0].menu.at(-1).accelerator).toBe('CmdOrCtrl+Q')
+    main.menuBarVisible = true
+    fixture.handlers.get('dsh-next:locale')!({ sender: main.webContents, senderFrame: main.webContents.mainFrame }, 'fr-FR')
+    expect(main.setMenuBarVisibility).toHaveBeenCalledWith(false)
+    expect(main.menuBarVisible).toBe(false)
+    expect(main.setAutoHideMenuBar).toHaveBeenCalledWith(true)
+    expect(fixture.applicationMenu[0].submenu.at(-1).accelerator).toBe('CmdOrCtrl+Q')
+    expect(fixture.trays[0].menu.some((item: any) => item.accelerator === 'CmdOrCtrl+,')).toBe(true)
+  } finally {
+    Object.defineProperty(process, 'platform', platform)
+    vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true })
+  }
+})
+
+it.each(['darwin', 'win32'] as const)('preserves the application-menu policy on %s', async target => {
+  const platform = Object.getOwnPropertyDescriptor(process, 'platform')!
+  Object.defineProperty(process, 'platform', { ...platform, value: target })
+  try {
+    const { BrowserWindow } = await import('electron')
+    const window = new BrowserWindow({ show: false })
+    const { refreshApplicationMenu } = await import('../src/native-desktop.ts')
+    refreshApplicationMenu([{ label: 'Quit', accelerator: 'CmdOrCtrl+Q' }])
+    expect(window.setAutoHideMenuBar).not.toHaveBeenCalled()
+    expect(window.setMenuBarVisibility).not.toHaveBeenCalled()
+    if (target === 'win32') expect(fixture.applicationMenu).toBeNull()
+    else expect(fixture.applicationMenu[0].submenu[0].accelerator).toBe('CmdOrCtrl+Q')
+  } finally { Object.defineProperty(process, 'platform', platform) }
 })
 
 it('repairs a crashed renderer and fences old document reports while preserving its Host', async () => {
