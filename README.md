@@ -23,6 +23,10 @@
 
 ## 这是什么
 
+> **Linux 发版主线调整（2026-10-27）：** 自 [`v2.0.20-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.20-next-linux.1) 起，原 Next 新架构成为本 fork 的 **Stable / latest**，旧架构停止发版（最后一版为 `v2.0.18-linux.1`）。为兼容已有安装、数据目录及后续上游合并，保留版本中的 `next`、`DSH NEXT` 显示名称和内部标识，**它们不再表示本 fork 的预发布通道**。已签名的安装包及 tag 不变；源码目录名与发布稳定性分开管理，规则见 [`linux-release-policy.json`](linux-release-policy.json)。根目录的 `dev`、`start`、`package:dir`、`dist:linux` 默认使用新架构。
+>
+> 当前包使用 `DSH-NEXT-<version>` 文件名前缀，便携包的程序为 `dsh-desktop-next`；默认数据目录为 `~/.dsh`，已选择的数据目录优先。首次从旧架构切换前请备份数据。下文涉及旧版窗口三模式、真实 Node sharp 桥接及双渠道安装说明的部分是旧架构历史，不代表新 Stable 的界面和运行要求；新架构的 Linux sharp 使用 WASM。
+
 DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的本地 Web UI、Host 服务和插件系统集成进原生桌面应用。它固定并原样运行特定上游版本，通过 DeepSeek Harness 的插件机制与上游能力组合。
 
 本 fork **聚焦 Linux**：修复上游桌面端在 Linux 上无法稳定运行的问题，让 `bash` / `glob` / `grep` 等子进程工具、插件市场与附件等能力在 Linux 上可用。

@@ -2,6 +2,11 @@
 
 This repository owns the desktop product around an unmodified DeepSeek Harness checkout.
 
+## Linux fork release policy
+
+- For Linux release, install, and default-launch work, use `linux-release-policy.json`: the former Next workspace is now the Stable mainline; the legacy workspace is retained for upstream merges and regression checks, not new releases.
+- Preserve Next package names, runtime identifiers, and data-directory anchors for compatibility. Release stability is GitHub metadata, not a reason to rename internal paths or rewrite signed assets.
+
 ## Prerequisites and setup
 
 - Use Node.js `^22.19.0` or `>=24.0.0` and the root Yarn `4.18.0` release through Corepack.

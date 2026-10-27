@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "repository": "AL-A-V-Parseval/dsh-desktop",
+  "channel": "stable",
+  "workspace": "dsh-desktop-next",
+  "firstStableTag": "v2.0.20-next-linux.1",
+  "retainNextIdentifiers": true,
+  "legacy": {
+    "workspace": "dsh-plugin-desktop",
+    "lastRelease": "v2.0.18-linux.1",
+    "status": "retired"
+  }
+}
