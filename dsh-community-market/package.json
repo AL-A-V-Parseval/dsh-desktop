@@ -80,7 +80,7 @@
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
     "semver": "^7.7.3",
-    "sharp": "patch:sharp@npm%3A0.35.5#~/.yarn/patches/sharp-npm-0.35.5-3bf79c44f8.patch",
+    "sharp": "0.35.5",
     "yaml": "^2.9.0",
     "zod": "^4.4.3"
   },

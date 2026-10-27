@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire, type ModuleHooks } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, sep } from 'node:path'
@@ -97,30 +97,21 @@ it('pins the WebAssembly build to the sharp release the runtime installs', () =>
   expect((require(`${SHARP_WASM_PACKAGE}/package`) as { version: string }).version).toBe(sharp.version)
 })
 
-it('bypasses the Stable bridge only while the Linux WASM resolver is installed', () => {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'desktop-sharp-bridge-')))
-  roots.push(root)
-  const sharpDir = join(root, 'node_modules', 'sharp')
-  writeManifest(sharpDir, { name: 'sharp', version: '0.35.5', main: './bridge/core.cjs' })
-  mkdirSync(join(sharpDir, 'bridge'))
-  mkdirSync(join(sharpDir, 'dist'))
-  writeFileSync(join(sharpDir, 'bridge', 'core.cjs'), 'module.exports = { bridge: true }\n')
-  writeFileSync(join(sharpDir, 'dist', 'index.cjs'), 'module.exports = { original: true }\n')
-  const require = createRequire(join(root, 'package.json'))
-  expect(require.resolve('sharp')).toBe(join(sharpDir, 'bridge', 'core.cjs'))
-  const hook = installSharpWasmResolution(root, 'linux')!
-  hooks.push(hook)
-  expect(require.resolve('sharp')).toBe(join(sharpDir, 'dist', 'index.cjs'))
-  expect(require('sharp')).toEqual({ original: true })
-  hook.deregister()
-  hooks.pop()
-  expect(require.resolve('sharp')).toBe(join(sharpDir, 'bridge', 'core.cjs'))
+it('uses upstream sharp exports without the retired bridge or global patch overrides', () => {
+  const workspace = JSON.parse(readFileSync(join(desktopRoot, '..', 'package.json'), 'utf8')) as { resolutions: Record<string, string> }
+  const market = JSON.parse(readFileSync(join(desktopRoot, '..', 'dsh-community-market', 'package.json'), 'utf8')) as { dependencies: Record<string, string> }
+  expect(Object.entries(workspace.resolutions).filter(([key]) => key.startsWith('sharp'))).toEqual([])
+  expect(market.dependencies.sharp).toBe('0.35.5')
+  const require = createRequire(join(desktopRoot, 'package.json'))
+  const entry = require.resolve('sharp')
+  expect(entry.replaceAll('\\', '/')).toMatch(/\/sharp\/dist\/index\.cjs$/u)
+  expect(existsSync(join(dirname(entry), '..', 'bridge'))).toBe(false)
 })
 
 it('loads real sharp through @img/sharp-wasm32 and encodes PNG images when platform is linux', () => {
   const script = [
     'Object.defineProperty(process, "platform", { value: "linux" })',
-    // Exercise the fork's Electron-only bridge branch too, not just plain Node.
+    // Linux must use WASM even when sharp detects an Electron process.
     'Object.defineProperty(process.versions, "electron", { value: "44.7.0" })',
     `const { installSharpWasmResolution } = await import(${JSON.stringify(new URL('../src/host/sharp-wasm.ts', import.meta.url).href)})`,
     `installSharpWasmResolution(${JSON.stringify(desktopRoot)}, "linux")`,

@@ -42,13 +42,6 @@ export function installSharpWasmResolution(runtimeDir: string, platform: NodeJS.
   return registerHooks({
     resolve(specifier, context, nextResolve) {
       if (SHARP_LINUX_NATIVE.test(specifier)) throw missingModule(specifier)
-      if (specifier === 'sharp') {
-        const resolved = nextResolve(specifier, context)
-        // Stable still needs the fork's real-Node bridge. This Host instead runs the
-        // original sharp under the WASM hook; its payload omits native Linux backends.
-        if (resolved.url.endsWith('/sharp/bridge/core.cjs')) return nextResolve(fileURLToPath(new URL('../dist/index.cjs', resolved.url)), context)
-        return resolved
-      }
       if (specifier !== SHARP_WASM_PACKAGE && !specifier.startsWith(`${SHARP_WASM_PACKAGE}/`)) return nextResolve(specifier, context)
       try {
         return nextResolve(specifier, context)
