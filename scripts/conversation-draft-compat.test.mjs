@@ -51,7 +51,7 @@ const invalidDrafts = [undefined, null, 42, true, [], {}, { text: 7, references:
 // Each workspace follows its own upstream.json channel runtime.
 const workspaceVersions = {
   'dsh-plugin-desktop': '0.2.1-rc.3',
-  'dsh-plugin-desktop-beta': '0.2.1-rc.3',
+  'dsh-plugin-desktop-beta': '0.2.2-alpha.2',
   'dsh-desktop-next': '0.2.1-rc.4',
 }
 
@@ -103,7 +103,8 @@ for (const [workspace, version] of Object.entries(workspaceVersions)) {
     // An invalid value reads as the empty draft, which an empty editor already holds.
     const updates = []
     const editor = {
-      projection: { clipboardText: '', occurrences: [] },
+      // dsh 0.2.2 projections also carry atomic quotes.
+      projection: { clipboardText: '', occurrences: [], quotes: [] },
       editor: { update: () => { updates.push('update') } },
     }
     for (const value of invalidDrafts) {
