@@ -37,6 +37,7 @@ const OBSOLETE_BETA_FILES = [
 // package.json, and the API differences live only in these files.
 const UPSTREAM_FAMILY_FILES = [
   'src/upstream-family.ts',
+  'src/upstream-family-labels.ts',
   'tests/upstream-family.ts',
 ]
 
