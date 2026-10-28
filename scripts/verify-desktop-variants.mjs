@@ -84,12 +84,24 @@ const GLOBAL_PAIRS = [
   ],
 ]
 
+// Next may lead Beta onto a newer upstream DSH runtime. While it does, the runtime version is a
+// declared difference, and lines between `// next-lead:start` and `// next-lead:end` exist only in
+// Next. When Beta follows, remove the markers so those lines become shared.
+const { channels } = JSON.parse(readFileSync(join(root, 'upstream.json'), 'utf8'))
+const nextLeadsBeta = channels.next.runtimePackageVersion !== channels.beta.runtimePackageVersion
+const RUNTIME_PAIRS = nextLeadsBeta ? [[channels.next.runtimePackageVersion, channels.beta.runtimePackageVersion]] : []
+const NEXT_LEAD_REGION = /^[ \t]*\/\/ next-lead:start\n[\s\S]*?^[ \t]*\/\/ next-lead:end\n/gmu
+
+function withoutNextLead(text) {
+  return text.replace(NEXT_LEAD_REGION, '')
+}
+
 export function toBetaContent(relativePath, sourceText) {
-  let text = sourceText
+  let text = withoutNextLead(sourceText)
   for (const [nextStr, betaStr] of FILE_SPECIFIC_PAIRS[relativePath] ?? []) {
     text = text.replaceAll(nextStr, betaStr)
   }
-  for (const [nextStr, betaStr] of GLOBAL_PAIRS) {
+  for (const [nextStr, betaStr] of [...GLOBAL_PAIRS, ...RUNTIME_PAIRS]) {
     text = text.replaceAll(nextStr, betaStr)
   }
   return text
@@ -121,7 +133,7 @@ export function toNextContent(relativePath, sourceText) {
       /(\b\d+\.\d+\.\d+)-beta\.(\d+)\b/gu,
       (_, ver, rev) => (Number(rev) <= 1 ? `${ver}-next` : `${ver}-next.${String(Number(rev) - 1)}`),
     )
-  for (const [nextStr, betaStr] of [...GLOBAL_PAIRS].reverse()) {
+  for (const [nextStr, betaStr] of [...GLOBAL_PAIRS, ...RUNTIME_PAIRS].reverse()) {
     text = text.replaceAll(betaStr, nextStr)
   }
   for (const [nextStr, betaStr] of [...(FILE_SPECIFIC_PAIRS[relativePath] ?? [])].reverse()) {
@@ -185,6 +197,12 @@ export function syncVariants(direction = 'beta-to-next') {
       writeFileSync(targetFile, readFileSync(sourceFile))
     } else {
       const transformed = transform(relPath, readFileSync(sourceFile, 'utf8'))
+      const current = isBetaToNext && existsSync(targetFile) ? readFileSync(targetFile, 'utf8') : undefined
+      if (current !== undefined && current !== withoutNextLead(current)) {
+        // Beta cannot reproduce Next-lead lines; keep Next's copy when its shared lines already match.
+        if (withoutNextLead(current) === transformed) continue
+        throw new Error(`${relPath} carries Next-lead lines; edit it in Next and sync with --from=next`)
+      }
       writeFileSync(targetFile, transformed, 'utf8')
     }
     chmodSync(targetFile, statSync(sourceFile).mode)
@@ -220,8 +238,10 @@ export function verifyVariants() {
       const actualBeta = readFileSync(betaFile, 'utf8')
       const expectedBeta = toBetaContent(relPath, actualNext)
       const expectedNext = toNextContent(relPath, actualBeta)
-      if (expectedBeta !== actualBeta || expectedNext !== actualNext) {
+      if (expectedBeta !== actualBeta || expectedNext !== withoutNextLead(actualNext)) {
         differences.push(relPath)
+      } else if (!nextLeadsBeta && actualNext !== withoutNextLead(actualNext)) {
+        differences.push(`${relPath} (Beta now uses Next's runtime; remove the next-lead markers and share their lines)`)
       }
     }
   }
