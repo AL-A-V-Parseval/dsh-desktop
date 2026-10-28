@@ -6,6 +6,7 @@ Download metadata from the versioned npm endpoint; integrity is checked here.
 The existing streaming compatibility patch is retained verbatim.
 """
 import base64
+import copy
 import difflib
 import hashlib
 import json
@@ -40,6 +41,35 @@ def main():
     for filename, digest in manifest['files'].items():
         if hashlib.sha256(new['dist/providers/data/' + filename]).hexdigest() != digest:
             raise ValueError('Catalog manifest hash mismatch: ' + filename)
+    catalog_generated_at = manifest['generatedAt']
+    additions_path = ROOT / 'pi-model-catalog-additions.json'
+    additions = json.loads(additions_path.read_text()) if additions_path.exists() else None
+    if additions is not None:
+        for entry in additions['models']:
+            filename = 'dist/providers/data/' + entry['provider'] + '.json'
+            groups = json.loads(new[filename])
+            matches = [(api, model) for api, group in groups.items() for model in group.values()
+                       if model['id'] == entry['baseModelId']]
+            if len(matches) != 1:
+                raise ValueError('Addition template is missing or ambiguous')
+            api, template = matches[0]
+            model = {**copy.deepcopy(template), **entry['changes']}
+            if model['provider'] != entry['provider'] or model['api'] != api:
+                raise ValueError('Addition cannot change the protocol or route')
+            key = model.get('type', 'chat') + ':' + model['id']
+            if any(value['id'] == model['id'] for group in groups.values() for value in group.values()):
+                raise ValueError('Addition is now in the published catalog; review/retire the backport')
+            groups[api][key] = model
+            new[filename] = json.dumps(groups, ensure_ascii=False, separators=(',', ':')).encode() + b'\n'
+        structure = {}
+        for filename in sorted(manifest['files']):
+            data = new['dist/providers/data/' + filename]
+            manifest['files'][filename] = hashlib.sha256(data).hexdigest()
+            groups = json.loads(data)
+            structure[filename.removesuffix('.json')] = dict(sorted((key, api) for api, group in groups.items() for key in group))
+        manifest['structureHash'] = hashlib.sha256(json.dumps(structure, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
+        manifest['generatedAt'] = additions['generatedAt']
+        new['dist/providers/data/.manifest.json'] = json.dumps(manifest, separators=(',', ':')).encode() + b'\n'
     def models(files):
         return [model for name, data in files.items() if name.endswith('.json') and not name.endswith('/.manifest.json')
                 for group in json.loads(data).values() for model in group.values()]
@@ -58,7 +88,9 @@ def main():
             output += line if line.endswith('\n') else line + '\n\\ No newline at end of file\n'
     patch.write_text(output)
     receipt = {'package': metadata['name'], 'runtimeVersion': '1.1.0', 'catalogVersion': metadata['version'],
-               'catalogGeneratedAt': manifest['generatedAt'], 'integrity': integrity,
+               'catalogGeneratedAt': manifest['generatedAt'], 'publishedCatalogGeneratedAt': catalog_generated_at, 'integrity': integrity,
+               'additionsSources': additions['sources'] if additions else [],
+               'additionsSha256': hashlib.sha256(additions_path.read_bytes()).hexdigest() if additions else None,
                'source': metadata['dist']['tarball'], 'beforeModels': len(before), 'afterModels': len(after),
                'changedFiles': changed, 'patchSha256': hashlib.sha256(output.encode()).hexdigest()}
     (ROOT / 'pi-model-catalog.json').write_text(json.dumps(receipt, indent=2) + '\n')

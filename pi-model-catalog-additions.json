@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-10-27T23:46:11Z",
+  "sources": [
+    "https://github.com/earendil-works/pi/blob/a92283056d915c758799fcd904948ff0cb42628c/packages/ai/scripts/generate-models.ts#L2964-L2989",
+    "https://github.com/earendil-works/pi/blob/a92283056d915c758799fcd904948ff0cb42628c/packages/ai/scripts/generate-models.ts#L3210-L3237",
+    "https://github.com/earendil-works/pi/blob/a92283056d915c758799fcd904948ff0cb42628c/packages/ai/scripts/generate-models.ts#L1080-L1107",
+    "https://models.dev/api.json"
+  ],
+  "note": "Backport the two explicit upstream GPT-6.1 Terra entries absent from the npm catalog snapshot. Sol and Terra share the listed capability groups, image limits and route. Prices, context and effort are corrected from the pinned generator; no user settings or protocol code are changed.",
+  "models": [
+    {
+      "provider": "openai",
+      "baseModelId": "gpt-6.1-sol",
+      "changes": {
+        "id": "gpt-6.1-terra",
+        "name": "GPT-6.1 Terra",
+        "contextWindow": 272000,
+        "maxTokens": 128000,
+        "cost": {"input": 1, "output": 5, "cacheRead": 0.05, "cacheWrite": 1.25, "tiers": [{"inputTokensAbove": 272000, "input": 2, "output": 7.5, "cacheRead": 0.1, "cacheWrite": 2.5}]},
+        "thinkingLevelMap": {"off": "none", "minimal": null, "low": "low", "medium": "medium", "high": "high", "xhigh": "xhigh", "max": "max"}
+      }
+    },
+    {
+      "provider": "openai-codex",
+      "baseModelId": "gpt-6.1-sol",
+      "changes": {
+        "id": "gpt-6.1-terra",
+        "name": "GPT-6.1 Terra",
+        "contextWindow": 500000,
+        "maxTokens": 128000,
+        "cost": {"input": 1, "output": 5, "cacheRead": 0.05, "cacheWrite": 1.25, "tiers": [{"inputTokensAbove": 272000, "input": 2, "output": 7.5, "cacheRead": 0.1, "cacheWrite": 2.5}]},
+        "thinkingLevelMap": {"off": "none", "minimal": "low", "low": "low", "medium": "medium", "high": "high", "xhigh": "xhigh", "max": "max"}
+      }
+    }
+  ]
+}

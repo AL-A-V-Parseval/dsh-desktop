@@ -21,6 +21,13 @@ Commit the patch, provenance and lockfile together. It does not modify user
 provider settings, custom models, credentials, defaults or saved conversations.
 Account-specific remote discovery remains separate and may depend on entitlement.
 
+Published npm data may predate a model release. Reviewed mainline backports live in
+`pi-model-catalog-additions.json`, with pinned source links and explicit route-specific
+changes. The refresh generator applies these additions reproducibly, rebuilds the
+manifest hashes, records both snapshot dates, and fails if a published catalog
+already contains the addition (so the temporary backport can be reviewed/retired).
+An npm version bump alone is not evidence that its embedded model list is current.
+
 Office uses a single Host-owned composition. `DSH_PRIMARY_RUNTIME` redirects that
 composition to a directory containing `runtime.json` and the expected interpreter
 tree; its sibling `office-skills` directory supplies assets. An empty string
