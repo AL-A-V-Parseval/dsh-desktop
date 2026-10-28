@@ -37,7 +37,8 @@ corepack yarn dev     # 有图形环境时启动应用
 构建 Linux 未打包应用与安装包：
 
 ```sh
-DSH_AA_SOURCE_REF=pinned corepack yarn package:dir   # 产物：dsh-plugin-desktop/dist/linux-unpacked/
+corepack yarn aa:prepare-release  # 准备最新官方 AA main；提交生成的依赖与来源记录
+corepack yarn package:dir         # 产物：dsh-desktop-next/dist/linux-unpacked/
 ```
 
 本仓库的 `.deb` 使用 `ar` + `xz` 手工打包（不依赖 `dpkg-deb`），脚本与产物说明见根目录 `README.md` 与 Release。
@@ -45,7 +46,7 @@ DSH_AA_SOURCE_REF=pinned corepack yarn package:dir   # 产物：dsh-plugin-deskt
 ### 仓库边界（开始前务必了解）
 
 - `deepseek-harness/` 是固定版本的上游子模块，**桌面开发不修改其中的任何文件**；上游内容更新走独立的 pin 提交。
-- 桌面代码位于 `dsh-plugin-desktop/`；`dsh-community-fabric/` 保存社区标准 Draft，`dsh-community-market/` 保存市场壳设计。两个社区 package 当前都只有文档、尚不可加载，三个自有 package 共用外层 Yarn workspace。
+- Linux Stable 桌面代码位于 `dsh-desktop-next/`，共享改动先在 `dsh-plugin-desktop-beta/` 开发并按镜像检查同步；`dsh-plugin-desktop/` 保留供上游合并和回归，不再发布 Linux 版本。`dsh-community-market/` 是可加载的市场集成，`dsh-community-fabric/` 仍是文档草案。自有 package 共用外层 Yarn workspace，发布边界以 `linux-release-policy.json` 为准。
 - 上游第三方运行时通过 `patches/` 与 `.yarn/patches/` 打补丁；修改这些补丁时，同时更新根 `package.json` 的 `resolutions` 与 `yarn.lock`。
 - 构建、类型检查、单元测试和冒烟检查必须保持 headless-safe。
 

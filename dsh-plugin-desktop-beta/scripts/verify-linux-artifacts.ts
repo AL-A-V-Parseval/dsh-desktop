@@ -191,8 +191,11 @@ export function verifyLinuxArtifacts(
   options: LinuxArtifactVerificationOptions = defaultOptions(),
 ): LinuxArtifacts {
   const distDir = join(options.desktopRoot, 'dist')
-  const appImagePath = join(distDir, `DSH-Desktop-Next-${options.version}-x86_64.AppImage`)
-  const debPath = join(distDir, `DSH-Desktop-Next-${options.version}-amd64.deb`)
+  const metadata = JSON.parse(readFileSync(join(options.desktopRoot, 'package.json'), 'utf8')) as { build: { linux: { artifactName: string } } }
+  const artifact = (arch: string, ext: string) => metadata.build.linux.artifactName
+    .replaceAll('${version}', options.version).replaceAll('${arch}', arch).replaceAll('${ext}', ext)
+  const appImagePath = join(distDir, artifact('x86_64', 'AppImage'))
+  const debPath = join(distDir, artifact('amd64', 'deb'))
   const applicationPath = join(distDir, 'linux-unpacked', 'dsh-desktop-beta')
   const payloadPath = join(distDir, 'linux-unpacked', 'resources', 'runtime')
 

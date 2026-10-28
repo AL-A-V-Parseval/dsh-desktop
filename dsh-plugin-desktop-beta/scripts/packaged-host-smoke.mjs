@@ -9,9 +9,20 @@ const root = process.argv[2]
 if (!root) throw new Error('packaged-host-smoke: expected the packaged application root')
 const { NextDesktopRuntime } = await import(pathToFileURL(join(root, 'lib', 'desktop-runtime.js')).href)
 const home = mkdtempSync(join(tmpdir(), 'dsh-next-packaged-smoke-'))
+// Exercise each override in a fresh process, never the real user environment.
+process.env.HOME = home
+process.env.XDG_CONFIG_HOME = join(home, 'config')
+process.env.XDG_CACHE_HOME = join(home, 'cache')
+process.env.XDG_STATE_HOME = join(home, 'state')
+delete process.env.DSH_BUNDLED_PRIMARY_RUNTIME
+const primaryRuntime = join(dirname(root), 'runtime', process.arch, 'primary-runtime')
+const officeMode = process.argv[3] ?? 'default'
+if (!['default', 'override', 'disabled'].includes(officeMode)) throw new Error('Invalid Office smoke mode')
+if (officeMode === 'default') delete process.env.DSH_PRIMARY_RUNTIME
+else process.env.DSH_PRIMARY_RUNTIME = officeMode === 'disabled' ? '' : primaryRuntime
 let failures = 0
 // The payload of this CPU sits beside the archive, where the packaged shell selects it.
-const runtime = new NextDesktopRuntime({ root, home, primaryRuntime: join(dirname(root), 'runtime', process.arch, 'primary-runtime'), executable: process.execPath, addresses: () => [],
+const runtime = new NextDesktopRuntime({ root, home, primaryRuntime, executable: process.execPath, addresses: () => [],
   certificate: async () => { throw new Error('The packaged smoke must not request system key storage or expose a LAN listener') },
   onFailure: () => { failures += 1 }, onChange() {}, onRestart() {}, onTerminal() {}, onNotification() {},
 })
@@ -31,6 +42,8 @@ try {
   await runtime.start()
   const state = runtime.state()
   if (state.phase !== 'ready' || failures !== 0) throw new Error(`Packaged Host did not reach ready: phase=${state.phase} failure=${state.failure}`)
+  const officeMounted = runtime.diagnostics.snapshot().includes('office.mount.complete')
+  if (officeMounted !== (officeMode !== 'disabled')) throw new Error(`Office mode ${officeMode}: unexpected mount state ${String(officeMounted)}`)
   const auth = runtime.auth
   if (!auth) throw new Error('Packaged Host reported ready without native credentials')
   // Only the native capability passes the request gate; a bare loopback browser request is refused.
@@ -44,7 +57,7 @@ try {
   // The loader reports optional plugins it could not activate on stderr, which the shell records.
   const inactive = runtime.diagnostics.snapshot().split('\n').filter(line => line.includes('did not activate'))
   if (inactive.length > 0) throw new Error(`Packaged Host left plugins inactive:\n${inactive.join('\n')}`)
-  console.log(`Packaged Next Host booted from ${root}: profile ${state.selected}, loopback ${new URL(auth.url).origin}, diagnostics export ok`)
+  console.log(`Packaged Next Host booted from ${root}: Office ${officeMode}, profile ${state.selected}, loopback ${new URL(auth.url).origin}, diagnostics export ok`)
 } finally {
   await runtime.close()
   rmSync(home, { recursive: true, force: true })

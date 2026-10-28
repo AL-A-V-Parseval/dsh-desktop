@@ -1228,7 +1228,7 @@ describe('published package surface', () => {
     const patchPath = './patches/pi-ai@1.1.0.patch'
     const patchResolution = `patch:@earendil-works/pi-ai@npm%3A1.1.0#${patchPath}`
     const lockfile = readFileSync(new URL('yarn.lock', workspaceRoot), 'utf8')
-    const patch = readFileSync(new URL(patchPath, workspaceRoot), 'utf8').replaceAll('\r\n', '\n')
+    const patch = readFileSync(new URL(patchPath, workspaceRoot), 'utf8').replaceAll('\r\n', '\n').split('# Desktop data-only model catalog refresh\n')[0]!
     const piAiRoot = new URL('node_modules/@earendil-works/pi-ai/', packageRoot)
     const installedPiAi = JSON.parse(readFileSync(new URL('package.json', piAiRoot), 'utf8')) as { version?: unknown }
 

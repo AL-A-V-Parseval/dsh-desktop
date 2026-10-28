@@ -1,4 +1,4 @@
-import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, sep } from 'node:path'
@@ -17,6 +17,30 @@ import { PRIMARY_RUNTIME_INSTALL_NAME, resolveOfficeConfig } from '../src/host/o
 const require = createRequire(import.meta.url)
 const officeAssets = join(dirname(require.resolve('@deepseek-ai/dsh-skill-office/package.json')), 'assets')
 const nodeName = process.platform === 'win32' ? 'node.exe' : 'node'
+
+it('keeps Office ownership in the Host rather than duplicate Loader insertions', async () => {
+  const patch = await readFile(new URL('../cordis.patch.yml', import.meta.url), 'utf8')
+  expect(patch).not.toContain('dsh-tool-workspace-dependencies')
+  expect(patch).not.toContain('dsh-skill-office')
+  expect(patch).not.toContain('DSH_BUNDLED_PRIMARY_RUNTIME')
+})
+
+it('redirects or disables the single Office composition through the explicit override', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'next-office-override-'))
+  try {
+    const source = join(root, 'custom', 'primary-runtime')
+    const archive = join(root, 'app.asar')
+    const home = join(root, 'home')
+    expect(resolveOfficeConfig(archive, '/bundled', home, { DSH_PRIMARY_RUNTIME: '' })).toBeUndefined()
+    expect(() => resolveOfficeConfig(archive, '/bundled', home, { DSH_PRIMARY_RUNTIME: source })).toThrow('has no runtime.json')
+    await mkdir(source, { recursive: true })
+    await writeFile(join(source, 'runtime.json'), '{}')
+    expect(resolveOfficeConfig(archive, '/bundled', home, { DSH_PRIMARY_RUNTIME: source })).toEqual({ source, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME) })
+    expect(resolveOfficeConfig(archive, '/bundled', home, { DSH_BUNDLED_PRIMARY_RUNTIME: source })?.source).toBe('/bundled')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
 
 it('loads Office skills with the bundled Node and the installed CLI, and removes them on disposal', async () => {
   const root = await mkdtemp(join(tmpdir(), 'next-office-'))

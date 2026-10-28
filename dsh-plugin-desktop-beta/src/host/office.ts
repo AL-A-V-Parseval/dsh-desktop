@@ -1,6 +1,6 @@
 /** Next Office skills and bundled authoring dependencies; ported from upstream Desktop's Host composition. */
 import { existsSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Context } from '@deepseek-ai/cordis'
 import * as officeSkills from '@deepseek-ai/dsh-skill-office'
@@ -29,10 +29,17 @@ export const PRIMARY_RUNTIME_INSTALL_NAME = 'dsh-next-primary-runtime'
  * @param runtimeDir - Application directory; the archive itself when packaged.
  * @param source - Bundled payload directory the shell selected for this CPU.
  * @param home - Next home receiving the installation.
- * @returns The configuration, or undefined for a development tree whose payload was not prepared.
+ * @param environment - Host environment; DSH_PRIMARY_RUNTIME redirects the single composition, or disables it when empty.
+ * @returns The configuration, or undefined when disabled or a development payload was not prepared.
  * @throws For a packaged Host started without a payload path.
  */
-export function resolveOfficeConfig(runtimeDir: string, source: string | undefined, home: string): Config | undefined {
+export function resolveOfficeConfig(runtimeDir: string, source: string | undefined, home: string, environment: NodeJS.ProcessEnv = process.env): Config | undefined {
+  const override = environment.DSH_PRIMARY_RUNTIME
+  if (override === '') return undefined
+  if (override !== undefined) {
+    source = resolve(override)
+    if (!existsSync(join(source, 'runtime.json'))) throw new Error(`DSH_PRIMARY_RUNTIME has no runtime.json: ${source}`)
+  }
   const packaged = insideArchive(runtimeDir)
   if (source === undefined) {
     if (packaged) throw new Error('Next Host requires the bundled primary runtime path')

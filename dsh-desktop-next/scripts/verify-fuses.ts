@@ -104,6 +104,8 @@ async function verifyFinalArtifacts(result: { outDir: string }): Promise<string[
       ...(target.platform === 'linux' ? [runPackagedNode(path, [join(desktopRoot, 'scripts', 'packaged-sharp-smoke.mjs'), root, '--without-host-hook'], 120_000, 'Packaged sharp standalone attachment smoke failed')] : []),
       // The same Electron, in Node mode, starts the real Host from the archive with a private home.
       runPackagedNode(path, ['--expose-internals', join(desktopRoot, 'scripts', 'packaged-host-smoke.mjs'), root], 300_000, 'Packaged Next Host smoke failed'),
+      runPackagedNode(path, ['--expose-internals', join(desktopRoot, 'scripts', 'packaged-host-smoke.mjs'), root, 'override'], 300_000, 'Packaged Host runtime override smoke failed'),
+      runPackagedNode(path, ['--expose-internals', join(desktopRoot, 'scripts', 'packaged-host-smoke.mjs'), root, 'disabled'], 300_000, 'Packaged Host Office opt-out smoke failed'),
     ])
   }
   return []

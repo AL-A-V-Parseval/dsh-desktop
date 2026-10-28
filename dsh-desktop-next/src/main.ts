@@ -16,7 +16,6 @@ import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
 import { preferredDesktopLocale, resolveDesktopLocale } from './menu-locale.ts'
 import { NativeLocaleStore } from './native-locale.ts'
 import { NextDesktopRuntime } from './desktop-runtime.ts'
-import { publishBundledPrimaryRuntime } from './primary-runtime-payload.ts'
 import { probeSystemProxy, type DesktopSystemProxyProbe } from './system-proxy.ts'
 import { resolveDesktopShellEnvironment } from './shell-environment.ts'
 import { ensureUtf8Locale } from './shell-locale.ts'
@@ -999,9 +998,6 @@ function prepareHostEnvironment(): Promise<void> {
 async function main(): Promise<void> {
   await app.whenReady()
   if (quitting) return
-  // Publish the bundled primary runtime before anything can start a Host. Next
-  // spawns the Host as a child process, which inherits this process environment.
-  publishBundledPrimaryRuntime({ isPackaged: app.isPackaged, resourcesPath: process.resourcesPath })
   let inputRevision = 0
   let inputBlocked = false
   desktopShortcuts = installDesktopShortcuts(() => mainWindow, app.getPath('userData'),

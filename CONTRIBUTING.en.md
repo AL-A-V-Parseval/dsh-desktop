@@ -37,7 +37,8 @@ corepack yarn dev     # launch the application when a graphical session is avail
 Build the unpacked Linux application:
 
 ```sh
-DSH_AA_SOURCE_REF=pinned corepack yarn package:dir   # output: dsh-plugin-desktop/dist/linux-unpacked/
+corepack yarn aa:prepare-release  # Prepare official AA main; commit generated dependencies and provenance
+corepack yarn package:dir         # output: dsh-desktop-next/dist/linux-unpacked/
 ```
 
 The `.deb` in this repository is built by hand with `ar` + `xz` (no `dpkg-deb`); see the root `README.md` and the Release for details.
@@ -45,7 +46,7 @@ The `.deb` in this repository is built by hand with `ar` + `xz` (no `dpkg-deb`);
 ### Repository boundaries (please read before starting)
 
 - `deepseek-harness/` is the pinned upstream submodule. **Desktop development never edits files inside it**; upstream updates land through separate pin commits.
-- Desktop code lives in `dsh-plugin-desktop/`; `dsh-community-fabric/` owns the community-standard Draft and `dsh-community-market/` owns the market-shell design. Both community packages are currently documentation-only and not loadable; all three owned packages share the outer Yarn workspace.
+- Linux Stable lives in `dsh-desktop-next/`; develop shared changes in `dsh-plugin-desktop-beta/` and synchronize through the mirror checks. `dsh-plugin-desktop/` remains for upstream merges and regression checks, not new Linux releases. `dsh-community-market/` is a loadable market integration; `dsh-community-fabric/` remains a documentation scaffold. Owned packages share the outer Yarn workspace; `linux-release-policy.json` defines release boundaries.
 - Upstream third-party runtimes are patched through `patches/` and `.yarn/patches/`; when changing those patches, also update the root `package.json` `resolutions` and `yarn.lock`.
 - Builds, typechecks, unit tests, and smoke checks must stay headless-safe.
 
