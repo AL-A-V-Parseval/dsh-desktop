@@ -4,7 +4,11 @@
 
 从已发布源码 `60f2bede46` 合并上游 `origin/master` 快照 `e7d0170dde2cee5942bc85e00b018d55c1c404ad`，共 14 个新提交。当前 Linux 源码为 `2.0.21-next-linux.1`，未发布；现有 Stable/latest `v2.0.20-next-linux.2` 的签名标签、安装包与证明均保持不变。
 
+收尾时另合入上游后续 3 个提交，最终快照为 `0e249397f8ae66dbb674ba85570f59bd0ecab14a`，累计 17 个提交：dshfind 来源选项，以及 Beta 的 LiveShare、Ralph、会话搜索列表入口与兼容补丁。新增列表不等于默认启用插件。
+
 Merged 14 upstream commits through `e7d0170dde` into the source after `60f2bede46`. Source is now `2.0.21-next-linux.1`, unreleased. Published Stable `v2.0.20-next-linux.2` and its immutable assets are unchanged.
+
+Three subsequent commits bring the final snapshot to `0e249397f8` (17 incoming commits total): a dshfind source option plus Beta LiveShare/Ralph/session-search listing and compatibility. Listing does not enable the plugins by default.
 
 ## 运行时家族 / Runtime families
 
@@ -43,7 +47,7 @@ Workspace peer resolution now follows the compatible consuming application inste
 
 ## 验证 / Validation
 
-- Root headless gate: Market 320 tests; Next 803; Beta 803. Legacy regression: 1,886. **3,812 workspace tests passed, 22 skipped.**
+- Final root headless gate after the follow-up merge: Market 320 tests; Next 805; Beta 805. Legacy regression: 1,886. **3,816 workspace tests passed, 22 skipped.**
 - Three vendored runtime families checked; 284 shared variant files aligned while preserving declared family differences.
 - 54 bilingual records / 108 documents verified; working-tree and staged diff whitespace checks passed.
 - Linux directory package built successfully. Real packaged Host default/override/Office-disabled modes passed, as did native driver/badge and Sharp WASM attachment checks.

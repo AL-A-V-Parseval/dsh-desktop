@@ -31,7 +31,7 @@ DSH Desktop integrates the local Web UI, Host service, and plugin system of [Dee
 
 This fork is **Linux-focused**: it fixes the upstream desktop's inability to run stably on Linux, restoring subprocess tools (`bash` / `glob` / `grep`), the plugin market, and attachments.
 
-- Merged upstream snapshot: `e7d0170dde`; this branch's source version is `2.0.21-next-linux.1` (unreleased)
+- Merged upstream snapshot: `0e249397f8`; this branch's source version is `2.0.21-next-linux.1` (unreleased)
 - Source runtimes: Linux Stable workspace `dsh-desktop-next/` → `0.2.1-rc.4`; Beta → `0.2.2-alpha.2`; legacy workspace retains `0.2.1-rc.3`. Pins live in [`upstream.json`](upstream.json); Linux release boundaries are defined by [`linux-release-policy.json`](linux-release-policy.json)
 - Published `linux.2` uses `0.2.1-rc.3`; merging source does not change its signed assets
 - Target platform: **Linux x64**
@@ -67,7 +67,7 @@ Packaged builds carry the upstream-pinned, checksum-verified Python, Node.js, pn
 
 ### Upstream improvements in this source merge
 
-This merge brings a separate Next runtime channel, release-specific official plugin indexes and updates, bare `dsh-session:` text handling, and renderer-OOM memory evidence with readable Host exit diagnostics. These are source changes, not replacements for published `linux.2` installers. See the [workspace documentation](dsh-desktop-next/README.md) for behavior and verification entry points.
+This merge brings a separate Next runtime channel, release-specific official plugin indexes and updates, a dshfind source option, bare `dsh-session:` text handling, and renderer-OOM memory evidence with readable Host exit diagnostics. Beta also lists LiveShare, Ralph and session search without enabling them by default. These are source changes, not replacements for published `linux.2` installers. See the [workspace documentation](dsh-desktop-next/README.md) for behavior and verification entry points.
 
 ## Download and run
 

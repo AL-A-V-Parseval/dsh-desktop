@@ -31,7 +31,7 @@ DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harne
 
 本 fork **聚焦 Linux**：修复上游桌面端在 Linux 上无法稳定运行的问题，让 `bash` / `glob` / `grep` 等子进程工具、插件市场与附件等能力在 Linux 上可用。
 
-- 上游合并快照：`e7d0170dde`；本分支源码版本为 `2.0.21-next-linux.1`（尚未发布）
+- 上游合并快照：`0e249397f8`；本分支源码版本为 `2.0.21-next-linux.1`（尚未发布）
 - 源码运行时：Linux Stable 工作区 `dsh-desktop-next/` → `0.2.1-rc.4`；Beta → `0.2.2-alpha.2`；旧工作区保留 `0.2.1-rc.3`。各源码 pin 见 [`upstream.json`](upstream.json)，Linux 发布边界见 [`linux-release-policy.json`](linux-release-policy.json)
 - 已发布 `linux.2` 使用 `0.2.1-rc.3`，不会因源码合并而改变已签名资产
 - 目标平台：**Linux x64**
@@ -67,7 +67,7 @@ Linux 图像处理使用上游 Sharp 0.35.5 的 WASM 后端。旧的真实 Node 
 
 ### 本次源码合并的上游改进
 
-新增独立的 Next 运行时通道、按版本选择的官方插件索引与更新流程、裸 `dsh-session:` 文本处理修复，以及渲染进程 OOM 的内存证据和可读 Host 退出诊断。这些是当前源码改进，不表示已发布 `linux.2` 安装包被更新；具体行为与验证入口见 [工作区文档](dsh-desktop-next/README.zh.md)。
+新增独立的 Next 运行时通道、按版本选择的官方插件索引与更新流程、dshfind 来源选项、裸 `dsh-session:` 文本处理修复，以及渲染进程 OOM 的内存证据和可读 Host 退出诊断。Beta 另补齐 LiveShare、Ralph 和会话搜索的插件列表入口，不表示默认启用。这些是当前源码改进，不表示已发布 `linux.2` 安装包被更新；具体行为与验证入口见 [工作区文档](dsh-desktop-next/README.zh.md)。
 
 ## 下载与运行
 
