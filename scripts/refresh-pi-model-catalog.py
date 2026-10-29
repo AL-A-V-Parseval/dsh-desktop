@@ -28,6 +28,10 @@ def contents(path):
 
 def main():
     base, latest, metadata_path = map(Path, sys.argv[1:])
+    with tarfile.open(base) as archive:
+        runtime_version = json.loads(archive.extractfile('package/package.json').read())['version']
+    if runtime_version not in ['1.1.0', '1.4.0']:
+        raise ValueError('Unreviewed pi-ai runtime version')
     metadata = json.loads(metadata_path.read_text())
     integrity = 'sha512-' + base64.b64encode(hashlib.sha512(latest.read_bytes()).digest()).decode()
     if metadata['name'] != '@earendil-works/pi-ai' or integrity != metadata['dist']['integrity']:
@@ -76,8 +80,9 @@ def main():
     before, after = models(old), models(new)
     if {m['api'] for m in after} - {m['api'] for m in before}:
         raise ValueError('New protocol requires runtime review')
-    patch = ROOT / 'patches/pi-ai@1.1.0.patch'
-    output = patch.read_text().split(MARKER)[0] + MARKER
+    patch = ROOT / f'patches/pi-ai@{runtime_version}.patch'
+    streaming_patch = patch if patch.exists() else ROOT / 'patches/pi-ai@1.1.0.patch'
+    output = streaming_patch.read_text().split(MARKER)[0] + MARKER
     changed = []
     for name in sorted(new):
         if old[name] == new[name]:
@@ -87,13 +92,14 @@ def main():
         for line in difflib.unified_diff(old[name].decode().splitlines(keepends=True), new[name].decode().splitlines(keepends=True), fromfile='a/' + name, tofile='b/' + name):
             output += line if line.endswith('\n') else line + '\n\\ No newline at end of file\n'
     patch.write_text(output)
-    receipt = {'package': metadata['name'], 'runtimeVersion': '1.1.0', 'catalogVersion': metadata['version'],
+    receipt = {'package': metadata['name'], 'runtimeVersion': runtime_version, 'catalogVersion': metadata['version'],
                'catalogGeneratedAt': manifest['generatedAt'], 'publishedCatalogGeneratedAt': catalog_generated_at, 'integrity': integrity,
                'additionsSources': additions['sources'] if additions else [],
                'additionsSha256': hashlib.sha256(additions_path.read_bytes()).hexdigest() if additions else None,
                'source': metadata['dist']['tarball'], 'beforeModels': len(before), 'afterModels': len(after),
                'changedFiles': changed, 'patchSha256': hashlib.sha256(output.encode()).hexdigest()}
-    (ROOT / 'pi-model-catalog.json').write_text(json.dumps(receipt, indent=2) + '\n')
+    receipt_name = 'pi-model-catalog.json' if runtime_version == '1.1.0' else f'pi-model-catalog-{runtime_version}.json'
+    (ROOT / receipt_name).write_text(json.dumps(receipt, indent=2) + '\n')
     print(json.dumps({key: receipt[key] for key in ['runtimeVersion', 'catalogVersion', 'beforeModels', 'afterModels']}))
 
 

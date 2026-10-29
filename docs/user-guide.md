@@ -1,5 +1,22 @@
 # DSH Desktop 用户指南
 
+## Linux Stable 快速入口
+
+本 fork 当前使用 `dsh-desktop-next` 新架构作为 Stable；`next` 是兼容名称，不表示预发布。请从[本 fork Release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest)获取 Linux x64 AppImage、tar.gz 或 deb。文件名、启动和验签命令见[根 README](../README.md)。图像使用随包 Sharp WASM，无需系统 Node 或旧桥接变量。
+
+- 默认数据为 `~/.dsh`，手动选择的数据目录优先；Electron 偏好为 `~/.config/DSH NEXT`。升级前备份，避免多个安装同时访问同一数据目录。
+- 在官方设置中打开“桌面设置”；托盘提供 Profile、恢复与诊断工具。Profile 共享所属 home 的会话、设置与凭据，不是账号隔离容器。
+- 插件页管理市场、AA 远控与 Computer Use；远控和电脑操作默认关闭。安装、更新与卸载经官方插件管理器处理。
+- OpenAI 与 OpenAI Codex OAuth 目录包含 `gpt-6.1-terra`，账号权限仍以服务商为准；不自动改写自定义模型列表。
+- 浏览器访问默认关闭，局域网 HTTPS 入口单独授权；只分享给可信设备，不把访问 token 放进问题报告。
+- 需要排障时先使用恢复助手、导出并检查诊断；当前源码还提供 OOM 内存证据与 Host 退出诊断，这不表示旧发布安装包已获得该功能。
+
+新架构的完整操作说明以 [`dsh-desktop-next/README.zh.md`](../dsh-desktop-next/README.zh.md) 和[当前 FAQ](faq.md)为准。
+
+## 以下为旧架构历史参考
+
+下文保留用于理解旧版本与上游平台差异，其中三种窗口模式、旧启动命令、网络与更新流程不适用于当前 Linux Stable；不应据此重配新架构。
+
 ## 安装与首次启动
 
 从产品下载入口获取 macOS 或 Windows 安装包。安装后的 DSH Desktop 自带运行所需的 Electron、Node 和 DSH 依赖，普通用户不需要另行安装 Node.js 或 pnpm。

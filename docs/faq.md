@@ -2,11 +2,11 @@
 
 [English](faq.en.md)
 
-本页回答当前正式版本最常见的安装、平台、运行环境和插件问题。功能范围以[最新 GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest)和[用户指南](user-guide.md)为准。
+本页说明 Linux fork 当前 Stable 主线。功能范围以[本 fork 最新 Release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest)、[根 README](../README.md)和[新架构工作区说明](../dsh-desktop-next/README.zh.md)为准；当前源码可能领先已发布安装包。
 
 ## DSH Desktop 是什么？
 
-DSH Desktop 是面向 Windows 和 macOS 的开源 DeepSeek Harness 桌面客户端。它把官方 Harness 的本地 Web UI、Host 服务和插件系统装进原生桌面应用，并提供窗口、系统托盘、终端、更新和 profile 管理。
+本 fork 是面向 Linux x64 的开源 DeepSeek Harness 桌面客户端。它将官方 Web UI、Host 与插件系统装进原生应用，提供系统托盘、桌面设置、终端、Profile 和恢复功能。上游另有 Windows/macOS 产品。
 
 ## 这是 DeepSeek 官方产品吗？
 
@@ -14,7 +14,7 @@ DSH Desktop 是面向 Windows 和 macOS 的开源 DeepSeek Harness 桌面客户�
 
 ## 支持哪些操作系统？
 
-上游正式安装包支持 Windows x64 和 universal macOS（Intel 与 Apple Silicon）。本 fork 另外提供 Linux x64 的便携包与 `.deb` 安装包，见 [Releases](https://github.com/Jic2007/dsh-desktop/releases)。
+本 fork 发布 Linux x64 的 AppImage、便携 tar.gz 和 `.deb`，见 [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases)。Windows/macOS 用户请使用上游。文件名中的 `DSH-NEXT` 与版本中的 `next` 是兼容标识，不表示 Linux 预发布。
 
 ## 需要安装 Node.js、pnpm 或 DSH 吗？
 
@@ -26,7 +26,7 @@ DSH Desktop 是面向 Windows 和 macOS 的开源 DeepSeek Harness 桌面客户�
 
 ## DSH Desktop 会修改官方 Harness 吗？
 
-不会。仓库固定一个未修改的官方 Harness 上游版本。兼容模式在独立 overlay frame 下运行上游默认 Web client；扩展窗口与增强模式分别通过插件/profile composition 边界安装各自的 Desktop root registration，并继续承载官方 slot occupant。所有模式都不会直接修改上游源码。
+不修改官方源码 checkout。运行时来自固定版本的官方分发包，必要的桌面兼容修改通过显式 Yarn 补丁和插件组合实现。Linux Stable 使用新架构与官方前端；旧版三种窗口模式不是当前 Stable 的功能说明。
 
 ## 数据是否保存在本地？
 
@@ -34,7 +34,7 @@ Desktop Host、profile 和 DSH home 位于本机。是否向外部服务发送�
 
 ## 可以安装 DSH 插件吗？
 
-可以。DSH Desktop 使用官方 Harness 插件体系。可以从托盘打开 DSH Terminal，然后运行 `dsh plugin add`、`dsh plugin remove` 和 `dsh plugin update`；命令默认作用于当前激活的 profile，插件变更后需要重启 Desktop。
+可以。优先使用官方插件页面与市场的安装、开关、卸载和更新流程；操作由官方插件管理器处理，是否需要重载以页面提示为准。托盘终端仍可运行 `dsh plugin add`、`dsh plugin remove`、`dsh plugin update`，默认作用于当前 Profile；不要同时使用多个进程修改同一 Profile。
 
 ## Desktop profile 和已有 web profile 会自动同步吗？
 
@@ -42,7 +42,11 @@ Desktop Host、profile 和 DSH home 位于本机。是否向外部服务发送�
 
 ## 应用如何更新？
 
-打包后的应用会在后台检查稳定版本，但不会静默安装。发现新版本后先征得用户确认；下载前可以在原生保存对话框中选择安装包的目录和文件名，取消保存不会开始下载。macOS 下载并打开 DMG，Windows 下载并启动 NSIS 安装程序。升级完成并重新启动后，应用会询问是否删除或保留安装包。网络或下载失败不会破坏当前安装。
+从本 fork 的 Stable/latest Release 下载适合当前安装方式的包，校验来源后备份数据再替换，不要覆盖正在运行的程序目录。AppImage/便携包替换文件，Debian/Ubuntu 用 `apt install ./<文件>.deb`。旧架构已停止发版；切换至新 Stable 前请阅读根 README 的数据目录说明。此处不承诺 Linux 与上游 macOS/Windows 安装器具有相同自动更新流程。
+
+## GPT-6.1 Terra 在哪里？
+
+内置目录包含 OpenAI 与 OpenAI Codex OAuth 的 `gpt-6.1-terra`。在对应服务商下选择；目录存在不保证账号有权限。自定义服务商若使用显式模型列表，不会被内置目录自动覆盖。目录来源与临时补全见 [模型目录维护说明](model-catalog-refresh.md)。
 
 ## 应用会走我的系统代理吗？
 
@@ -59,4 +63,4 @@ Desktop Host、profile 和 DSH home 位于本机。是否向外部服务发送�
 
 ## 在哪里下载和报告问题？
 
-从[项目下载页](https://www.dshdesktop.cn/)或[最新 GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest)下载安装包。遇到问题时先查看[用户指南的排查部分](user-guide.md#排查)，仍无法解决再提交 [GitHub Issue](https://github.com/anywhere-labs/deepseek-harness-desktop/issues/new/choose)，并附上操作系统、应用版本、复现步骤和错误信息。
+从[本 fork 最新 Release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest)下载安装包。先导出脱敏诊断，仍无法解决再提交 [GitHub Issue](https://github.com/AL-A-V-Parseval/dsh-desktop/issues)，附系统、版本、复现步骤和错误信息；不要上传凭据、访问 token 或未经检查的完整数据目录。

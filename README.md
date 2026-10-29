@@ -19,33 +19,33 @@
   <img src="https://img.shields.io/badge/Linux-x64-4493F8?style=flat-square" alt="Target platform: Linux x64">
 </p>
 
-<p align="center"><sub>本仓库是社区 fork，基于 <a href="https://github.com/anywhere-labs/dsh-desktop">anywhere-labs/dsh-desktop</a>（上游 master 清单版本 <strong>2.0.17</strong>，最近发布 <strong>2.0.17</strong>；runtime <code>0.2.0-rc.2</code>）。与 DeepSeek（深度求索）及上游项目不存在隶属、合作、授权或背书关系。</sub></p>
+<p align="center"><sub>本仓库是 <a href="https://github.com/anywhere-labs/deepseek-harness-desktop">anywhere-labs/deepseek-harness-desktop</a> 的 Linux 社区 fork。与 DeepSeek（深度求索）及上游项目不存在隶属、合作、授权或背书关系。</sub></p>
 
 ## 这是什么
 
 > **Linux 发版主线调整（2026-10-27）：** 自 [`v2.0.20-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.20-next-linux.1) 起，原 Next 新架构成为本 fork 的 **Stable / latest**，旧架构停止发版（最后一版为 `v2.0.18-linux.1`）。为兼容已有安装、数据目录及后续上游合并，保留版本中的 `next`、`DSH NEXT` 显示名称和内部标识，**它们不再表示本 fork 的预发布通道**。已签名的安装包及 tag 不变；源码目录名与发布稳定性分开管理，规则见 [`linux-release-policy.json`](linux-release-policy.json)。根目录的 `dev`、`start`、`package:dir`、`dist:linux` 默认使用新架构。
 >
-> 当前包使用 `DSH-NEXT-<version>` 文件名前缀，便携包的程序为 `dsh-desktop-next`；默认数据目录为 `~/.dsh`，已选择的数据目录优先。首次从旧架构切换前请备份数据。下文涉及旧版窗口三模式、真实 Node sharp 桥接及双渠道安装说明的部分是旧架构历史，不代表新 Stable 的界面和运行要求；新架构的 Linux sharp 使用 WASM。
+> 当前正式版为 [`v2.0.20-next-linux.2`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.20-next-linux.2)。文件名前缀为 `DSH-NEXT-<version>`，便携程序为 `dsh-desktop-next`；默认数据目录为 `~/.dsh`，已选择的数据目录优先。首次从旧架构切换前请备份数据。当前源码已继续合并上游，**源码版本不等于已经发布的安装包版本**。
 
 DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的本地 Web UI、Host 服务和插件系统集成进原生桌面应用。它固定并原样运行特定上游版本，通过 DeepSeek Harness 的插件机制与上游能力组合。
 
 本 fork **聚焦 Linux**：修复上游桌面端在 Linux 上无法稳定运行的问题，让 `bash` / `glob` / `grep` 等子进程工具、插件市场与附件等能力在 Linux 上可用。
 
-- 上游基线：上游 [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) 最新 `master`（构建基线 `1030515b43`，清单版本 2.0.17，最近发布 tag `v2.0.17`）
+- 上游合并快照：`e7d0170dde`；本分支源码版本为 `2.0.21-next-linux.1`（尚未发布）
+- 源码运行时：Linux Stable 工作区 `dsh-desktop-next/` → `0.2.1-rc.4`；Beta → `0.2.2-alpha.2`；旧工作区保留 `0.2.1-rc.3`。各源码 pin 见 [`upstream.json`](upstream.json)，Linux 发布边界见 [`linux-release-policy.json`](linux-release-policy.json)
+- 已发布 `linux.2` 使用 `0.2.1-rc.3`，不会因源码合并而改变已签名资产
 - 目标平台：**Linux x64**
 - 产物：AppImage、便携包（tar.gz）与 Debian/Ubuntu 安装包（.deb），随 `SHA256SUMS` 提供校验和，`.deb` 另含 `debsigs` 内部签名
 
 ## 本 fork 相对上游的改动
 
-### 1. Linux 支持扩展 / 增强窗口模式
+### 1. 新 Stable 桌面与 Linux 菜单
 
-此前 fork 只提供兼容模式。Electron 在 Linux 上支持 **Window Controls Overlay**（`titleBarStyle: "hidden"` + `titleBarOverlay`），因此本 fork 让 **扩展模式** 与 **增强模式** 也能在 Linux 上运行：无边框窗口仍保留原生最小化 / 最大化 / 关闭按钮，扩展模式使用渲染进程内的独立命令栏，增强模式使用 32 像素 caption row。内容为命令栏让出顶部 36 像素，避免与原生窗口按钮重叠。
+主窗口使用官方 Web 前端，保留 Profile、恢复助手、桌面设置和插件集成。Linux 原生菜单栏在启动及刷新后保持隐藏，同时保留真实 Electron 键盘快捷键。旧版兼容／扩展／增强三模式不再作为当前 Stable 的使用说明。
 
-### 2. sharp 走真实 Node 桥接（修复 Host 反复崩溃 / 前端一直「重连」）
+### 2. 上游 Sharp WASM 与真实附件回归
 
-Linux 版 Electron 会向进程空间泄漏 glib 符号，与 sharp/libvips 的 GObject 状态冲突，首次图像操作即触发 `g_object_unref` 空指针，使 Host 进程 SIGSEGV（exit 139），前端因此一直重连。
-
-本 fork 让 sharp 在 Electron 宿主中不再直接加载，而是把每个图像操作转发给一个运行在**真实 Node** 中的独立进程；非 Electron 环境（构建脚本、纯 Node、worker 自身）仍然使用原生 sharp。
+Linux 图像处理使用上游 Sharp 0.35.5 的 WASM 后端。旧的真实 Node 子进程桥接、全局 Sharp 补丁覆盖及绕过逻辑已移除；无需安装系统 Node、设置 `DSH_SHARP_NODE`，也无需删除会话或转换有效历史图片。成品检查覆盖有／无 Host 钩子时的附件读取和完整图像解码。
 
 ### 3. 子进程 runner 统一 Electron RunAsNode
 
@@ -53,59 +53,58 @@ Linux 版 Electron 会向进程空间泄漏 glib 符号，与 sharp/libvips 的 
 
 ### 4. 修复上游打包 smoke 的 asar stats 问题
 
-上游现已全面禁用 ASAR。打包 smoke 会列出 `resources/`（其中包含 Electron 自带的 `default_app.asar`），而 Electron 对该 `.asar` 路径的 `fs.stat(..., { bigint: true })` 返回 Number 字段，导致 `dsh-fs-local` 的 `info.mode & 511n` 抛出 `Cannot mix BigInt and other types`、打包中断。本 fork 让 `dsh-fs-local` 兼容 Number stats，Linux 打包（含 smoke）可完整通过。
+新架构使用 ASAR 与按需解包的原生／Office 资源。Electron 对部分 ASAR 路径的 `fs.stat(..., { bigint: true })` 仍可能返回 Number 字段，`dsh-fs-local` 兼容补丁避免 `Cannot mix BigInt and other types`；不为清理历史代码而删除仍有用途的兼容修复。
 
-### 5. 同步单元测试
+### 5. 模型目录、OAuth 与插件市场
 
-两版 `tests/package.spec.ts` 更新了 RunAsNode 用例并新增 sharp bridge 用例；`verify-packaged-runtime.ts` / `verify-electron-fuses.ts` 适配 Linux。
+保留服务商登录和自定义模型。内置目录包含 OpenAI API 与 OpenAI Codex OAuth 的 `gpt-6.1-terra`，目录数据更新不替换协议／OAuth 实现，也不改默认模型或凭据。来源与重建方式见 [`docs/model-catalog-refresh.md`](docs/model-catalog-refresh.md)。模型目录不保证账号访问权限。插件安装、启停、卸载与社区插件更新使用官方插件管理器，保留 Market 与 AA 集成。
 
 具体实现见 `.yarn/patches/`、`patches/` 与提交历史。
 
 ### 6. 内置官方运行时载荷（Python / Node.js / pnpm + Office 技能）
 
-打包版随应用携带与官方桌面端同源的第一方运行时载荷：Python 3.12（含 numpy、pandas、python-docx、python-pptx、openpyxl、Pillow、lxml、XlsxWriter）、Node.js 24、pnpm 11，以及默认启用的 `office-docx` / `office-pptx` / `office-xlsx` 三个技能。载荷按上游 pin 的 `lock.json` 锁定并逐个校验 SHA-256，位于 `resources/runtime/`，由 `load_workspace_dependencies` 工具暴露解释器与库路径。它不替代 sharp 桥接：sharp 仍使用系统真实 Node（见第 2 项）。
+打包版携带与上游同源、按锁定清单校验的 Python、Node.js、pnpm 和 Office 技能，位于 `resources/runtime/<arch>/`。Office 与 `load_workspace_dependencies` 由单一 Host 组合挂载；`DSH_PRIMARY_RUNTIME` 可指定含 `runtime.json` 的 payload 目录，空字符串禁用该组合，避免新旧两套工具重复注册。
+
+### 本次源码合并的上游改进
+
+新增独立的 Next 运行时通道、按版本选择的官方插件索引与更新流程、裸 `dsh-session:` 文本处理修复，以及渲染进程 OOM 的内存证据和可读 Host 退出诊断。这些是当前源码改进，不表示已发布 `linux.2` 安装包被更新；具体行为与验证入口见 [工作区文档](dsh-desktop-next/README.zh.md)。
 
 ## 下载与运行
 
-从 [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases) 获取 Linux x64 包，提供 **AppImage**、**便携包（tar.gz）** 与 **Debian 包** 三种形式。下面命令中的 `<version>` 请替换为 Release 页面上的实际版本号（稳定版形如 `2.0.17-linux.1`，Next 通道形如 `2.0.17-next-linux.1`）。
+从 [最新正式版](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest) 获取 Linux x64 的 **AppImage**、**便携包（tar.gz）** 或 **Debian 包**。将 `<version>` 替换为 Release 页面上的实际版本，例如 `2.0.20-next-linux.2`。
 
 ### AppImage（免安装）
 
 ```sh
-chmod +x DSH-Desktop-<version>-x86_64.AppImage
-./DSH-Desktop-<version>-x86_64.AppImage
+chmod +x DSH-NEXT-<version>-x86_64.AppImage
+./DSH-NEXT-<version>-x86_64.AppImage
 ```
 
-Next 通道的文件名带 `Next` 前缀：`DSH-Desktop-Next-<version>-x86_64.AppImage`。
+`DSH-NEXT-` 是保留的兼容文件名前缀，不表示预发布。
 
 ### 便携包（tar.gz）
 
 ```sh
-tar -xzf DSH-Desktop-<version>-x64-portable.tar.gz
-cd DSH-Desktop-<version>-x64-portable
-./dsh-desktop
+tar -xzf DSH-NEXT-<version>-x64-portable.tar.gz
+cd DSH-NEXT-<version>-x64-portable
+./dsh-desktop-next
 ```
 
-Next 通道对应 `DSH-Desktop-Next-<version>-x64-portable.tar.gz`（解包后二进制为 `./dsh-desktop-next`）。
+便携程序同样使用已选择的数据目录；它不会自动隔离或复制现有账号与会话。
 
 ### Debian / Ubuntu 安装包（.deb）
 
 ```sh
-sudo apt install ./DSH-Desktop-<version>-amd64.deb
-# 或：sudo dpkg -i DSH-Desktop-<version>-amd64.deb && sudo apt -f install
+sudo apt install ./DSH-NEXT-<version>-amd64.deb
 ```
 
-Next 通道对应 `DSH-Desktop-Next-<version>-amd64.deb`（包名 `dsh-desktop-next`，可与稳定版并存）。
+包名与启动命令为 `dsh-desktop-next`，安装路径为 `/opt/DSH NEXT`。卸载使用 `sudo apt remove dsh-desktop-next`；数据不会因此自动删除。不要同时运行共享同一数据目录的新旧安装。
 
-安装后可从应用菜单启动：稳定版装到 `/opt/DSH Desktop`（命令 `dsh-desktop`），Next 装到 `/opt/DSH NEXT`（命令 `dsh-desktop-next`）；`.deb` 会在 `postinst` 中设置 `chrome-sandbox` 的 setuid 权限。
-
-卸载：`sudo apt remove dsh-desktop`（或 `dsh-desktop-next`）；用户数据 `~/.config/DSH Desktop` 不会被删除。
-
-两种形式都要求：
+各形式都要求：
 
 - Linux x64，且具备可运行 Electron 的桌面会话
-- 系统需安装**真实 Node**（sharp 桥接使用；默认依次查找 `/usr/bin/node`、`/usr/local/bin/node`、`/opt/homebrew/bin/node`，可用环境变量 `DSH_SHARP_NODE` 指定）。打包版另内置 Node 24 供 Office 与工作区依赖载荷使用，sharp 桥接**不会**使用该内置副本
-- 用户数据写入 `~/.config/DSH Desktop`
+- 具备 Electron 所需的系统动态库；图像 WASM 和 Office 载荷随包携带，不要求系统安装 Node
+- 会话、设置、凭据与 Profile 默认在 `~/.dsh`；Electron 偏好在 `~/.config/DSH NEXT`，手动选择的数据目录优先
 
 ### 校验下载完整性与来源
 
@@ -114,8 +113,8 @@ Next 通道对应 `DSH-Desktop-Next-<version>-amd64.deb`（包名 `dsh-desktop-n
 本仓库已开启 GitHub **immutable releases**：自 `v2.0.16-linux.1` 起，每个版本都会由 GitHub 自动生成 **release attestation**（Sigstore 格式，覆盖 tag、commit SHA 与全部资产），用 GitHub CLI 即可验证，无需导入任何公钥：
 
 ```sh
-gh release verify v<version>                          # 该 release 存在、不可变、证明可验证
-gh release verify-asset v<version> ./DSH-Desktop-<version>-x86_64.AppImage   # 本地文件与资产逐字节一致
+gh release verify v<version> --repo AL-A-V-Parseval/dsh-desktop
+gh release verify-asset v<version> ./DSH-NEXT-<version>-x86_64.AppImage --repo AL-A-V-Parseval/dsh-desktop
 ```
 
 **二、校验和（离线可用，适用于镜像 / 内网）**
@@ -129,7 +128,7 @@ sha256sum -c SHA256SUMS
 **三、tag 与 .deb 的签名**
 
 - release tag 是 **GPG 签名的注解 tag**（自 `v2.0.15-linux.1` 起），可 `git tag -v v<version>` 本地验证；公钥为 `Jic2007-release-key.asc`，指纹 `7B0C 9365 5F35 FA86 48AC 58BC 8E97 ED35 D906 329C`。
-- `.deb` 另含 `debsigs` **origin** 内部签名（`debsigs --list DSH-Desktop-<version>-amd64.deb`）。
+- `.deb` 另含 `debsigs` **origin** 内部签名。`debsigs --list` 只能列举签名，不等于密码学验签；下载验证优先使用上面的 release attestation／资产验证，并独立核对发布公钥指纹。
 
 **四、关于 `SHA256SUMS.asc`**
 
@@ -147,18 +146,20 @@ gpg --import Jic2007-release-key.asc && gpg --verify SHA256SUMS.asc SHA256SUMS
 
 ```sh
 git submodule update --init --recursive
-corepack yarn install
-DSH_AA_SOURCE_REF=pinned corepack yarn package:dir
-# 产物：dsh-plugin-desktop/dist/linux-unpacked/
+corepack yarn install --immutable
+corepack yarn check
+corepack yarn package:dir
+# 产物：dsh-desktop-next/dist/linux-unpacked/
+# AppImage / deb：corepack yarn dist:linux
 ```
 
-开发运行：`corepack yarn dev`
+构建需要 Node.js `^22.19.0` 或 `>=24.0.0`、Corepack 与根 Yarn `4.18.0`。根构建／启动入口会准备最新版 Market 与官方 AA；生成的依赖、来源记录及 lockfile 需一起提交，旧 `pinned` 参数已废止。开发运行：`corepack yarn dev`。详细边界见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
 
 ## 已知限制
 
 - 仅适配 Linux。Windows / macOS 请使用[上游项目](https://github.com/anywhere-labs/dsh-desktop)。
 - 发布来源与完整性由 GitHub release attestation（`gh release verify`）与 `SHA256SUMS` 共同保证，另有 GPG 签名 tag 与 `.deb` 内部签名；Linux 的托盘与原生集成等平台细节未额外打磨。
-- sharp 桥接按需为每次操作启动真实 Node 进程，会有少量进程启动开销；市场图标与附件处理频率低，可接受。
+- 版本中的 `next` 不代表本 fork 的预发布；Beta 仅用于开发验证。不要用源码构建结果覆盖同版本的不可变 Release。
 
 ## 文档
 

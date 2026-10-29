@@ -1,5 +1,22 @@
 # DSH Desktop User Guide
 
+## Linux Stable quick start
+
+This fork uses the `dsh-desktop-next` shell as Stable; `next` is a compatibility name, not a prerelease label. Get Linux x64 AppImage, tar.gz or deb assets from [this fork's Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest). See the [root README](../README.en.md) for filenames, launching and verification. Image processing uses bundled Sharp WASM, not system Node or legacy bridge variables.
+
+- Data defaults to `~/.dsh`; an explicitly selected directory takes precedence. Electron preferences live in `~/.config/DSH NEXT`. Back up before upgrades and avoid multiple installations accessing the same data home concurrently.
+- Open Desktop settings inside official Settings; the tray provides Profile, recovery and diagnostics tools. Profiles share their home's conversations, settings and credentials; they are not account-isolation containers.
+- The Plugins page manages markets, AA remote control and Computer Use; remote control and computer access default to off. Installation, updates and removal go through the official plugin manager.
+- OpenAI and OpenAI Codex OAuth catalogs include `gpt-6.1-terra`; account entitlement is provider-controlled. Explicit custom model lists are not overwritten.
+- Browser access defaults to off and LAN HTTPS access requires separate authorization. Share links only with trusted devices and keep access tokens out of issue reports.
+- Start troubleshooting with recovery and reviewed diagnostics. Current source also adds OOM memory evidence and Host exit diagnostics; that does not update older published installers.
+
+For complete new-shell instructions use [`dsh-desktop-next/README.md`](../dsh-desktop-next/README.md) and the [current FAQ](faq.en.md).
+
+## Legacy-framework historical reference below
+
+The following material preserves old-version and upstream-platform context. Its three window modes, old launch commands, networking and installer flows are not instructions for current Linux Stable; do not reconfigure the new shell from them.
+
 ## Installation and first launch
 
 Download the macOS or Windows installer from the product download page. DSH Desktop includes Electron, Node, and its pinned DSH dependencies, so normal users do not need to install Node.js or pnpm separately.

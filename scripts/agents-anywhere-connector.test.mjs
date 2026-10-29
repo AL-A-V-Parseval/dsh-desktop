@@ -15,18 +15,19 @@ function loadConnector(workspace, environment) {
   const source = readFileSync(new URL(`../${workspace}/node_modules/@agents-anywhere/dsh-bridge-next/lib/index.js`, import.meta.url), 'utf8')
   const start = source.indexOf('\n// src/host/connector/logs.ts\n')
   const end = source.indexOf('\n// src/host/desktop/process.ts\n', start)
-  const environmentStart = source.indexOf('\nconst PYPI_SIMPLE = ')
-  const environmentEnd = source.indexOf('\nasync function resolveUv(', environmentStart)
-  assert.ok(start >= 0 && end > start && environmentStart >= 0 && environmentEnd > environmentStart)
-  // Include the real index policy helper; leave executable discovery stubbed so
-  // this launch-boundary test never starts uv or downloads a Python environment.
-  return runInNewContext(`${source.slice(environmentStart, environmentEnd)}\n${source.slice(start, end)}; SourceConnector`, {
+  assert.ok(start >= 0 && end > start)
+  // The launch environment passes through the real package-index helper; the rest of
+  // environment.ts uses import.meta, which a script context cannot parse, and stays stubbed.
+  const indexStart = source.indexOf('\nconst PYPI_SIMPLE = ')
+  const indexEnd = source.indexOf('\nasync function resolveUv(', indexStart)
+  assert.ok(indexStart >= 0 && indexEnd > indexStart)
+  return runInNewContext(`${source.slice(indexStart, indexEnd)}${source.slice(start, end)}; SourceConnector`, {
     execFile, promisify, stripVTControlCharacters, dirname, join, relative, createHash, setTimeout, clearTimeout,
     access, cp, mkdtemp, readFile, readdir, rename, rm,
     process: { platform: process.platform, env: environment },
     readJson$1: async () => [], writeJson: async () => {}, mkdir,
     resolveUv: async () => 'uv',
-    DEFAULT_CONNECTOR_SETTINGS: { syncIntervalSeconds: 30, uvPypiIndexUrl: '' },
+    DEFAULT_CONNECTOR_SETTINGS: { uvPath: '', uvPypiIndexUrl: '', uvPythonInstallMirror: '', syncIntervalSeconds: 30 },
   })
 }
 

@@ -8,6 +8,8 @@
 
 普通用户从[用户指南](user-guide.md)开始即可，不需要阅读开发者文档。
 
+本 fork 的 Linux Stable 使用 `dsh-desktop-next/`。已发布版本见[最新 Release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest)，当前源码可能更新；完整新架构说明见[工作区 README](../dsh-desktop-next/README.zh.md)。旧三模式和旧启动流程仅作历史参考。
+
 ### 用户文档
 
 | 文档 | 你会得到什么 |
@@ -27,11 +29,12 @@
 | [Fabric 社区意见处置记录](../dsh-community-fabric/docs/research/community-issue-23-review.zh.md) | Issue #23 中哪些建议已采纳、拆成独立 RFC、延期或不进入可移植核心 |
 | [Fabric 框架与插件需求调研](../dsh-community-fabric/docs/research/mature-plugin-frameworks.zh.md) | Koishi、Chrome、VS Code 的成熟模式，以及真实 DSH 插件的功能需求 |
 | [VS Code 扩展模型调研](../dsh-community-fabric/docs/research/vscode-extension-model.zh.md) | VS Code 已实现的声明、Provider、UI、运行位置和生命周期模式，以及它们对 Fabric RFC 的具体约束 |
-| [Community Market 设计](../dsh-community-market/README.zh.md) | 规划中的插件市场壳、可扩展目录来源、用户选择、安装确认和安全边界 |
+| [Community Market](../dsh-community-market/README.zh.md) | 已实现的市场入口、目录来源、官方插件管理器安装/更新/卸载与安全边界 |
 | [Market 目录提供方合同](../dsh-community-market/docs/catalog-provider-contract.zh.md) | 面向后续实现团队的 Schema、query 参数、多来源和适配器规范 |
-| [架构说明](architecture.md) | Electron、Host、Web carrier、profile 和打包之间的关系 |
+| [旧架构说明](architecture.md) | 旧工作区的 Electron、Host、Web carrier、profile 和打包关系 |
 | [Desktop service 参考](../dsh-plugin-desktop/docs/plugin-services.md) | `desktopProfiles`、`desktopPnpm` 的稳定 contract 和 TypeScript 示例 |
-| [包级参考](../dsh-plugin-desktop/README.md) | 完整的构建、运行、发布和已知限制 |
+| [当前工作区参考](../dsh-desktop-next/README.zh.md) | 新 Stable 的构建、运行、恢复与平台限制 |
+| [模型目录维护](model-catalog-refresh.md) | 分频道 SDK、目录来源、Terra 补全与可复现校验 |
 
 ## README 文件怎么分工
 
@@ -47,4 +50,4 @@
 
 ## 状态约定
 
-文档会明确区分已实现能力、平台限制和 roadmap。Desktop 的兼容模式在独立 Desktop frame 下保留上游默认 Web 客户端；扩展窗口安装自己独立注册的 Desktop layout/sidebar surface，并在倒 L 中承载官方 occupant；增强模式保留独立 root registration 与紧凑内部 caption。Desktop frame 会按系统能力提供原生材质。插件市场已建立 [`dsh-community-market`](../dsh-community-market/README.zh.md) 文档初始化工程，但尚无可用页面或安装器；手机远程和 Channels 也仍是独立 roadmap，不代表当前安装包已经提供这些产品入口。
+文档区分已发布安装包、当前源码、平台限制和历史设计。新 Stable 已提供 Community Market、dshmarket 和 AA 远控集成；启用状态与可用性以 Profile 和实际插件加载结果为准。Fabric 仍是文档草案。旧三种窗口模式的说明只用于 legacy 源码，不作为当前 Linux Stable 的功能清单。

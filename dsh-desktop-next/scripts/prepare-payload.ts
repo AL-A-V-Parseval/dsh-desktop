@@ -4,6 +4,7 @@ import { createRequire } from 'node:module'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
+import { satisfies } from 'semver'
 import { nextRuntimeFileExclusion, nextRuntimePackageExclusion, type NextPackagingTarget, type RuntimePackageConstraints } from './runtime-file-policy.ts'
 import { nextPackagingTarget, nextPayloadRelease, PAYLOAD_DIR, verifyNextPayload } from './packaged-payload.ts'
 import { DESKTOP_RUNTIME_FILE, physicalPayload, sealPayloadAsync, type DesktopRuntimeDescriptor } from '../src/runtime-tree.ts'
@@ -80,7 +81,8 @@ function installedPackage(installedModules: string, name: string): { source: str
 
 /**
  * Collect the production closure of the application manifest: dependencies, required peers and
- * installed optional dependencies, each resolved from its dependent as Node will resolve it.
+ * installed optional dependencies. A linked workspace's compatible peers come from the
+ * consuming application, not its development SDK; other edges follow Node resolution.
  * Packages inside the application's own `node_modules` keep their installed nesting. A
  * workspace package, and dependencies installed beside one, are placed the way an installer
  * hoists them: at the payload root unless the root already holds another version of the same
@@ -110,9 +112,15 @@ export function collectProductionClosure(desktopRoot: string, target = nextPacka
     const required = [...Object.keys(manifest.dependencies ?? {}).filter(name => !optional.includes(name)),
       ...Object.keys(manifest.peerDependencies ?? {}).filter(name => optionalPeers[name]?.optional !== true)]
     for (const name of new Set([...required, ...optional])) {
-      const installed = resolvePackageDir(name, real)
+      let installed = resolvePackageDir(name, real)
+      const peerRange = manifest.peerDependencies?.[name]
+      if (real !== root && !real.split(sep).includes('node_modules') && peerRange !== undefined
+        && manifest.dependencies?.[name] === undefined && manifest.optionalDependencies?.[name] === undefined) {
+        const applicationPeer = resolvePackageDir(name, root)
+        if (applicationPeer !== undefined && satisfies(readManifest(applicationPeer).version ?? '', peerRange)) installed = applicationPeer
+      }
       if (installed === undefined) {
-        if (required.includes(name)) throw new Error(`Next payload: dependency ${name} required by ${dependent} is not installed`)
+        if (required.includes(name)) throw new Error(`Next payload: dependency ${name} required by ${dependent} is not installed (from ${real}, version ${manifest.version ?? 'unknown'})`)
         continue
       }
       let source = realpathSync(installed)

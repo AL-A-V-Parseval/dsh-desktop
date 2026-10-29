@@ -86,6 +86,36 @@ it('places the production closure like an installer and copies one version once'
   expect(closure.map(pkg => pkg.name)).toContain('peer-user')
 })
 
+it('uses the consuming application peer when a workspace builds against a different compatible SDK', () => {
+  const { desktop, market } = workspace()
+  const path = join(market, 'package.json')
+  const manifest = JSON.parse(readFileSync(path, 'utf8'))
+  delete manifest.dependencies['@deepseek-ai/dsh-base']
+  manifest.peerDependencies = { '@deepseek-ai/dsh-base': '1.0.0 || 2.0.0' }
+  manifest.devDependencies['@deepseek-ai/dsh-base'] = '2.0.0'
+  writeFileSync(path, JSON.stringify(manifest))
+  writePackage(join(market, 'node_modules'), '@deepseek-ai/dsh-base', { version: '2.0.0', peerDependencies: { 'build-only-peer': '*' } })
+  // A development-only peer graph must not enter the production package. It is
+  // intentionally incomplete, like a plugin built against Beta for both shells.
+  const closure = collectProductionClosure(desktop)
+  expect(closure.filter(pkg => pkg.name === '@deepseek-ai/dsh-base')).toEqual([
+    expect.objectContaining({ version: '1.0.0', destination: '@deepseek-ai/dsh-base' }),
+  ])
+})
+
+it('keeps a workspace peer private when the application version does not satisfy its contract', () => {
+  const { desktop, market } = workspace()
+  const path = join(market, 'package.json')
+  const manifest = JSON.parse(readFileSync(path, 'utf8'))
+  delete manifest.dependencies['@deepseek-ai/dsh-base']
+  manifest.peerDependencies = { '@deepseek-ai/dsh-base': '2.0.0' }
+  writeFileSync(path, JSON.stringify(manifest))
+  writePackage(join(market, 'node_modules'), '@deepseek-ai/dsh-base', { version: '2.0.0' })
+  expect(collectProductionClosure(desktop)).toEqual(expect.arrayContaining([
+    expect.objectContaining({ name: '@deepseek-ai/dsh-base', version: '2.0.0', destination: 'dsh-community-market/node_modules/@deepseek-ai/dsh-base' }),
+  ]))
+})
+
 it('materializes, cleans and seals the payload the archive is later checked against', async () => {
   const { root, desktop } = workspace()
   const output = join(root, 'payload')

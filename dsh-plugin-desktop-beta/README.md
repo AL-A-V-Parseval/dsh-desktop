@@ -1,5 +1,7 @@
 # DSH Desktop Beta
 
+> Linux fork note: this is the retained Beta development workspace, currently following DSH `0.2.2-alpha.2` independently of Linux Stable (`dsh-desktop-next/`, DSH `0.2.1-rc.4`). Some legacy sections below predate the shared new shell; use [the current shell reference](../dsh-desktop-next/README.md) and `upstream.json` for current behavior and pins. Beta is not the fork's Linux release mainline.
+
 English | [中文](README.zh.md)
 
 `dsh-plugin-desktop-beta` runs the Beta channel of DSH Desktop in Electron while remaining part of the ordinary Cordis composition. The installed application is named **DSH Desktop Beta**. The package provides only the `dsh-plugin-desktop-beta` executable and the `dsh-desktop-beta` alias, so it does not conflict with the stable npm package or commands.

@@ -19,6 +19,7 @@ import {
   removeMarketSourcesFromOfficial, resolveActiveMarketSource, toggleMarketEndpointInOfficial,
   type BuiltInMarketKey, type MarketName, type MarketRuntimeState,
 } from './market-toggle.ts'
+import { OFFICIAL_PLUGIN_INDEX } from '../upstream-family-labels.ts'
 
 const REMOTE = '@agents-anywhere/dsh-bridge-next'
 const COMPUTER_ITEM = 'desktop-next-computer-use'
@@ -372,8 +373,8 @@ function MarketSourcesDialog({ open, onClose, context, bundles, preferredMarket,
         <div className="dshNextMarketSourceNoticeCopy">
           <IconWarningOutlineRegular size={14} aria-hidden="true" />
           <span>{t(
-            '“快速配置”会自动开启官方的“自定义插件市场”插件，直接配置下方已适配官方索引格式的内置插件市场（dsh-market）默认源，并将其同步为选中源。',
-            '"Quick configuration" automatically enables the official "Custom Plugin Market" plugin, configures the default source of the adapted built-in plugin market below (dsh-market), and syncs it as the selected source.',
+            `“快速配置”会自动开启官方的“${OFFICIAL_PLUGIN_INDEX.title.zh}”插件，直接配置下方已适配官方索引格式的内置插件市场（dsh-market）默认源，并将其同步为选中源。`,
+            `"Quick configuration" automatically enables the official "${OFFICIAL_PLUGIN_INDEX.title.en}" plugin, configures the default source of the adapted built-in plugin market below (dsh-market), and syncs it as the selected source.`,
           )}</span>
         </div>
         <Button variant="primary" size="sm" disabled={importing} onClick={() => { void handleImport() }}>
@@ -387,13 +388,13 @@ function MarketSourcesDialog({ open, onClose, context, bundles, preferredMarket,
             <strong>{t('当前使用的插件市场', 'Currently active plugin market')}</strong>
             {resolution.enabled && <Tag>{zh ? activeMarketDef.title.zh : activeMarketDef.title.en}</Tag>}
             {resolution.enabled && activeMarketDef.bundle === COMMUNITY && <Tag>Beta</Tag>}
-            {officialEnabled && <Tag tone="info">{t('官方自定义插件市场', 'Official Custom Plugin Market')}</Tag>}
+            {officialEnabled && <Tag tone="info">{t(`官方${OFFICIAL_PLUGIN_INDEX.title.zh}`, `${OFFICIAL_PLUGIN_INDEX.title.en} (official)`)}</Tag>}
           </div>
           {officialEnabled ? (
             <span className="dshNextPermissionStatus" role="status">
               <StateDot state="done" />
-              {t(`已开启官方“自定义插件市场”插件（已配置 ${String(configuredUrls.length)} 个索引源）`,
-                `Official "Custom Plugin Market" plugin enabled (${String(configuredUrls.length)} index sources configured)`)}
+              {t(`已开启官方“${OFFICIAL_PLUGIN_INDEX.title.zh}”插件（已配置 ${String(configuredUrls.length)} 个索引源）`,
+                `Official "${OFFICIAL_PLUGIN_INDEX.title.en}" plugin enabled (${String(configuredUrls.length)} index sources configured)`)}
             </span>
           ) : !resolution.enabled ? (
             <p className="dshDesktopSettingsHint">
@@ -402,36 +403,33 @@ function MarketSourcesDialog({ open, onClose, context, bundles, preferredMarket,
           ) : null}
         </div>
       </div>
-      <div className="dshNextPermissionRow" role="group" aria-label={t('官方自定义插件市场配置', 'Official Custom Plugin Market configuration')}>
+      <div className="dshNextPermissionRow" role="group" aria-label={t(`官方${OFFICIAL_PLUGIN_INDEX.title.zh}配置`, `Official "${OFFICIAL_PLUGIN_INDEX.title.en}" configuration`)}>
         <div className="dshNextPermissionCopy">
           <div className="dshNextMarketSourceHeaderMain">
             <div className="dshNextMarketSourceTitle">
-              <strong>{t('自定义插件市场', 'Custom plugin markets')}</strong>
+              <strong>{t(OFFICIAL_PLUGIN_INDEX.title.zh, OFFICIAL_PLUGIN_INDEX.title.en)}</strong>
               {officialRow?.version && <Tag>{`v${officialRow.version}`}</Tag>}
               <Tag tone="info">{t('实验性', 'Experimental')}</Tag>
             </div>
             {officialEnabled && <code className="dshNextMarketSourceUrl">{OFFICIAL_MARKET}</code>}
             <p className="dshDesktopSettingsHint">
               {officialEnabled
-                ? t(
-                  '在插件页添加「发现」标签页，从你添加的插件市场索引浏览和安装插件。',
-                  'Adds a Discover tab to Plugins for browsing and installing bundles from plugin market indexes you add.',
-                )
+                ? t(OFFICIAL_PLUGIN_INDEX.description.zh, OFFICIAL_PLUGIN_INDEX.description.en)
                 : t(
-                  '开启右侧开关或点击上方“快速配置”以启用官方“自定义插件市场”，启用后可在下方配置与管理内置插件源。',
-                  'Turn on the switch on the right or click "Quick configuration" above to enable the official "Custom Plugin Market" and manage built-in sources below.',
+                  `开启右侧开关或点击上方“快速配置”以启用官方“${OFFICIAL_PLUGIN_INDEX.title.zh}”，启用后可在下方配置与管理内置插件源。`,
+                  `Turn on the switch on the right or click "Quick configuration" above to enable the official "${OFFICIAL_PLUGIN_INDEX.title.en}" and manage built-in sources below.`,
                 )}
             </p>
           </div>
         </div>
         <div className="dshNextPluginActions">
-          <Switch label={t('启用官方自定义插件市场', 'Enable official Custom Plugin Market')} checked={officialEnabled}
+          <Switch label={t(`启用官方${OFFICIAL_PLUGIN_INDEX.title.zh}`, `Enable the official "${OFFICIAL_PLUGIN_INDEX.title.en}"`)} checked={officialEnabled}
             disabled={importing || officialLocked} onChange={enabled => { void handleToggleOfficialMarket(enabled) }} />
         </div>
       </div>
       {officialEnabled && <div className="dshNextMarketSourceSectionHeader">
         <div className="dshNextMarketSourceHeaderMain">
-          <strong>{t('可供官方“自定义插件市场”配置的插件源', 'Plugin sources available for the official Custom Plugin Market')}</strong>
+          <strong>{t(`可供官方“${OFFICIAL_PLUGIN_INDEX.title.zh}”配置的插件源`, `Plugin sources available for the official "${OFFICIAL_PLUGIN_INDEX.title.en}"`)}</strong>
         </div>
       </div>}
       {officialEnabled && OFFICIAL_CONFIGURABLE_MARKET_SOURCES.map(marketDef => {

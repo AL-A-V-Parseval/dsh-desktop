@@ -2,11 +2,11 @@
 
 [中文](faq.md)
 
-This page answers common questions about installation, supported platforms, the bundled runtime, and plugins in the current stable release. The [latest GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest) and [user guide](user-guide.en.md) define the shipped product scope.
+This page covers this Linux fork's Stable mainline. Consult [this fork's latest Release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest), the [root README](../README.en.md) and [new-shell documentation](../dsh-desktop-next/README.md). Current source may be ahead of published installers.
 
 ## What is DSH Desktop?
 
-DSH Desktop is an open-source DeepSeek Harness desktop client for Windows and macOS. It packages the official Harness local Web UI, Host service, and plugin system into a native desktop application with a window, system tray, terminal, updates, and profile management.
+This fork is an open-source DeepSeek Harness desktop client for Linux x64. It hosts the official Web UI, Host and plugin system with a tray, Desktop settings, terminal, Profiles and recovery. Upstream separately ships Windows/macOS products.
 
 ## Is this an official DeepSeek product?
 
@@ -14,7 +14,7 @@ No. DSH Desktop is an independent, community-maintained open-source project. It 
 
 ## Which operating systems are supported?
 
-Upstream release installers support Windows x64 and universal macOS (Intel and Apple Silicon). This fork additionally ships a Linux x64 portable tarball and a `.deb` package; see [Releases](https://github.com/Jic2007/dsh-desktop/releases).
+This fork ships Linux x64 AppImage, portable tar.gz and `.deb` assets; see [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases). Use upstream for Windows/macOS. `DSH-NEXT` filenames and the `next` suffix are compatibility identifiers, not Linux prerelease labels.
 
 ## Do I need to install Node.js, pnpm, or DSH?
 
@@ -26,7 +26,7 @@ No separate Node.js or Harness core download is required. The installer is large
 
 ## Does DSH Desktop modify official Harness?
 
-No. The repository pins an unmodified official Harness checkout. Compatibility mode runs the upstream default Web client below an independent overlay frame. Extended and enhanced modes each install their own Desktop-owned root registration through the plugin/profile composition boundary while retaining the official slot occupants. None of these modes edits upstream source.
+The official source checkout is unmodified. Runtime packages come from pinned official distributions, with explicit Yarn compatibility patches and plugin composition. Linux Stable uses the new shell and official frontend; the legacy three window modes do not describe the current Stable product.
 
 ## Is data stored locally?
 
@@ -34,7 +34,7 @@ The Desktop Host, profiles, and DSH home live on the local machine. Whether cont
 
 ## Can I install DSH plugins?
 
-Yes. DSH Desktop uses the official Harness plugin system. Open DSH Terminal from the tray and run `dsh plugin add`, `dsh plugin remove`, or `dsh plugin update`. These commands default to the active profile, and Desktop must be restarted after plugin changes.
+Yes. Prefer the official Plugins page and market installation, toggling, removal and update flows; the official plugin manager owns these operations. Follow any reload prompt shown by the UI. Tray terminals still support `dsh plugin add`, `dsh plugin remove` and `dsh plugin update`, targeting the active Profile by default. Avoid concurrent processes modifying one Profile.
 
 ## Does the Desktop profile automatically sync with an existing web profile?
 
@@ -42,7 +42,11 @@ No plugins are copied automatically. Each profile has its own bundle and depende
 
 ## How are updates installed?
 
-Packaged applications check for stable releases in the background but never install silently. A newer version requires confirmation. Before downloading, a native save dialog lets you choose the installer's directory and filename; cancelling it does not start a download. macOS downloads and opens a DMG; Windows downloads and starts an NSIS installer. After the upgrade and next launch, the app asks whether to delete or keep the installer. Network and download failures leave the current installation intact.
+Download the appropriate asset from this fork's Stable/latest Release, verify its provenance, back up data and stop the application before replacement. Replace AppImage/portable files or use `apt install ./<file>.deb` on Debian/Ubuntu. The legacy framework is retired; read the root README's data-directory guidance before migrating. This does not promise that Linux shares upstream's macOS/Windows automatic installer flow.
+
+## Where is GPT-6.1 Terra?
+
+The built-in OpenAI and OpenAI Codex OAuth catalogs include `gpt-6.1-terra`. Select it under the corresponding provider; catalog presence does not guarantee account entitlement. Explicit model lists on custom providers are not overwritten by catalog refreshes. See [catalog maintenance](model-catalog-refresh.md) for sources and reviewed backports.
 
 ## Does the app use my system proxy?
 
@@ -59,4 +63,4 @@ A few rules worth knowing:
 
 ## Where can I download the app or report a problem?
 
-Download from the [project download page](https://www.dshdesktop.cn/) or the [latest GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest). Check the [troubleshooting section](user-guide.en.md#troubleshooting) first. If the problem remains, open a [GitHub Issue](https://github.com/anywhere-labs/deepseek-harness-desktop/issues/new/choose) with the operating system, app version, reproduction steps, and error details.
+Download from [this fork's latest Release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest). Export redacted diagnostics first; then open a [GitHub Issue](https://github.com/AL-A-V-Parseval/dsh-desktop/issues) with system, version, reproduction steps and errors. Do not upload credentials, access tokens or an unchecked complete data directory.

@@ -1,5 +1,7 @@
 # DSH Desktop Beta
 
+> Linux fork 说明：这里是 Beta 开发工作区，独立跟随 DSH `0.2.2-alpha.2`；Linux Stable 位于 `dsh-desktop-next/`，跟随 `0.2.1-rc.4`。下文部分旧说明早于共享新架构，当前行为与 pin 请以[新壳说明](../dsh-desktop-next/README.zh.md)和 `upstream.json` 为准。Beta 不是本 fork 的 Linux 发版主线。
+
 [English](README.md) | 中文
 
 `dsh-plugin-desktop-beta` 在 Electron 中运行 DSH Desktop 抢先版，同时仍然参与普通 Cordis 组合。安装后的应用名称为 **DSH Desktop Beta**。该包只提供 `dsh-plugin-desktop-beta` 可执行命令和 `dsh-desktop-beta` 别名，不会与稳定版 npm 包或命令冲突。

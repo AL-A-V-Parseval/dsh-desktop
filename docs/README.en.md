@@ -8,6 +8,8 @@ This directory is the product and developer documentation index for DSH Desktop.
 
 Ordinary users can start with the [user guide](user-guide.en.md) and never need the developer documentation.
 
+This fork's Linux Stable uses `dsh-desktop-next/`. Published installers are on the [latest Release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest); source may be newer. See the [workspace README](../dsh-desktop-next/README.md) for the current shell. Old three-mode and launch flows are historical references only.
+
 ### User documentation
 
 | Document | Covers |
@@ -27,11 +29,12 @@ Ordinary users can start with the [user guide](user-guide.en.md) and never need 
 | [Fabric community-feedback disposition](../dsh-community-fabric/docs/research/community-issue-23-review.md) | Which Issue #23 proposals were adopted, split into focused RFCs, deferred, or kept out of portable core |
 | [Fabric framework and plugin-needs research](../dsh-community-fabric/docs/research/mature-plugin-frameworks.md) | Mature Koishi, Chrome, and VS Code patterns plus requirements observed in real DSH plugins |
 | [VS Code extension-model research](../dsh-community-fabric/docs/research/vscode-extension-model.md) | Implemented declaration, Provider, UI, placement, and lifecycle patterns, with concrete constraints for the Fabric RFC |
-| [Community Market design](../dsh-community-market/README.md) | The proposed market shell, extensible catalog sources, user selection, install confirmation, and safety boundary |
+| [Community Market](../dsh-community-market/README.md) | Implemented market UI, catalog sources, official-manager install/update/removal and safety boundaries |
 | [Market catalog provider contract](../dsh-community-market/docs/catalog-provider-contract.md) | Schemas, query parameters, multi-source behavior, and adapter rules for the implementation team |
-| [Architecture](architecture.en.md) | Electron, Host, the Web carrier, profiles, and packaging |
+| [Legacy architecture](architecture.en.md) | Electron, Host, Web carrier, profiles and packaging in the retained old workspace |
 | [Desktop service reference](../dsh-plugin-desktop/docs/plugin-services.md) | Stable `desktopProfiles` and `desktopPnpm` contracts with TypeScript examples |
-| [Package reference](../dsh-plugin-desktop/README.md) | Detailed build, runtime, release, and limitation notes |
+| [Current workspace reference](../dsh-desktop-next/README.md) | New Stable build, runtime, recovery and platform limits |
+| [Model catalog maintenance](model-catalog-refresh.md) | Per-channel SDKs, catalog sources, Terra backports and reproducible verification |
 
 ## How the README files are organized
 
@@ -47,4 +50,4 @@ The outer repository has two formal product READMEs plus one legacy compatibilit
 
 ## Status convention
 
-These pages distinguish shipped behavior, platform limits, and roadmap items. Compatibility mode keeps the upstream default Web client below an independent Desktop frame; extended mode installs its own Desktop layout/sidebar registration and hosts official occupants in an inverted L; enhanced mode retains a separate root registration with compact internal captions. Desktop frames provide capability-gated native materials. The plugin marketplace now has a documentation scaffold in [`dsh-community-market`](../dsh-community-market/README.md), but no usable page or installer; mobile remote control and Channels also remain separate roadmap items and are not implied to be part of the current installer.
+These pages distinguish published installers, current source, platform limits and historical designs. New Stable includes Community Market, dshmarket and AA remote-control integration; availability follows the Profile and actual plugin loading state. Fabric remains a documentation draft. The old three-window-mode description applies only to legacy source, not the current Linux Stable feature list.

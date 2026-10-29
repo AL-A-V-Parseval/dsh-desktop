@@ -1,11 +1,11 @@
-# Bundled Agents Anywhere (Beta)
+# Bundled Agents Anywhere (Desktop channels)
 
 Desktop consumes `@agents-anywhere/dsh-bridge-next` as an external package. The
 pinned tarball is built from the AA v2 commit recorded in `provenance.json`;
 Desktop does not require an adjacent AA checkout at runtime. It includes the
 Host and browser bundles, their source maps, and Python Connector sources.
 The source code is unchanged. The manifest has a Desktop build version and
-explicit peers for both Desktop runtime versions (including the emitted
+explicit peers for all three pinned Desktop runtime versions (including the emitted
 `dsh-llm` and `dsh-session` imports). The SHA-256 identifies the exact shipped artifact.
 
 ## Release-time updates
@@ -29,17 +29,17 @@ corepack yarn aa:prepare-release
 corepack yarn dev
 # Normal release: resolve latest AA, then package Desktop
 corepack yarn dist:mac:beta
-# Reproduce the committed AA artifact without contacting GitHub
-DSH_AA_SOURCE_REF=pinned corepack yarn dist:mac:beta
+# Build with the committed installed AA pin (no AA refresh; other build downloads may occur)
+corepack yarn workspace dsh-desktop-next package:dir
 # Select an exact full 40-character commit instead of the moving branch
 DSH_AA_SOURCE_REF=<commit> corepack yarn aa:prepare-release
 ```
 
-On Windows PowerShell, set `$env:DSH_AA_SOURCE_REF = 'pinned'` before running
-Yarn, then remove the variable when returning to latest builds. An alternative
-repository (for example an authenticated SSH URL) can be supplied through
-`DSH_AA_SOURCE_REPOSITORY`. The default is the public AA GitHub repository.
-`DSH_AA_SOURCE_REF` accepts a branch name, full commit SHA, or `pinned`.
+On Windows PowerShell, environment overrides use `$env:DSH_AA_SOURCE_REF = '<commit>'`;
+remove the variable when returning to normal builds. Alternative source repositories
+can be supplied through `DSH_AA_SOURCE_REPOSITORY`. The default is the public AA
+repository. `DSH_AA_SOURCE_REF` accepts a branch or full commit SHA; `pinned` is retired.
+Official release verification requires the official repository and current `main`.
 
 The preparation step runs AA's build, typecheck and build-artifact checks. It
 removes prepack/postpack hooks in staging because the full upstream integration

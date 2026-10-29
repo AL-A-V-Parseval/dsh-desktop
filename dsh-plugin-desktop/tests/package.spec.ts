@@ -303,7 +303,7 @@ describe('published package surface', () => {
     )
   })
 
-  it('resolves both release channels through their recorded runtime families', () => {
+  it('resolves all three source channels through their recorded runtime families', () => {
     const dshResolutions = Object.entries(workspaceManifest.resolutions ?? {})
       .filter(([selector]) => /^@deepseek-ai\/dsh(?:@|-)/u.test(selector))
     const stableResolutions = dshResolutions.filter(([selector]) =>
@@ -312,10 +312,15 @@ describe('published package surface', () => {
     const betaResolutions = dshResolutions.filter(([selector]) =>
       selector.endsWith(`@npm:${betaRuntimeVersion}`)
       || selector.endsWith(`@npm:^${betaRuntimeVersion}`))
+    const nextRuntimeVersion = (JSON.parse(readFileSync(new URL('dsh-desktop-next/package.json', workspaceRoot), 'utf8')) as { dependencies: Record<string, string> }).dependencies['@deepseek-ai/dsh']
+    const nextResolutions = dshResolutions.filter(([selector]) =>
+      selector.endsWith(`@npm:${nextRuntimeVersion}`)
+      || selector.endsWith(`@npm:^${nextRuntimeVersion}`))
 
     expect(stableResolutions.length).toBeGreaterThan(0)
     expect(betaResolutions.length).toBeGreaterThan(0)
-    expect(new Set([...stableResolutions, ...betaResolutions].map(([selector]) => selector)).size)
+    expect(nextResolutions.length).toBeGreaterThan(0)
+    expect(new Set([...stableResolutions, ...betaResolutions, ...nextResolutions].map(([selector]) => selector)).size)
       .toBe(dshResolutions.length)
     for (const [selector, resolution] of stableResolutions) {
       expect([runtimeVersion, `^${runtimeVersion}`]).toContain(selector.split('@npm:')[1])
@@ -326,6 +331,10 @@ describe('published package surface', () => {
     for (const [selector, resolution] of betaResolutions) {
       expect([betaRuntimeVersion, `^${betaRuntimeVersion}`]).toContain(selector.split('@npm:')[1])
       expect(String(resolution)).toContain(betaRuntimeVersion)
+    }
+    for (const [selector, resolution] of nextResolutions) {
+      expect([nextRuntimeVersion, `^${nextRuntimeVersion}`]).toContain(selector.split('@npm:')[1])
+      expect(String(resolution)).toContain(nextRuntimeVersion)
     }
   })
 
@@ -1234,11 +1243,12 @@ describe('published package surface', () => {
 
     expect(workspaceManifest.resolutions).toMatchObject({
       '@earendil-works/pi-ai@npm:^1.1.0': patchResolution,
+      '@earendil-works/pi-ai@npm:^1.3.0': 'patch:@earendil-works/pi-ai@npm%3A1.4.0#./patches/pi-ai@1.4.0.patch',
       '@earendil-works/pi-telemetry@npm:^1.1.0': '1.1.0',
     })
-    // The only npm resolution is the source the patch applies to, so no range escapes it.
-    expect([...lockfile.matchAll(/resolution: "@earendil-works\/pi-ai@npm:([^"]+)"/gu)].map(match => match[1]))
-      .toEqual(['1.1.0'])
+    // These npm entries are the two patch sources, not unpatched active routes.
+    expect([...lockfile.matchAll(/resolution: "@earendil-works\/pi-ai@npm:([^"]+)"/gu)].map(match => match[1]).sort())
+      .toEqual(['1.1.0', '1.4.0'])
     expect(lockfile).toContain(`"@earendil-works/pi-ai@${patchResolution}::`)
     expect(lockfile).toContain('resolution: "@earendil-works/pi-telemetry@npm:1.1.0"')
     expect(installedPiAi.version).toBe('1.1.0')

@@ -19,33 +19,33 @@
   <img src="https://img.shields.io/badge/Linux-x64-4493F8?style=flat-square" alt="Target platform: Linux x64">
 </p>
 
-<p align="center"><sub>This repository is a community fork of <a href="https://github.com/anywhere-labs/dsh-desktop">anywhere-labs/dsh-desktop</a> (upstream master manifest version <strong>2.0.17</strong>, latest release <strong>2.0.17</strong>; runtime <code>0.2.0-rc.2</code>). It is independent of DeepSeek and the upstream project, with no affiliation, partnership, authorization, or endorsement.</sub></p>
+<p align="center"><sub>This is a Linux community fork of <a href="https://github.com/anywhere-labs/deepseek-harness-desktop">anywhere-labs/deepseek-harness-desktop</a>. It is independent of DeepSeek and upstream, with no affiliation, partnership, authorization, or endorsement.</sub></p>
 
 ## What this is
 
 > **Linux release policy change (2026-10-27):** Starting with [`v2.0.20-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.20-next-linux.1), the former Next framework is this fork's **Stable / latest** mainline. The legacy framework receives no further releases; its last release is `v2.0.18-linux.1`. The `next` version suffix, `DSH NEXT` display name and internal identifiers are retained for installation, data-directory and upstream-merge compatibility; **they no longer identify a prerelease channel in this fork**. Signed packages and tags remain unchanged. Source-directory names are independent of release stability; see [`linux-release-policy.json`](linux-release-policy.json). Root `dev`, `start`, `package:dir` and `dist:linux` commands now use the new framework.
 >
-> Current assets use the `DSH-NEXT-<version>` prefix; the portable executable is `dsh-desktop-next`. The default data directory is `~/.dsh`, unless a directory has already been selected. Back up data before switching from the legacy framework. The sections below concerning the legacy three window modes, real-Node sharp bridge and dual-channel installation describe historical behavior, not the new Stable UI or requirements. The new framework uses sharp WASM on Linux.
+> The current published Stable release is [`v2.0.20-next-linux.2`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.20-next-linux.2). Assets use `DSH-NEXT-<version>` and the portable executable is `dsh-desktop-next`. Data defaults to `~/.dsh`; an already selected directory takes precedence. Back up data before migrating from the legacy framework. Source development has continued: **the source version is not the published installer version**.
 
 DSH Desktop integrates the local Web UI, Host service, and plugin system of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) into a native desktop application. It pins and runs a specific upstream version unchanged, composing desktop capabilities through the DeepSeek Harness plugin mechanism.
 
 This fork is **Linux-focused**: it fixes the upstream desktop's inability to run stably on Linux, restoring subprocess tools (`bash` / `glob` / `grep`), the plugin market, and attachments.
 
-- Upstream baseline: the latest `master` of [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) (build base `1030515b43`, manifest version 2.0.17, latest release tag `v2.0.17`)
+- Merged upstream snapshot: `e7d0170dde`; this branch's source version is `2.0.21-next-linux.1` (unreleased)
+- Source runtimes: Linux Stable workspace `dsh-desktop-next/` → `0.2.1-rc.4`; Beta → `0.2.2-alpha.2`; legacy workspace retains `0.2.1-rc.3`. Pins live in [`upstream.json`](upstream.json); Linux release boundaries are defined by [`linux-release-policy.json`](linux-release-policy.json)
+- Published `linux.2` uses `0.2.1-rc.3`; merging source does not change its signed assets
 - Target platform: **Linux x64**
 - Artifacts: an AppImage, a portable archive (tar.gz) and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships alongside them, and the `.deb` also carries an internal `debsigs` signature
 
 ## Changes in this fork
 
-### 1. Extended and enhanced window modes on Linux
+### 1. New Stable shell and Linux menus
 
-Earlier this fork only provided compatibility mode. Electron supports the **Window Controls Overlay** on Linux (`titleBarStyle: "hidden"` + `titleBarOverlay`), so this fork also enables **extended** and **enhanced** modes: the frameless window keeps the native minimize/maximize/close buttons, extended mode uses an independent command bar inside the content renderer, and enhanced mode uses a 32-pixel caption row. The content is inset 36 pixels below the bar so it never collides with the native window buttons.
+The main window uses the official Web frontend with Profiles, recovery, Desktop settings and plugin integration. Linux native menus remain hidden after startup and reload while real Electron keyboard accelerators stay available. The legacy compatibility/extended/enhanced modes are no longer instructions for the current Stable shell.
 
-### 2. Route sharp through a real-Node bridge (fixes the Host crash / endless "reconnecting")
+### 2. Upstream Sharp WASM and attachment regression coverage
 
-Electron on Linux leaks glib symbols into the process space, which corrupts libvips/GObject state and makes the first image operation call a null `g_object_unref`, crashing the DSH Host with SIGSEGV (exit 139). The UI then reconnects forever.
-
-This fork stops loading sharp directly in the Electron host and instead forwards every image operation to a separate **real-Node** process. Outside Electron (build scripts, plain Node, and the worker itself) the unmodified sharp is still used.
+Linux image processing uses upstream Sharp 0.35.5's WASM backend. The real-Node subprocess bridge, global Sharp overrides and bypass logic have been removed. No system Node installation, `DSH_SHARP_NODE`, deleted conversations or conversion of valid historical images is required. Packaged checks cover actual attachment reads and full image decoding both with and without Host hooks.
 
 ### 3. Run the private subprocess runner in Node mode on every Electron host
 
@@ -53,59 +53,58 @@ Fixes all subprocess tools failing on Linux (`subprocess scope exited before its
 
 ### 4. Fix the upstream packaging smoke's asar stats issue
 
-Upstream now disables ASAR entirely. The packaging smoke lists `resources/`, which contains Electron's own `default_app.asar`; Electron's `fs.stat(..., { bigint: true })` returns Number fields for that `.asar` path, so `dsh-fs-local`'s `info.mode & 511n` threw `Cannot mix BigInt and other types` and packaging aborted. This fork makes `dsh-fs-local` tolerate Number stats, so Linux packaging (including the smoke) completes.
+The new framework uses ASAR with native/Office resources unpacked where needed. Electron's `fs.stat(..., { bigint: true })` can still return Number fields for some ASAR paths; the `dsh-fs-local` patch prevents `Cannot mix BigInt and other types`. Useful compatibility fixes remain in place rather than being removed solely because they are old.
 
-### 5. Synchronized unit tests
+### 5. Model catalog, OAuth and plugin markets
 
-Both `tests/package.spec.ts` editions update the RunAsNode cases and add a sharp-bridge case; `verify-packaged-runtime.ts` / `verify-electron-fuses.ts` are adapted for Linux.
+Provider sign-in and custom models are preserved. The bundled catalog includes `gpt-6.1-terra` on OpenAI API and OpenAI Codex OAuth. Catalog updates do not replace protocol/OAuth implementations or alter credentials/default models. Sources and reproduction are documented in [`docs/model-catalog-refresh.md`](docs/model-catalog-refresh.md); catalog presence does not guarantee account entitlement. Plugin installation, toggling, removal and community-plugin updates use the official plugin manager, with Market and AA integration retained.
 
 See `.yarn/patches/`, `patches/`, and the commit history for details.
 
 ### 6. Bundled official runtime payload (Python / Node.js / pnpm + Office skills)
 
-Packaged builds carry the same first-party runtime payload the official Harness desktop ships: Python 3.12 with numpy, pandas, python-docx, python-pptx, openpyxl, Pillow, lxml and XlsxWriter, Node.js 24, pnpm 11, and the `office-docx` / `office-pptx` / `office-xlsx` skills enabled by default. Every archive is locked by the pinned upstream `lock.json` and verified by SHA-256; the payload lives in `resources/runtime/` and the `load_workspace_dependencies` tool exposes its interpreter and library paths. It does not replace the sharp bridge, which still uses a real system Node (see item 2).
+Packaged builds carry the upstream-pinned, checksum-verified Python, Node.js, pnpm and Office payload under `resources/runtime/<arch>/`. Office and `load_workspace_dependencies` are mounted by one Host-owned composition. `DSH_PRIMARY_RUNTIME` can select a payload directory containing `runtime.json`; an empty string disables the composition without duplicate tool registrations.
+
+### Upstream improvements in this source merge
+
+This merge brings a separate Next runtime channel, release-specific official plugin indexes and updates, bare `dsh-session:` text handling, and renderer-OOM memory evidence with readable Host exit diagnostics. These are source changes, not replacements for published `linux.2` installers. See the [workspace documentation](dsh-desktop-next/README.md) for behavior and verification entry points.
 
 ## Download and run
 
-Grab the Linux x64 build from [Releases](https://github.com/AL-A-V-Parseval/dsh-desktop/releases). Three forms are provided: an **AppImage**, a **portable archive (tar.gz)** and a **Debian package**. Replace `<version>` in the commands below with the actual version on the Release page (stable is shaped like `2.0.17-linux.1`, the Next channel like `2.0.17-next-linux.1`).
+Download a Linux x64 **AppImage**, **portable archive (tar.gz)** or **Debian package** from the [latest Stable release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest). Replace `<version>` with the actual release version, for example `2.0.20-next-linux.2`.
 
 ### AppImage (no installation)
 
 ```sh
-chmod +x DSH-Desktop-<version>-x86_64.AppImage
-./DSH-Desktop-<version>-x86_64.AppImage
+chmod +x DSH-NEXT-<version>-x86_64.AppImage
+./DSH-NEXT-<version>-x86_64.AppImage
 ```
 
-The Next channel adds a `Next` prefix: `DSH-Desktop-Next-<version>-x86_64.AppImage`.
+`DSH-NEXT-` is a retained compatibility prefix, not a prerelease designation.
 
 ### Portable archive (tar.gz)
 
 ```sh
-tar -xzf DSH-Desktop-<version>-x64-portable.tar.gz
-cd DSH-Desktop-<version>-x64-portable
-./dsh-desktop
+tar -xzf DSH-NEXT-<version>-x64-portable.tar.gz
+cd DSH-NEXT-<version>-x64-portable
+./dsh-desktop-next
 ```
 
-The Next channel uses `DSH-Desktop-Next-<version>-x64-portable.tar.gz` (the unpacked binary is `./dsh-desktop-next`).
+Portable builds also use the selected data directory; they do not automatically isolate or copy accounts and conversations.
 
 ### Debian / Ubuntu package (.deb)
 
 ```sh
-sudo apt install ./DSH-Desktop-<version>-amd64.deb
-# or: sudo dpkg -i DSH-Desktop-<version>-amd64.deb && sudo apt -f install
+sudo apt install ./DSH-NEXT-<version>-amd64.deb
 ```
 
-The Next channel uses `DSH-Desktop-Next-<version>-amd64.deb` (package name `dsh-desktop-next`, installable alongside stable).
+The package and launch command are `dsh-desktop-next`; installation lives under `/opt/DSH NEXT`. Uninstall with `sudo apt remove dsh-desktop-next`; data is not automatically deleted. Do not run old and new installations concurrently against the same data directory.
 
-After installing, launch it from the application menu: stable installs to `/opt/DSH Desktop` (command `dsh-desktop`) and Next to `/opt/DSH NEXT` (command `dsh-desktop-next`). The `.deb` sets the `chrome-sandbox` setuid permission in `postinst`.
-
-Uninstall with `sudo apt remove dsh-desktop` (or `dsh-desktop-next`); user data in `~/.config/DSH Desktop` is kept.
-
-Both forms require:
+All forms require:
 
 - Linux x64 with a desktop session able to run Electron
-- A **real Node** installation (used by the sharp bridge; searched in `/usr/bin/node`, `/usr/local/bin/node`, `/opt/homebrew/bin/node`, overridable via `DSH_SHARP_NODE`). Packaged builds also bundle Node 24 for the Office and workspace-dependency payload; the sharp bridge does **not** use that bundled copy
-- User data is written to `~/.config/DSH Desktop`
+- Electron's required system libraries; image WASM and Office payloads are bundled, so system Node is not required
+- Conversations, settings, credentials and Profiles default to `~/.dsh`; Electron preferences live in `~/.config/DSH NEXT`. An explicitly selected data directory takes precedence
 
 ### Verify downloads and provenance
 
@@ -114,8 +113,8 @@ Both forms require:
 This repository enables GitHub **immutable releases**: since `v2.0.16-linux.1` every release gets a GitHub-generated **release attestation** (Sigstore format, covering the tag, the commit SHA and every asset). Verify it with the GitHub CLI, without importing any public key:
 
 ```sh
-gh release verify v<version>                          # the release exists, is immutable, and its attestation verifies
-gh release verify-asset v<version> ./DSH-Desktop-<version>-x86_64.AppImage   # your local file matches the asset byte for byte
+gh release verify v<version> --repo AL-A-V-Parseval/dsh-desktop
+gh release verify-asset v<version> ./DSH-NEXT-<version>-x86_64.AppImage --repo AL-A-V-Parseval/dsh-desktop
 ```
 
 **2. Checksums (offline, for mirrors and air-gapped hosts)**
@@ -129,7 +128,7 @@ sha256sum -c SHA256SUMS
 **3. Tag and .deb signatures**
 
 - Release tags are **GPG-signed annotated tags** since `v2.0.15-linux.1`; verify locally with `git tag -v v<version>`. Public key: `Jic2007-release-key.asc`, fingerprint `7B0C 9365 5F35 FA86 48AC 58BC 8E97 ED35 D906 329C`.
-- The `.deb` also carries an internal `debsigs` **origin** signature (`debsigs --list DSH-Desktop-<version>-amd64.deb`).
+- The `.deb` also carries an internal `debsigs` **origin** signature. `debsigs --list` only lists signatures, not cryptographic verification. Prefer the release-attestation/asset checks above and independently confirm the release public-key fingerprint.
 
 **4. About `SHA256SUMS.asc`**
 
@@ -147,18 +146,20 @@ Published tags and assets can no longer be changed; publish a new version suffix
 
 ```sh
 git submodule update --init --recursive
-corepack yarn install
-DSH_AA_SOURCE_REF=pinned corepack yarn package:dir
-# output: dsh-plugin-desktop/dist/linux-unpacked/
+corepack yarn install --immutable
+corepack yarn check
+corepack yarn package:dir
+# output: dsh-desktop-next/dist/linux-unpacked/
+# AppImage / deb: corepack yarn dist:linux
 ```
 
-For development: `corepack yarn dev`
+Builds require Node.js `^22.19.0` or `>=24.0.0`, Corepack and root Yarn `4.18.0`. Root build/start entry points prepare the latest Market and official AA; commit generated dependencies, provenance and lockfile together. The old `pinned` parameter is retired. For development: `corepack yarn dev`. See [`CONTRIBUTING.en.md`](CONTRIBUTING.en.md) for boundaries.
 
 ## Known limitations
 
 - Linux only. For Windows / macOS use the [upstream project](https://github.com/anywhere-labs/dsh-desktop).
 - Release provenance and integrity come from the GitHub release attestation (`gh release verify`) and `SHA256SUMS`, plus GPG-signed tags and the internal `.deb` signature; Linux tray and native integration details are not additionally polished.
-- The sharp bridge starts a real Node process per operation, which adds a small process-startup cost; market icons and attachments are low-frequency, so this is acceptable.
+- `next` in a version does not mean prerelease in this fork; Beta is for development checks. Do not replace immutable Release assets with a source rebuild of the same version.
 
 ## Documentation
 

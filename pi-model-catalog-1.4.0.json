@@ -1,0 +1,24 @@
+{
+  "package": "@earendil-works/pi-ai",
+  "runtimeVersion": "1.4.0",
+  "catalogVersion": "1.4.0",
+  "catalogGeneratedAt": "2026-10-27T23:46:11Z",
+  "publishedCatalogGeneratedAt": "2026-10-21T22:33:24.994Z",
+  "integrity": "sha512-hQM/C4+1w8rHYACzDDf+0vQMnEnpzIop1tptIERVgR3ZeT/hHSzBNG8PaWPgxWQjqSeKCyBZSyp8uTT6eKK1pQ==",
+  "additionsSources": [
+    "https://github.com/earendil-works/pi/blob/a92283056d915c758799fcd904948ff0cb42628c/packages/ai/scripts/generate-models.ts#L2964-L2989",
+    "https://github.com/earendil-works/pi/blob/a92283056d915c758799fcd904948ff0cb42628c/packages/ai/scripts/generate-models.ts#L3210-L3237",
+    "https://github.com/earendil-works/pi/blob/a92283056d915c758799fcd904948ff0cb42628c/packages/ai/scripts/generate-models.ts#L1080-L1107",
+    "https://models.dev/api.json"
+  ],
+  "additionsSha256": "7250b91d60d27456e0a3d80457b25e36c6b7e4ae2af1a3c8c20ce1bfac060c06",
+  "source": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-1.4.0.tgz",
+  "beforeModels": 1713,
+  "afterModels": 1715,
+  "changedFiles": [
+    "dist/providers/data/.manifest.json",
+    "dist/providers/data/openai-codex.json",
+    "dist/providers/data/openai.json"
+  ],
+  "patchSha256": "b0bf72712a067c0220b9d032a995ea90626029121f6b33cd24dd37ea49bf9adc"
+}
