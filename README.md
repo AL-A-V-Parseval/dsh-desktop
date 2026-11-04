@@ -29,10 +29,10 @@
 
 DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的本地 Web UI、Host 服务和插件系统集成进原生桌面应用。它固定并原样运行特定上游版本，通过 DeepSeek Harness 的插件机制与上游能力组合。
 
-本 fork **聚焦 Linux**：修复上游桌面端在 Linux 上无法稳定运行的问题，让 `bash` / `glob` / `grep` 等子进程工具、插件市场与附件等能力在 Linux 上可用。
+本 fork **聚焦 Linux**：维护 Linux 发行与兼容修复，同时跟随上游的跨平台改进，保留本 fork 的 Stable 发布和数据兼容策略。
 
-- 上游合并快照：`0e249397f8`；本分支源码版本为 `2.0.21-next-linux.1`（尚未发布）
-- 源码运行时：Linux Stable 工作区 `dsh-desktop-next/` → `0.2.1-rc.4`；Beta → `0.2.2-alpha.2`；旧工作区保留 `0.2.1-rc.3`。各源码 pin 见 [`upstream.json`](upstream.json)，Linux 发布边界见 [`linux-release-policy.json`](linux-release-policy.json)
+- 上游合并快照：`117e489913`；本分支源码版本为 `2.0.21-next-linux.1`（尚未发布）
+- 源码运行时：Linux Stable 工作区 `dsh-desktop-next/` → `0.2.1-rc.5`；Beta → `0.2.2-alpha.3`；旧工作区保留 `0.2.1-rc.3`。各源码 pin 见 [`upstream.json`](upstream.json)，Linux 发布边界见 [`linux-release-policy.json`](linux-release-policy.json)
 - 已发布 `linux.2` 使用 `0.2.1-rc.3`，不会因源码合并而改变已签名资产
 - 目标平台：**Linux x64**
 - 产物：AppImage、便携包（tar.gz）与 Debian/Ubuntu 安装包（.deb），随 `SHA256SUMS` 提供校验和，`.deb` 另含 `debsigs` 内部签名
@@ -68,6 +68,8 @@ Linux 图像处理使用上游 Sharp 0.35.5 的 WASM 后端。旧的真实 Node 
 ### 本次源码合并的上游改进
 
 新增独立的 Next 运行时通道、按版本选择的官方插件索引与更新流程、dshfind 来源选项、裸 `dsh-session:` 文本处理修复，以及渲染进程 OOM 的内存证据和可读 Host 退出诊断。Beta 另补齐 LiveShare、Ralph 和会话搜索的插件列表入口，不表示默认启用。这些是当前源码改进，不表示已发布 `linux.2` 安装包被更新；具体行为与验证入口见 [工作区文档](dsh-desktop-next/README.zh.md)。
+
+11 月 4 日同步还带来 Linux 手动更新提示、arm64 打包支持、hicolor 图标、deb 的 GBM/ALSA 依赖、`<应用程序> dsh …` CLI、配置 BOM 兼容和 Host 失败报告等改进；官方 Computer Use 的按需安装仅适用于 Beta。已发布的本 fork `linux.2` 仍只提供 x64 安装包，不因合并源码而自动新增 arm64 资产。
 
 ## 下载与运行
 

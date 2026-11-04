@@ -3,12 +3,15 @@
 import type { LogInput } from './log-record.ts'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { join } from 'node:path'
+import type { PlatformSession } from '@deepseek-ai/dsh-deepseek-account'
+import { MAX_HEADER_BYTES } from './browser-sessions.ts'
 import { desktopNodeEnvironment } from './node-environment.ts'
 import type { DesktopNotification } from './desktop-contract.ts'
 import { exitSummary } from './exit-code.ts'
 import { isHostMemoryUsage, type HostMemoryUsage, type MemoryHostExit } from './memory-monitor.ts'
 import { isDesktopNotification } from './notifications.ts'
 import type { DesktopPermission, DesktopPermissionAction, DesktopPermissionSnapshot } from './permissions.ts'
+import { isOperationEvidence } from './upstream-family.ts'
 
 interface ReadyEvent {
   readonly type: 'ready'
@@ -19,26 +22,14 @@ interface ReadyEvent {
 interface FatalEvent {
   readonly type: 'fatal'
   readonly message: string
-  /** The Host's complete inspected error: stack, enumerable properties, cause chain. */
+  /** The Host's inspected error (stack, enumerable properties, cause chain) and startup metadata, at most 64 Ki characters. */
   readonly diagnostic?: string
 }
 
 /**
- * Host-only credentials for an embedded Platform document, mirroring
- * `PlatformSession` in dsh 0.1.7's `@deepseek-ai/dsh-deepseek-account`
- * (`packages/credentials/deepseek-account/src/index.ts:13-20`). Declared here
- * rather than imported: Next does not depend on that package, and this shape is
- * only ever reached by structural validation of a child IPC payload.
+ * Host-only credentials for the embedded Platform page (src/platform-view.ts), published by
+ * src/host/platform-session.ts; isDesktopHostEvent validates every field of this child IPC payload.
  */
-export interface PlatformSession {
-  readonly origin: string
-  readonly token: string
-  /** Optional dist query value selecting the embedded frontend deployment. */
-  readonly embeddedPageDist?: string
-  /** Private deployment headers for native requests; excluded from renderer bootstrap. */
-  readonly requestHeaders?: Readonly<Record<string, string>>
-}
-
 interface PlatformSessionEvent {
   readonly type: 'platform-session'
   readonly session: PlatformSession | null
@@ -76,6 +67,13 @@ type DesktopHostEvent = ReadyEvent | FatalEvent | PlatformSessionEvent | Platfor
 const MAX_HOST_DIAGNOSTIC_CHARS = 64 * 1024
 /** The stderr tail an exit failure carries; the complete lines remain in the Host output log. */
 const MAX_EXIT_OUTPUT_CHARS = 4 * 1024
+/**
+ * The first line of upstream's fail-loud report, such as `dsh: fatal load failure: Error: …`. The Host
+ * prints it once and exits with 1 after a teardown whose own output can push it out of the stderr tail.
+ */
+const FAIL_LOUD_LINE = /^[^\s:]+: fatal (?:load failure|uncaught exception): .*$/mu
+/** Longest fatal line an exit failure carries; the error's name and message come first. */
+const MAX_FATAL_LINE_CHARS = 1024
 
 function isDesktopHostEvent(message: unknown): message is DesktopHostEvent {
   if (typeof message !== 'object' || message === null || !('type' in message)) return false
@@ -92,6 +90,9 @@ function isDesktopHostEvent(message: unknown): message is DesktopHostEvent {
       if (session === null) return true
       if (typeof session !== 'object' || !('origin' in session) || !('token' in session)
         || typeof session.origin !== 'string' || typeof session.token !== 'string' || session.token.length === 0) return false
+      // The shell keys the page's persistent storage by this ID; null selects disposable storage.
+      if (!('userId' in session) || (session.userId !== null
+        && (typeof session.userId !== 'string' || session.userId.length === 0))) return false
       if ('embeddedPageDist' in session && typeof session.embeddedPageDist !== 'string') return false
       if ('requestHeaders' in session && (typeof session.requestHeaders !== 'object' || session.requestHeaders === null
         || Array.isArray(session.requestHeaders)
@@ -179,14 +180,21 @@ export class DesktopHostFatalError extends Error {
  * plugins print freely, so the final lines rarely name the cause of a native crash.
  */
 export class DesktopHostExitError extends Error {
+  readonly #fatal: string | undefined
+
   /**
    * @param exitCode - The process exit code; Windows exception codes arrive as unsigned values.
    * @param signal - The signal that terminated the process, if any.
    * @param output - The last stderr text, at most a few kilobytes and starting at a line boundary when possible.
+   * @param fatal - The first line of the fatal error the Host reported before it exited, if it reported one.
    */
-  constructor(readonly exitCode: number | null, readonly signal: NodeJS.Signals | null, readonly output: string) {
-    super(`dsh desktop host ${exitSummary({ code: exitCode, signal })}${output === '' ? '' : `\nLast Host stderr (may be unrelated to the exit):\n${output}`}`)
+  constructor(readonly exitCode: number | null, readonly signal: NodeJS.Signals | null, readonly output: string, fatal?: string) {
+    super(`dsh desktop host ${exitSummary({ code: exitCode, signal })}${fatal === undefined ? '' : `\nHost fatal error: ${fatal}`}${output === '' ? '' : `\nLast Host stderr (may be unrelated to the exit):\n${output}`}`)
+    this.#fatal = fatal
   }
+
+  /** The Host's fatal line; a getter so `util.inspect` of this error does not repeat it after the message. */
+  get fatal(): string | undefined { return this.#fatal }
 }
 
 /** Main-process observers of Host facts that are not failures. Observers must not throw. */
@@ -195,6 +203,12 @@ export interface DesktopHostObserver {
   memory?(usage: HostMemoryUsage, pid: number | undefined): void
   /** The process ended; reported before any failure it causes. */
   exited?(exit: MemoryHostExit, pid: number | undefined): void
+  /**
+   * Plugin operation evidence the Host pushed over IPC: its run announcement and its records. Without
+   * this observer, a Desktop whose DSH release reports plugin operations drops the evidence.
+   * @returns Whether the message was such evidence; other messages go on to the Host's own events.
+   */
+  operation?(message: unknown): boolean
 }
 
 function exitOutput(stderr: string): string {
@@ -203,6 +217,16 @@ function exitOutput(stderr: string): string {
   const tail = text.slice(-MAX_EXIT_OUTPUT_CHARS)
   const line = tail.indexOf('\n')
   return line === -1 ? tail : tail.slice(line + 1)
+}
+
+/**
+ * @param stderr - The Host's retained stderr.
+ * @returns The first line of the fatal error the Host reported, or `undefined` when it reported none.
+ */
+export function exitFatalLine(stderr: string): string | undefined {
+  const line = FAIL_LOUD_LINE.exec(stderr)?.[0].trimEnd()
+  if (line === undefined || line.length <= MAX_FATAL_LINE_CHARS) return line
+  return `${line.slice(0, MAX_FATAL_LINE_CHARS - 1).replace(/[\uD800-\uDBFF]$/u, '')}…`
 }
 
 /** One Web backend running under the Electron executable in Node mode. */
@@ -269,6 +293,7 @@ export class DesktopHostProcess {
     const entry = this.hostEntry ?? join(this.runtimeDir, 'node_modules', '@deepseek-ai', 'dsh-desktop-host', 'lib', 'index.js')
     const child = spawn(this.node, [
       '--expose-internals',
+      `--max-http-header-size=${String(MAX_HEADER_BYTES)}`,
       ...(this.inspectPort === undefined ? [] : [`--inspect=127.0.0.1:${String(this.inspectPort)}`]),
       entry,
       this.runtimeDir,
@@ -288,6 +313,8 @@ export class DesktopHostProcess {
     child.stdout?.on('data', (chunk: string) => { this.onLog?.(chunk, 'stdout', child.pid) })
     child.stdout?.pipe(process.stdout)
     child.on('message', (message: unknown) => {
+      // Like memory readings, operation evidence is observational and never reaches control handling.
+      try { if ((this.observer?.operation ?? isOperationEvidence)?.(message) === true) return } catch { /* A failing observer leaves the message to the events below. */ }
       if (!isDesktopHostEvent(message)) {
         this.fail(new Error('dsh desktop host sent an invalid IPC event'))
         child.kill('SIGTERM')
@@ -300,7 +327,10 @@ export class DesktopHostProcess {
       }
       this.diagnostic({ source: 'host.ipc', event: 'received', developer: true, pid: child.pid, fields: { type: message.type, ...('requestId' in message ? { requestId: message.requestId } : {}) } })
       if (message.type === 'ready') this.readyResolve({ url: message.url, injections: message.injections })
-      else if (message.type === 'platform-session') this.onPlatformSession?.(message.session)
+      else if (message.type === 'platform-session') {
+        // A stopping or failed Host may only withdraw its grant; stop() and fail() already did.
+        if (message.session === null || (!this.stopping && !this.failureReported)) this.onPlatformSession?.(message.session)
+      }
       else if (message.type === 'platform-login') {
         if (!this.stopping && !this.failureReported) {
           this.onPlatformLogin?.(message.action === 'open' ? { action: 'open', url: message.url } : { action: 'close', focus: message.focus })
@@ -355,7 +385,7 @@ export class DesktopHostProcess {
       child.once('close', (code, signal) => {
         this.diagnostic({ source: 'host.process', event: 'exit', pid: child.pid, level: this.stopping && code === 0 ? 'info' : 'error', fields: { exitCode: code, signal, expected: this.stopping, acknowledged: this.shutdownCompleted } })
         try { this.observer?.exited?.({ code, signal, expected: this.stopping }, child.pid) } catch { /* Observational only. */ }
-        this.fail(new DesktopHostExitError(code, signal, exitOutput(this.stderr)))
+        this.fail(new DesktopHostExitError(code, signal, exitOutput(this.stderr), exitFatalLine(this.stderr)))
         resolve()
       })
     })

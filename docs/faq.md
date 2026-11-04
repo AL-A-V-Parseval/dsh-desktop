@@ -2,7 +2,7 @@
 
 [English](faq.en.md)
 
-本页说明 Linux fork 当前 Stable 主线。功能范围以[本 fork 最新 Release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest)、[根 README](../README.md)和[新架构工作区说明](../dsh-desktop-next/README.zh.md)为准；当前源码可能领先已发布安装包。
+本页说明 Linux fork 当前 Stable 主线。功能范围以[本 fork 最新 Release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest)、[根 README](../README.md)和[新架构工作区说明](../dsh-desktop-next/README.zh.md)为准；当前源码可能领先安装包，上游 arm64 源码支持不等于本 fork 已发布 arm64 包。
 
 ## DSH Desktop 是什么？
 

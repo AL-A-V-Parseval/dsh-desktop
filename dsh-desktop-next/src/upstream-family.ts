@@ -5,10 +5,41 @@
  * of the source stays mirrored.
  */
 import type { Context } from '@deepseek-ai/cordis'
+import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { StartupError } from '@deepseek-ai/dsh-app-boot'
 import type {} from '@deepseek-ai/dsh-client-connection'
+import type { CommandDefinition } from '@deepseek-ai/dsh-commands'
 import type { IndexInjection, WebRoute } from '@deepseek-ai/dsh-host-webserver'
 
 export { OPTIONAL_BUNDLES, PROFILE_TEMPLATES } from '@deepseek-ai/dsh-app-boot'
+
+/**
+ * Render the composition a failed startup recorded before disposal. dsh 0.2.1 records none, so the
+ * Host diagnostic has no section for it.
+ */
+export const startupCompositionDiagnostic: ((error: StartupError) => string[]) | undefined = undefined
+
+// Plugin operation history for failure reports needs the plugin-manager operation event that dsh 0.2.1
+// does not have, so the Host announces no run, and the shell neither keeps a history nor accepts
+// operation evidence over IPC.
+export const hostOperationDiagnostics: ((send: (message: object) => Promise<void>) => { observe(ctx: Context): void }) | undefined = undefined
+export const recordPluginCommands: (<Runner>(ctx: Context, runner: Runner) => Runner) | undefined = undefined
+export const createOperationHistory: ((directory: string) => {
+  host(): (message: unknown) => boolean
+  readonly runId: string | undefined
+  readonly reportNote: readonly string[] | undefined
+  append(report: string): void
+  close(): Promise<void>
+}) | undefined = undefined
+export const isOperationEvidence: ((message: unknown) => boolean) | undefined = undefined
+
+// dsh 0.2.1 ships no official Computer Use bundle: Computer Use (Next) serves every Agent through one global
+// `/computer-use`.
+export const officialComputerUse: {
+  serves(ctx: Context, agent: Agent): boolean
+  settings(): { officialSupported: boolean }
+  commandRegistrar(ctx: Context): (definition: CommandDefinition) => () => void
+} | undefined = undefined
 
 /**
  * Collect the Web boot injections for the Desktop window.

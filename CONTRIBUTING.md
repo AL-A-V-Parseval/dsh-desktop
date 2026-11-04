@@ -6,7 +6,7 @@
 
 ## 普通用户：使用、反馈与传播
 
-- 遇到问题或异常，[提 issue](https://github.com/Jic2007/dsh-desktop/issues)：说明你的发行版、应用版本、安装方式（.deb / tar.gz）和复现步骤。
+- 遇到问题或异常，在[本 fork 提 issue](https://github.com/AL-A-V-Parseval/dsh-desktop/issues)：说明发行版、应用版本、安装格式和复现步骤。
 - 有功能想法或改进建议，也欢迎提 issue 讨论。
 - 写使用教程、体验文章，或帮助完善和翻译文档。
 
@@ -52,9 +52,9 @@ corepack yarn package:dir         # 产物：dsh-desktop-next/dist/linux-unpacke
 
 ### 分频道运行时与 Linux Stable
 
-`upstream.json` 的 `stable` / `next` / `beta` 是上游源码家族名，不等于本 fork 的发布稳定性：Linux Stable 使用 `next` 工作区，旧 `stable` 工作区仅保留回归。当前源码中 Next 为 DSH `0.2.1-rc.4`、Beta 为 `0.2.2-alpha.2`；它们分别使用 pi-ai `1.1.0` 与 `1.4.0`，不可用单个全局 SDK 覆盖抹平差异。
+`upstream.json` 的 `stable` / `next` / `beta` 是上游源码家族名，不等于本 fork 的发布稳定性：Linux Stable 使用 `next` 工作区，旧 `stable` 工作区仅保留回归。当前源码中 Next 为 DSH `0.2.1-rc.5`、Beta 为 `0.2.2-alpha.3`；它们分别使用 pi-ai `1.1.0` 与 `1.4.0`，不可用单个全局 SDK 覆盖抹平差异。
 
-共享改动仍通过镜像脚本同步，频道依赖与 `upstream-family` 文件保持各自版本，Next-only API 差异放在声明的 next-lead 区域。检查三个 vendored channel，保留各自 OAuth 设置挂载和模型目录补丁。合并记录见 [`docs/upstream-sync-2026-10-29.md`](docs/upstream-sync-2026-10-29.md)，目录维护见 [`docs/model-catalog-refresh.md`](docs/model-catalog-refresh.md)。
+共享改动仍通过镜像脚本同步，频道依赖与 `upstream-family` 文件保持各自版本，Next-only API 差异放在声明的 next-lead 区域。检查三个 vendored channel，保留各自 OAuth 设置挂载和模型目录补丁。当前合并记录见 [`docs/upstream-sync-2026-11-04.md`](docs/upstream-sync-2026-11-04.md)，目录维护见 [`docs/model-catalog-refresh.md`](docs/model-catalog-refresh.md)。
 
 ### 提交与 PR
 

@@ -29,10 +29,10 @@
 
 DSH Desktop integrates the local Web UI, Host service, and plugin system of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) into a native desktop application. It pins and runs a specific upstream version unchanged, composing desktop capabilities through the DeepSeek Harness plugin mechanism.
 
-This fork is **Linux-focused**: it fixes the upstream desktop's inability to run stably on Linux, restoring subprocess tools (`bash` / `glob` / `grep`), the plugin market, and attachments.
+This fork is **Linux-focused**: it maintains Linux releases and compatibility fixes while following upstream's cross-platform improvements, retaining this fork's Stable release and data-compatibility policy.
 
-- Merged upstream snapshot: `0e249397f8`; this branch's source version is `2.0.21-next-linux.1` (unreleased)
-- Source runtimes: Linux Stable workspace `dsh-desktop-next/` → `0.2.1-rc.4`; Beta → `0.2.2-alpha.2`; legacy workspace retains `0.2.1-rc.3`. Pins live in [`upstream.json`](upstream.json); Linux release boundaries are defined by [`linux-release-policy.json`](linux-release-policy.json)
+- Merged upstream snapshot: `117e489913`; this branch's source version is `2.0.21-next-linux.1` (unreleased)
+- Source runtimes: Linux Stable workspace `dsh-desktop-next/` → `0.2.1-rc.5`; Beta → `0.2.2-alpha.3`; legacy workspace retains `0.2.1-rc.3`. Pins live in [`upstream.json`](upstream.json); Linux release boundaries are defined by [`linux-release-policy.json`](linux-release-policy.json)
 - Published `linux.2` uses `0.2.1-rc.3`; merging source does not change its signed assets
 - Target platform: **Linux x64**
 - Artifacts: an AppImage, a portable archive (tar.gz) and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships alongside them, and the `.deb` also carries an internal `debsigs` signature
@@ -68,6 +68,8 @@ Packaged builds carry the upstream-pinned, checksum-verified Python, Node.js, pn
 ### Upstream improvements in this source merge
 
 This merge brings a separate Next runtime channel, release-specific official plugin indexes and updates, a dshfind source option, bare `dsh-session:` text handling, and renderer-OOM memory evidence with readable Host exit diagnostics. Beta also lists LiveShare, Ralph and session search without enabling them by default. These are source changes, not replacements for published `linux.2` installers. See the [workspace documentation](dsh-desktop-next/README.md) for behavior and verification entry points.
+
+The November 4 sync additionally brings Linux manual-update notices, arm64 packaging, hicolor icons, GBM/ALSA deb dependencies, the `<app> dsh …` CLI, UTF-8 BOM configuration support and Host failure reports. On-demand official Computer Use installation is Beta-only. This fork's published `linux.2` still ships x64 assets only; merging source does not create arm64 release assets.
 
 ## Download and run
 

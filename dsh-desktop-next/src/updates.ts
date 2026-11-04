@@ -1,7 +1,7 @@
 /** Main-process update ownership survives a stopped or broken Profile Host. */
 import { mkdtemp, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { checkForDesktopUpdate, type UpdateCheckResult, type UpdateRequest } from '../../dsh-plugin-desktop/src/update-checker.ts'
+import { checkForDesktopUpdate, compareSemVerVersions, type UpdateCheckResult, type UpdateRequest } from '../../dsh-plugin-desktop/src/update-checker.ts'
 import { desktopUpdateFilename, downloadDesktopUpdate, type UpdateArtifactRequest } from '../../dsh-plugin-desktop/src/update-download.ts'
 import { getOrCreateDesktopInstallationId } from '../../dsh-plugin-desktop/src/desktop-installation-id.ts'
 import { atomicJson, privateDirectory, readPrivateFile } from './private-files.ts'
@@ -66,7 +66,8 @@ export class NextUpdates {
     this.options.changed()
   }
   start(): void {
-    if (!this.options.packaged || !['darwin', 'win32'].includes(this.options.platform) || this.timer || this.disposed) return
+    // Linux checks too, although its packages are downloaded from the release page rather than installed here.
+    if (!this.options.packaged || !['darwin', 'win32', 'linux'].includes(this.options.platform) || this.timer || this.disposed) return
     void this.initializeCache().catch(this.options.log)
     const poll = (): void => {
       if (this.disposed) return
@@ -87,8 +88,25 @@ export class NextUpdates {
     return this.operation
   }
   private async query(signal: AbortSignal): Promise<UpdateCheckResult | null> {
+    if (this.options.platform === 'linux' && this.options.version.includes('-linux.')) {
+      // Linux fork releases are Stable on GitHub despite retaining Next identifiers.
+      // Never send this installation to the upstream Next release service.
+      const response = await this.options.request('https://api.github.com/repos/AL-A-V-Parseval/dsh-desktop/releases/latest', {
+        method: 'GET', headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store', redirect: 'error',
+        signal: AbortSignal.any([signal, AbortSignal.timeout(20_000)]),
+      })
+      if (response.status !== 200) throw new Error(`Linux release check failed: HTTP ${response.status}`)
+      const release = await response.json() as { tag_name: string; draft: boolean; prerelease: boolean }
+      if (release.draft !== false || release.prerelease !== false || typeof release.tag_name !== 'string'
+        || !/^v\d+\.\d+\.\d+-next-linux\.\d+$/u.test(release.tag_name)) throw new Error('Invalid Linux Stable release metadata')
+      const latestVersion = release.tag_name.slice(1)
+      const comparison = compareSemVerVersions(latestVersion, this.options.version)
+      if (comparison === null) throw new Error('Invalid Linux release version')
+      return { currentVersion: this.options.version, latestVersion, status: comparison > 0 ? 'update-available' : 'up-to-date' }
+    }
     let installationId
-    if (this.options.packaged) {
+    // The privacy policy limits the installation UUID to the macOS and Windows update flow, so Linux checks without it.
+    if (this.state.installable) {
       try { installationId = await getOrCreateDesktopInstallationId(this.options.userData) } catch (error) { this.options.log(error) }
     }
     return checkForDesktopUpdate({ currentVersion: this.options.version, channel: 'next', installationId,
@@ -103,7 +121,7 @@ export class NextUpdates {
         if (!this.result) { this.set({ phase: 'error', error: 'service', version: undefined }); return }
         this.set({ phase: this.result.status === 'update-available' ? 'available' : 'current', version: this.result.latestVersion })
         if (this.result.status === 'update-available') {
-          if (background && this.state.installable && this.result.latestVersion !== this.notifiedVersion) {
+          if (background && this.result.latestVersion !== this.notifiedVersion) {
             this.recordNotifiedVersion(this.result.latestVersion)
             if (!this.disposed) this.options.available?.(this.result.latestVersion)
           } else if (!background && this.result.latestVersion !== this.notifiedVersion) {

@@ -20,6 +20,8 @@ const upstreamVersion = createRequire(import.meta.url)('@deepseek-ai/dsh/package
 let host
 let runner
 let registry
+/** Every Platform grant the Hosts published to the shell, in order. */
+const platformSessions = []
 const pnpmInvocation = { command: executable, args: ['--expose-internals', bundledPnpmEntry(NEXT_PACKAGE)], env: {
   ELECTRON_RUN_AS_NODE: '1', DSH_DESKTOP_NODE_EXECUTABLE: executable,
   PATH: `${join(root, 'scripts', 'node-bin')}${delimiter}${process.env.PATH ?? ''}`,
@@ -27,7 +29,8 @@ const pnpmInvocation = { command: executable, args: ['--expose-internals', bundl
 async function boot(name) {
   host = new DesktopHostProcess(executable, root, manager.directory(name), undefined,
     { ...process.env, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1' }, undefined, undefined, undefined,
-    join(root, 'scripts', 'fixtures', 'isolated-user-host.mjs'), () => {})
+    join(root, 'scripts', 'fixtures', 'isolated-user-host.mjs'), () => {}, undefined, undefined, undefined, undefined,
+    session => { platformSessions.push(session) })
   let timer
   const ready = await Promise.race([
     host.start(), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Next Host smoke exceeded 60 seconds')), 60_000) }),
@@ -68,6 +71,10 @@ try {
   let { origin, cookie } = await boot('desktop')
   assert.ok(existsSync(join(home, '.agents-anywhere', 'dsh-bridge-next')),
     'AA must resolve its default shared state inside the smoke user home')
+  // The real account service drives the embedded Platform page's grant; signed out, it has none to give.
+  for (const started = Date.now(); platformSessions.length === 0 && Date.now() - started < 10_000;) await new Promise(resolve => setTimeout(resolve, 50))
+  assert.ok(platformSessions.length > 0, 'The Host must publish its account Platform grant to the shell')
+  assert.ok(platformSessions.every(session => session === null), 'A signed-out account has no Platform grant')
   const rpc = async (method, args = {}) => {
     const rpcId = crypto.randomUUID()
     const response = await fetch(`${origin}/api/pluginManager/${method}`, {
@@ -111,6 +118,43 @@ try {
     assert.equal(bundle.removable, false)
     assert.equal(bundle.error, undefined)
     for (const rowId of rowIds) assert.ok(bundle.rows.some(row => row.rowId === rowId), JSON.stringify(bundle))
+  }
+  // Official packages the installation declares among its optional bundles (Beta's OAR subagents) start switched
+  // off, and switching one on starts every row its patch inserts.
+  const installation = JSON.parse(readFileSync(NEXT_PACKAGE, 'utf8'))
+  for (const name of installation.dsh.optionalBundles.filter(name => name.startsWith('@deepseek-ai/'))) {
+    const bundle = (await rpc('listBundles')).find(row => row.name === name)
+    assert.ok(bundle?.official && bundle.optional && !bundle.enabled && bundle.rows.length > 0, JSON.stringify(bundle))
+    assert.equal(bundle.error, undefined, JSON.stringify(bundle))
+    const enabled = await rpc('setBundleEnabled', { name, enabled: true })
+    assert.equal(enabled.application, 'applied', JSON.stringify(enabled))
+    const plugins = await rpc('listPlugins')
+    for (const row of (await rpc('listBundles')).find(row => row.name === name).rows) {
+      const plugin = plugins.find(plugin => plugin.entryId !== undefined && plugin.entryId === row.entryId)
+      assert.equal(plugin?.fiberPhase, 'active', `${name} row ${row.rowId}: ${JSON.stringify(plugin)}`)
+    }
+    // Rows with launch choices switch through the configuration editor; the shipped choice leaves no Profile override.
+    const launchPresets = async (body) => {
+      const response = await fetch(`${origin}/api/desktop-next/launch-presets`, body === undefined ? { headers: { cookie, origin } }
+        : { method: 'POST', headers: { cookie, origin, 'content-type': 'application/json' }, body: JSON.stringify(body) })
+      return { status: response.status, body: await response.json() }
+    }
+    const profilePatch = () => readFileSync(join(manager.directory('desktop'), 'cordis.patch.yml'), 'utf8')
+    for (const state of (await launchPresets()).body.rows.filter(state => bundle.rows.some(row => row.rowId === state.row))) {
+      assert.ok(state.active && state.preset !== null, `${name} row ${state.row} must start with its shipped choice: ${JSON.stringify(state)}`)
+      const other = state.choices.find(choice => choice !== state.preset)
+      const switched = await launchPresets({ row: state.row, preset: other })
+      assert.equal(switched.status, 200, JSON.stringify(switched.body))
+      assert.equal(switched.body.rows.find(item => item.row === state.row).preset, other)
+      assert.ok(profilePatch().includes(`id: ${state.row}`), profilePatch())
+      const restored = await launchPresets({ row: state.row, preset: state.preset })
+      assert.equal(restored.body.rows.find(item => item.row === state.row).preset, state.preset, JSON.stringify(restored.body))
+      assert.ok(!profilePatch().includes(`id: ${state.row}`), profilePatch())
+      console.log(`verify-host: ${name} row ${state.row} switched to ${other} and back through the configuration editor`)
+    }
+    const disabled = await rpc('setBundleEnabled', { name, enabled: false })
+    assert.equal(disabled.application, 'applied', JSON.stringify(disabled))
+    console.log(`verify-host: optional bundle ${name} started its ${String(bundle.rows.length)} rows`)
   }
   const packages = ['dsh-community-market', 'dshmarket', '@agents-anywhere/dsh-bridge-next']
   for (const name of packages) {
@@ -314,6 +358,16 @@ try {
   assert.equal(switchedState.status, 200)
   await switchedState.body?.cancel()
   await stop()
+  // The official Computer Use bundle mounts a computer-use registry of its own; Computer Use (Next)
+  // keeps its registry in a separate realm, so both start.
+  manager.create('computer-use-registries')
+  writeFileSync(join(manager.directory('computer-use-registries'), 'cordis.patch.yml'),
+    "- insert:\n    - id: official-computer-use-registry\n      name: '@deepseek-ai/dsh-computer-use'\n")
+  ;({ origin, cookie } = await boot('computer-use-registries'))
+  const registries = (await rpc('listPlugins')).filter(row => row.moduleName === '@deepseek-ai/dsh-computer-use')
+  assert.equal(registries.length, 2, JSON.stringify(registries))
+  for (const row of registries) assert.equal(row.fiberPhase, 'active', JSON.stringify(row))
+  await stop()
   if (process.argv.includes('--computer-use')) {
     manager.create('computer-use')
     manager.finishOnboarding('computer-use', { features: { remoteControl: false, market: false }, computerUse: true })
@@ -340,7 +394,7 @@ try {
     await stop()
     console.log('Onboarding Cua native provider activation and teardown passed without capturing screens, sending input or prompting for OS permissions.')
   }
-  console.log(`Next Host smoke passed (${process.argv.includes('--electron') ? 'Electron Node mode' : 'Node'}): authenticated ${upstreamVersion} Web, exclusive market selection and independent AA persisted, official row toggles, dshmarket offline install and cross-market toggle and removal through the official manager, official install/remove with a freshly published locked dependency, native dshmarket update origin gate, graceful shutdown, recovery boot and profile switch.`)
+  console.log(`Next Host smoke passed (${process.argv.includes('--electron') ? 'Electron Node mode' : 'Node'}): authenticated ${upstreamVersion} Web, exclusive market selection and independent AA persisted, official row toggles, dshmarket offline install and cross-market toggle and removal through the official manager, official install/remove with a freshly published locked dependency, native dshmarket update origin gate, graceful shutdown, recovery boot, profile switch and a second computer-use registry beside Computer Use (Next).`)
 } finally {
   await runner?.dispose()
   await host?.stop()

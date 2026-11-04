@@ -2,7 +2,7 @@
 
 [中文](faq.md)
 
-This page covers this Linux fork's Stable mainline. Consult [this fork's latest Release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest), the [root README](../README.en.md) and [new-shell documentation](../dsh-desktop-next/README.md). Current source may be ahead of published installers.
+This page covers this Linux fork's Stable mainline. Consult [this fork's latest Release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest), the [root README](../README.en.md) and [new-shell documentation](../dsh-desktop-next/README.md). Source may be ahead of installers; upstream arm64 source support does not mean this fork has published arm64 assets.
 
 ## What is DSH Desktop?
 

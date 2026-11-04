@@ -21,6 +21,7 @@ import {
   installComputerUseCommand,
   readComputerUseCommandConfig,
 } from '../src/host/computer-use-command.ts'
+import { officialComputerUse } from '../src/upstream-family.ts'
 import {
   ComputerUseCommandIcon,
   ComputerUsePluginArtwork,
@@ -322,7 +323,7 @@ describe('installComputerUseCommand', () => {
       new Request(`http://localhost${COMPUTER_USE_SETTINGS_ROUTE}`, { method: 'GET' }),
     )
     expect(getRes.status).toBe(200)
-    expect(await getRes.json()).toEqual({ commandMode: true })
+    expect(await getRes.json()).toEqual({ commandMode: true, ...officialComputerUse?.settings() })
 
     // Turn off commandMode via POST /api/desktop-next/computer-use
     const postRes = await route!.fetch(
@@ -356,14 +357,14 @@ describe('computer-use-command-ui', () => {
   it('enriches the /computer-use trigger row with the custom icon, localized label, and short description', () => {
     const rawRows: InputTriggerCandidate[] = [
       { name: 'compact', label: '压缩', description: '压缩以上对话内容', section: '指令' },
-      { name: 'computer-use', description: '开启或关闭 Computer Use', hint: '[off|message]', section: '指令' },
+      { name: 'computer-use', description: '开启或关闭 Computer Use（Next）', hint: '[off|message]', section: '指令' },
     ]
     const zhRows = enrichComputerUseCandidates(rawRows, true)
     expect(zhRows[0]).toBe(rawRows[0])
     expect(zhRows[1]).toEqual({
       name: 'computer-use',
-      label: '电脑操作',
-      description: '开启或关闭 Computer Use',
+      label: '电脑操作（Next）',
+      description: '开启或关闭 Computer Use（Next）',
       hint: '[off|message]',
       section: '指令',
       icon: ComputerUseCommandIcon,
@@ -372,8 +373,8 @@ describe('computer-use-command-ui', () => {
     const enRows = enrichComputerUseCandidates(rawRows, false)
     expect(enRows[1]).toMatchObject({
       name: 'computer-use',
-      label: 'Computer Use',
-      description: 'Enable or disable Computer Use',
+      label: 'Computer Use (Next)',
+      description: 'Enable or disable Computer Use (Next)',
       icon: ComputerUseCommandIcon,
     })
 
@@ -400,7 +401,7 @@ describe('computer-use-command-ui', () => {
   it('decorates the / command trigger source and supports searching by localized label', async () => {
     const rawCatalog: InputTriggerCandidate[] = [
       { name: 'compact', label: '压缩', description: '压缩以上对话内容', section: '指令' },
-      { name: 'computer-use', description: '开启或关闭 Computer Use', hint: '[off|message]', section: '指令' },
+      { name: 'computer-use', description: '开启或关闭 Computer Use（Next）', hint: '[off|message]', section: '指令' },
     ]
     const commandSource: InputTriggerSource = {
       trigger: '/',
@@ -446,8 +447,8 @@ describe('computer-use-command-ui', () => {
     const row = emptyQueryRows.find(item => item.name === 'computer-use')
     expect(row).toMatchObject({
       name: 'computer-use',
-      label: '电脑操作',
-      description: '开启或关闭 Computer Use',
+      label: '电脑操作（Next）',
+      description: '开启或关闭 Computer Use（Next）',
       icon: ComputerUseCommandIcon,
     })
 
@@ -461,8 +462,8 @@ describe('computer-use-command-ui', () => {
     expect(labelQueryRows).toHaveLength(1)
     expect(labelQueryRows[0]).toMatchObject({
       name: 'computer-use',
-      label: '电脑操作',
-      description: '开启或关闭 Computer Use',
+      label: '电脑操作（Next）',
+      description: '开启或关闭 Computer Use（Next）',
       icon: ComputerUseCommandIcon,
     })
 
@@ -475,8 +476,8 @@ describe('computer-use-command-ui', () => {
     })
     expect(enRows.find(item => item.name === 'computer-use')).toMatchObject({
       name: 'computer-use',
-      label: 'Computer Use',
-      description: 'Enable or disable Computer Use',
+      label: 'Computer Use (Next)',
+      description: 'Enable or disable Computer Use (Next)',
       icon: ComputerUseCommandIcon,
     })
   })

@@ -1,11 +1,11 @@
 /** Native lifecycle contracts exercised without starting Electron or a Host. */
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { DEFAULT_PREFERENCES, SAFE_MODE_PREFERENCES } from '../src/desktop-contract.ts'
 import type { NextDesktopRuntime } from '../src/desktop-runtime.ts'
-import { NextProfiles } from '../src/profiles.ts'
+import { NEXT_PACKAGE, NextProfiles } from '../src/profiles.ts'
 import { NextRecovery } from '../src/recovery.ts'
 
 const originalMonitors = new Set(process.listeners('uncaughtExceptionMonitor'))
@@ -14,7 +14,7 @@ afterEach(() => { for (const listener of process.listeners('uncaughtExceptionMon
 const fixture = vi.hoisted(() => ({
   windows: [] as any[], trays: [] as any[], handlers: new Map<string, (...args: any[]) => any>(),
   load: vi.fn(), report: vi.fn(), plugin: vi.fn(), pluginDone: vi.fn(), diagnosticAppend: vi.fn(),
-  terminalTarget: vi.fn(), openTerminal: vi.fn(), popup: vi.fn(), applicationMenu: undefined as any,
+  terminalTarget: vi.fn(), openTerminal: vi.fn(), popup: vi.fn(), applicationMenu: undefined as any, registerSchemes: vi.fn(),
   crashStart: vi.fn(), memory: { start: vi.fn(), stop: vi.fn(), settle: vi.fn(), incident: vi.fn(), hostMemory: vi.fn(), hostExited: vi.fn() },
   stop: vi.fn(async () => {}),
   close: vi.fn(async () => {}), start: vi.fn(async () => {}), preferences: { closeToTray: true, browserAccess: false, networkExposure: 'loopback' as 'loopback' | 'lan' },
@@ -23,6 +23,8 @@ const fixture = vi.hoisted(() => ({
   appPaths: new Map<string, string>(), lockPaths: [] as string[], ownsInstance: true,
   locationRoot: '',
   runtimeOptions: undefined as ConstructorParameters<typeof NextDesktopRuntime>[0] | undefined,
+  runtime: undefined as { actionFailure: string } | undefined,
+  failureReportFile: vi.fn(async (): Promise<string | undefined> => undefined),
   onPermission: undefined as ConstructorParameters<typeof NextDesktopRuntime>[0]['onPermission'],
   startupElevation: { relaunched: false, state: {} } as ReturnType<typeof import('../src/windows-elevation.ts').deElevateAtStartup>,
   elevation: undefined as import('../src/windows-elevation.ts').WindowsElevation | undefined,
@@ -38,6 +40,8 @@ vi.mock('../src/data-directory.ts', async importOriginal => ({
   ...await importOriginal<typeof import('../src/data-directory.ts')>(),
   dataDirectoryLocationRoot: () => fixture.locationRoot,
 }))
+// The macOS answer comes from a subprocess, which would outlive a test and report into the next one.
+vi.mock('../src/system-proxy-configuration.ts', () => ({ readSystemProxyConfiguration: async () => 'unknown' }))
 vi.mock('../src/desktop-runtime.ts', async () => { const { NextProfiles } = await import('../src/profiles.ts'); const { NextRecovery } = await import('../src/recovery.ts'); return { NextDesktopRuntime: class {
   preferences = { ...DEFAULT_PREFERENCES }
   busy = false
@@ -52,8 +56,11 @@ vi.mock('../src/desktop-runtime.ts', async () => { const { NextProfiles } = awai
   recovery: import('../src/recovery.ts').NextRecovery
   diagnostics = { append: fixture.diagnosticAppend, flush: vi.fn(), hostChunk: vi.fn(), record: fixture.diagnosticAppend, operation: vi.fn(() => vi.fn()), begin: vi.fn(), end: vi.fn(), pendingOperations: vi.fn(() => []) }
   memory = fixture.memory
+  actionFailure = ''
+  failureReportFile = fixture.failureReportFile
   constructor(options: ConstructorParameters<typeof NextDesktopRuntime>[0]) {
     fixture.runtimeOptions = options
+    fixture.runtime = this
     fixture.preferences = this.preferences; fixture.onPermission = options.onPermission
     this.profiles = new NextProfiles(options.home)
     this.recovery = new NextRecovery(this.profiles)
@@ -98,17 +105,25 @@ vi.mock('electron', async () => {
       setIgnoreMenuShortcuts() {}, isFocused: () => true, executeJavaScript: vi.fn(async () => true) })
     size: { width: number, height: number }
     minSize: { width: number, height: number }
+    position: { x: number, y: number }
+    maximized = false
     constructor(readonly options: any) {
       super()
       this.size = { width: options.width, height: options.height }
       this.minSize = { width: options.minWidth, height: options.minHeight }
       this.menuBarVisible = !options.autoHideMenuBar
+      this.position = { x: options.x ?? 0, y: options.y ?? 0 }
       fixture.windows.push(this)
     }
     destroyed = false
     isDestroyed() { return this.destroyed }
     isMinimized() { return false }
     isFocused() { return false }
+    isVisible() { return this.visible }
+    isFullScreen() { return false }
+    isMaximized() { return this.maximized }
+    maximize() { this.maximized = true; this.visible = true; this.emit('maximize') }
+    getNormalBounds() { return { ...this.position, ...this.size } }
     show() { this.visible = true }
     hide() { this.visible = false }
     focus() {}
@@ -145,13 +160,14 @@ vi.mock('electron', async () => {
   return { app, BrowserWindow, Tray, autoUpdater: Object.assign(new EventEmitter(), { setFeedURL: vi.fn(), checkForUpdates: vi.fn(), quitAndInstall: vi.fn() }), net: { fetch: vi.fn() },
     crashReporter: { start: fixture.crashStart },
     Notification: class { static isSupported() { return false } },
-    clipboard: {}, dialog: { showMessageBox: vi.fn(async () => ({ response: 0 })), showMessageBoxSync: vi.fn(() => 0), showOpenDialog: vi.fn(async () => ({ canceled: true, filePaths: [] })) }, shell: { showItemInFolder: vi.fn() }, safeStorage: {}, nativeTheme: { shouldUseDarkColors: true, on() {} },
+    clipboard: {}, dialog: { showMessageBox: vi.fn(async () => ({ response: 0 })), showMessageBoxSync: vi.fn(() => 0), showOpenDialog: vi.fn(async () => ({ canceled: true, filePaths: [] })) }, shell: { showItemInFolder: vi.fn(), openExternal: vi.fn(async () => {}) }, safeStorage: {}, nativeTheme: { shouldUseDarkColors: true, on() {} },
     nativeImage: { createFromPath: () => ({ isEmpty: () => false, setTemplateImage() {} }) },
     // Templates stay plain arrays for tray assertions; the popup spy is non-enumerable.
     Menu: { buildFromTemplate: (items: any) => Object.defineProperty(items, 'popup', { value: (options: unknown) => fixture.popup(items, options), configurable: true }), setApplicationMenu(menu: any) { fixture.applicationMenu = menu } },
-    protocol: { registerSchemesAsPrivileged() {}, handle() {} },
+    protocol: { registerSchemesAsPrivileged: fixture.registerSchemes, handle() {} },
     session: { defaultSession: { webRequest: { onBeforeSendHeaders() {} }, setPermissionCheckHandler() {}, setPermissionRequestHandler() {}, setDisplayMediaRequestHandler() {}, on() {} } },
     systemPreferences: { getMediaAccessStatus: () => 'not-determined', askForMediaAccess: vi.fn(async () => false), isTrustedAccessibilityClient: () => false },
+    screen: { getDisplayMatching: () => ({ workArea: { x: 0, y: 25, width: 1728, height: 1092 } }) },
     desktopCapturer: { getSources: vi.fn(async () => []) },
     ipcMain: { removeHandler: (name: string) => fixture.handlers.delete(name), handle: (name: string, action: (...args: any[]) => any) => fixture.handlers.set(name, action), on: (name: string, action: (...args: any[]) => any) => fixture.handlers.set(name, action) },
   }
@@ -161,23 +177,25 @@ beforeEach(async () => {
   vi.resetModules()
   fixture.windows.length = 0; fixture.trays.length = 0; fixture.handlers.clear()
   fixture.appPaths.clear(); fixture.lockPaths.length = 0; fixture.ownsInstance = true; fixture.runtimeOptions = undefined
+  fixture.runtime = undefined; fixture.failureReportFile.mockReset().mockResolvedValue(undefined)
   fixture.locationRoot = mkdtempSync(join(tmpdir(), 'next-location-root-'))
   fixture.applicationMenu = undefined
   fixture.phase = 'ready'
   fixture.needsOnboarding = false; fixture.corruptProfile = false; fixture.restart.mockReset(); fixture.hostReady = false
   fixture.plugin.mockReset(); fixture.pluginDone.mockReset().mockResolvedValue({ exitCode: 0 });
   fixture.load.mockReset(); fixture.report.mockReset(); fixture.diagnosticAppend.mockReset();
-  fixture.terminalTarget.mockReset(); fixture.openTerminal.mockClear(); fixture.popup.mockClear();
+  fixture.terminalTarget.mockReset(); fixture.openTerminal.mockClear(); fixture.popup.mockClear(); fixture.registerSchemes.mockClear()
   fixture.crashStart.mockReset(); for (const action of Object.values(fixture.memory)) action.mockReset()
   fixture.stop.mockReset().mockResolvedValue(undefined); fixture.start.mockClear(); fixture.close.mockReset().mockResolvedValue(undefined)
   fixture.startupElevation = { relaunched: false, state: {} }; fixture.elevation = undefined
-  const { app, autoUpdater, dialog } = await import('electron')
+  const { app, autoUpdater, dialog, shell } = await import('electron')
   autoUpdater.removeAllListeners()
   app.removeAllListeners()
   vi.mocked(app.relaunch).mockClear()
   vi.mocked(app.quit).mockClear()
   vi.mocked(app.exit).mockClear()
   vi.mocked(dialog.showMessageBoxSync).mockClear()
+  vi.mocked(shell.showItemInFolder).mockClear()
 })
 
 afterEach(() => {
@@ -241,6 +259,8 @@ it('repairs a crashed renderer and fences old document reports while preserving 
     vi.useFakeTimers({ shouldClearNativeTimers: true })
     const first = await boot(sender)
     report(sender, first.documentId, 'healthy')
+    expect(fixture.diagnosticAppend).toHaveBeenCalledWith(expect.objectContaining({ source: 'renderer', event: 'renderer.navigation', fields: { cause: 'open', initiator: 'none' } }))
+    expect(fixture.diagnosticAppend).toHaveBeenCalledWith(expect.objectContaining({ source: 'renderer', event: 'renderer.ready', fields: { cause: 'open' } }))
     main.webContents.emit('render-process-gone', {}, { reason: 'crashed', exitCode: -1073741819 })
     main.webContents.emit('did-fail-load', {}, -2, 'same crash', 'dsh-app://app/', true)
     await vi.advanceTimersByTimeAsync(0)
@@ -252,6 +272,7 @@ it('repairs a crashed renderer and fences old document reports while preserving 
     expect(fixture.diagnosticAppend).toHaveBeenCalledWith(expect.objectContaining({
       source: 'renderer', event: 'process-gone', fields: { reason: 'crashed', exitCode: -1073741819 },
     }))
+    expect(fixture.diagnosticAppend).toHaveBeenCalledWith(expect.objectContaining({ source: 'renderer', event: 'renderer.navigation', fields: { cause: 'recovery', initiator: 'none' } }))
     const second = await boot(sender)
     expect(second.documentId).not.toBe(first.documentId)
     fixture.diagnosticAppend.mockClear()
@@ -290,6 +311,41 @@ it('uses the existing recovery assistant only after exhausting automatic rendere
     expect(fixture.stop).toHaveBeenCalledOnce()
     expect(main.destroyed).toBe(true)
     expect(fixture.windows[1].loadedUrls[0]).toContain('#recovery')
+  } finally { vi.useRealTimers(); vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
+})
+
+it('records who started each main-window document, and reports exhaustion after a mounted interface as a runtime failure', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'next-renderer-navigation-'))
+  vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
+  fixture.hostReady = true
+  try {
+    await import('../src/main.ts')
+    await vi.waitFor(() => expect(fixture.windows).toHaveLength(1))
+    const main = fixture.windows[0]
+    const sender = { sender: main.webContents, senderFrame: main.webContents.mainFrame }
+    const boot = fixture.handlers.get('dsh-next:boot')!
+    const report = fixture.handlers.get('dsh-next:renderer-status')!
+    const fields = (event: string) => fixture.diagnosticAppend.mock.calls.map(([record]) => record).filter(record => record?.event === event).map(record => record.fields)
+    report(sender, (await boot(sender)).documentId, 'healthy')
+    // A navigation the Desktop did not start, such as a page script reloading the document.
+    main.webContents.emit('did-start-navigation', { initiator: {} }, 'dsh-app://app/', false, true)
+    main.webContents.emit('did-finish-load')
+    report(sender, (await boot(sender)).documentId, 'healthy')
+    await fixture.handlers.get('dsh-next:command')!(sender, { type: 'reload' })
+    report(sender, (await boot(sender)).documentId, 'healthy')
+    expect(fields('renderer.navigation')).toEqual([
+      { cause: 'open', initiator: 'none' }, { cause: 'page', initiator: 'frame' }, { cause: 'reload', initiator: 'none' },
+    ])
+    expect(fields('renderer.ready')).toEqual([{ cause: 'open' }, { cause: 'page' }, { cause: 'reload' }])
+    expect(fields('renderer.recovery.healthy')).toEqual([])
+    fixture.report.mockImplementation(() => fixture.runtimeOptions!.onFailure())
+    vi.useFakeTimers()
+    for (const delay of [0, 1000, 3000]) {
+      main.webContents.emit('render-process-gone', {}, { reason: 'crashed', exitCode: -1073741819 })
+      await vi.advanceTimersByTimeAsync(delay)
+    }
+    main.webContents.emit('render-process-gone', {}, { reason: 'crashed', exitCode: -1073741819 })
+    expect(fixture.report).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ message: 'Renderer recovery exhausted: Renderer: crashed' }), 'renderer-runtime')
   } finally { vi.useRealTimers(); vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
 })
 
@@ -398,7 +454,7 @@ it('captures scoped client errors with either Electron console-message signature
     await vi.waitFor(() => expect(fixture.windows).toHaveLength(1))
     const consoleMessage = fixture.windows[0].webContents
     // Startup records how the login-shell environment and locale were resolved before any Host starts.
-    await vi.waitFor(() => expect(fixture.diagnosticAppend).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ source: 'desktop', event: 'shell-environment.resolved' })))
+    await vi.waitFor(() => expect(fixture.diagnosticAppend.mock.calls.filter(([record]) => record?.event === 'shell-environment.resolved')).toEqual([[expect.objectContaining({ source: 'desktop' })]]))
     fixture.diagnosticAppend.mockClear()
     Object.assign(fixture.preferences, { developerLogging: true })
     consoleMessage.emit('console-message', {}, 2, '[next-ui-diagnostic] aa=false')
@@ -492,6 +548,67 @@ it('exits before claiming the instance when an elevated Windows launch restarted
   } finally {
     vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true })
   }
+})
+
+/** Start the main process as an AppImage's AppRun starts `<app> dsh plugin list` on Linux, with `process.execve` replaced. */
+async function launchLinuxDshCommand(home: string, check: (execve: ReturnType<typeof vi.fn>) => Promise<void>): Promise<void> {
+  vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
+  const argv = [...process.argv]
+  const platform = Object.getOwnPropertyDescriptor(process, 'platform')!
+  const original = process.execve
+  const execve = vi.fn((): never => { throw new Error('replaced by the CLI') })
+  process.execve = execve
+  process.argv.splice(0, process.argv.length, '/opt/app/desktop', '--no-sandbox', 'dsh', 'plugin', 'list')
+  Object.defineProperty(process, 'platform', { ...platform, value: 'linux' })
+  try {
+    await check(execve)
+  } finally {
+    Object.defineProperty(process, 'platform', platform)
+    process.argv.splice(0, process.argv.length, ...argv)
+    process.execve = original
+    vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true })
+  }
+}
+
+it('replaces a Linux `<app> dsh …` launch with the packaged CLI before it claims the instance or sets up the desktop', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'next-dsh-command-'))
+  writeFileSync(join(home, 'desktop-next.json'), JSON.stringify({ version: 1, active: 'work' }))
+  await launchLinuxDshCommand(home, async execve => {
+    await expect(import('../src/main.ts')).rejects.toThrow('replaced by the CLI')
+    expect(execve).toHaveBeenCalledWith(process.execPath,
+      [process.execPath, '--expose-internals', join(dirname(NEXT_PACKAGE), 'lib', 'desktop-cli.js'), 'plugin', 'list'],
+      expect.objectContaining({ ELECTRON_RUN_AS_NODE: '1', DSH_HOME: home, DSH_DESKTOP_DEFAULT_PROFILE: 'work' }))
+    expect(fixture.lockPaths).toEqual([])
+    expect(existsSync(join(home, 'electron-user-data'))).toBe(false)
+    expect(fixture.windows).toHaveLength(0)
+  })
+})
+
+it('leaves the Profile to `--profile` when a Linux `dsh` command cannot read the selection', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'next-dsh-command-'))
+  writeFileSync(join(home, 'desktop-next.json'), JSON.stringify({ version: 1, active: '../escape' }))
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+  try {
+    await launchLinuxDshCommand(home, async execve => {
+      await expect(import('../src/main.ts')).rejects.toThrow('replaced by the CLI')
+      expect(error).toHaveBeenCalledWith(expect.stringContaining('the selected Profile cannot be read'))
+      expect(execve.mock.calls[0]?.[2]).not.toHaveProperty('DSH_DESKTOP_DEFAULT_PROFILE')
+    })
+  } finally { error.mockRestore() }
+})
+
+it('runs no `dsh` command on the fallback directory when the data directory choice cannot be read', async () => {
+  writeFileSync(join(fixture.locationRoot, 'desktop-next-location.json'), '{')
+  const exit = vi.spyOn(process, 'exit').mockImplementation((code): never => { throw new Error(`exit ${String(code)}`) })
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+  try {
+    await launchLinuxDshCommand(mkdtempSync(join(tmpdir(), 'next-dsh-command-')), async execve => {
+      await expect(import('../src/main.ts')).rejects.toThrow('exit 1')
+      expect(error).toHaveBeenCalledWith(expect.stringContaining('the data directory choice cannot be read'))
+      expect(execve).not.toHaveBeenCalled()
+      expect(fixture.lockPaths).toEqual([])
+    })
+  } finally { exit.mockRestore(); error.mockRestore() }
 })
 
 it('explains the first Windows GPU launch failure in a native dialog, records it and quits', async () => {
@@ -686,6 +803,130 @@ it.each(['timeout', 'failure'] as const)('still launches a staged update before 
     vi.doUnmock('../src/update-installer.ts'); vi.doUnmock('../src/updates.ts')
     vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true })
   }
+})
+
+it('sends an available Linux update to its release page from the tray and Settings instead of downloading it', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'next-linux-update-'))
+  vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
+  const platform = Object.getOwnPropertyDescriptor(process, 'platform')!
+  Object.defineProperty(process, 'platform', { ...platform, value: 'linux' })
+  let snapshot = { phase: 'current', version: '2.0.21-beta.1', installable: false }
+  const check = vi.fn(async () => { snapshot = { phase: 'available', version: '2.0.22-beta.1', installable: false } })
+  const download = vi.fn(async () => {})
+  vi.doMock('../src/updates.ts', () => ({ NextUpdates: class {
+    snapshot() { return { ...snapshot } }
+    start() {}
+    check = check
+    download = download
+    dispose = async () => {}
+  } }))
+  const { dialog, shell } = await import('electron')
+  vi.mocked(dialog.showMessageBox).mockClear()
+  vi.mocked(shell.openExternal).mockClear()
+  try {
+    await import('../src/main.ts')
+    await vi.waitFor(() => expect(fixture.windows).toHaveLength(1))
+    const window = fixture.windows[0]
+    const sender = { sender: window.webContents, senderFrame: window.webContents.mainFrame }
+    expect(fixture.handlers.get('dsh-next:state')!(sender).updates).toEqual(snapshot)
+    // A tray check that finds an update explains the manual update before it opens the release page.
+    fixture.trays[0].menu.find((item: any) => item.label === '已是最新版本').click()
+    await vi.waitFor(() => expect(shell.openExternal).toHaveBeenCalledOnce())
+    expect(check).toHaveBeenCalledOnce()
+    expect(dialog.showMessageBox).toHaveBeenCalledOnce()
+    expect(vi.mocked(dialog.showMessageBox).mock.calls[0]!.at(-1)).toMatchObject({ message: '发现新版本 2.0.22-beta.1',
+      buttons: ['前往下载', '稍后'], detail: expect.stringContaining('deb、AppImage 或 tar.gz') })
+    expect(shell.openExternal).toHaveBeenLastCalledWith(`https://github.com/anywhere-labs/dsh-desktop/releases/tag/v${snapshot.version}`)
+    // The Settings and tray download action opens the same page without asking again.
+    await fixture.handlers.get('dsh-next:command')!(sender, { type: 'download-update' })
+    expect(shell.openExternal).toHaveBeenCalledTimes(2)
+    expect(dialog.showMessageBox).toHaveBeenCalledOnce()
+    expect(download).not.toHaveBeenCalled()
+  } finally {
+    Object.defineProperty(process, 'platform', platform)
+    vi.doUnmock('../src/updates.ts')
+    vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true })
+  }
+})
+
+it.each(['darwin', 'win32'] as const)('reopens the main window at its saved bounds, maximized again on %s, and saves each settled change', async platformName => {
+  const home = mkdtempSync(join(tmpdir(), 'main-window-restore-'))
+  vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
+  const platform = Object.getOwnPropertyDescriptor(process, 'platform')!
+  Object.defineProperty(process, 'platform', { ...platform, value: platformName })
+  const statePath = join(home, 'desktop-window-state.json')
+  const saved = (): unknown => JSON.parse(readFileSync(statePath, 'utf8'))
+  writeFileSync(statePath, JSON.stringify({ version: 1, bounds: { x: 120, y: 90, width: 1400, height: 860 }, maximized: true }))
+  try {
+    await import('../src/main.ts')
+    await vi.waitFor(() => expect(fixture.windows).toHaveLength(1))
+    const window = fixture.windows[0]
+    expect(window.options).toMatchObject({ x: 120, y: 90, width: 1400, height: 860, minWidth: 800, minHeight: 580 })
+    vi.useFakeTimers()
+    const maximize = vi.spyOn(window, 'maximize')
+    const show = vi.spyOn(window, 'show')
+    window.emit('ready-to-show')
+    expect(window).toMatchObject({ maximized: true, visible: true })
+    // macOS zooms after the first show; Windows and Linux show the hidden window maximized.
+    expect(maximize.mock.invocationCallOrder[0]! > show.mock.invocationCallOrder[0]!).toBe(platformName === 'darwin')
+    window.maximized = false
+    window.position = { x: 200, y: 150 }
+    window.size = { width: 1300, height: 800 }
+    window.emit('unmaximize'); window.emit('move'); window.emit('resize')
+    await vi.advanceTimersByTimeAsync(249)
+    expect(saved()).toMatchObject({ bounds: { x: 120 }, maximized: true })
+    await vi.advanceTimersByTimeAsync(1)
+    expect(saved()).toEqual({ version: 1, bounds: { x: 200, y: 150, width: 1300, height: 800 }, maximized: false })
+    window.maximized = true
+    window.emit('maximize')
+    await vi.advanceTimersByTimeAsync(250)
+    expect(saved()).toEqual({ version: 1, bounds: { x: 200, y: 150, width: 1300, height: 800 }, maximized: true })
+    // Closing to the tray captures the window before hiding it, without waiting for the delay.
+    window.maximized = false
+    window.position = { x: 260, y: 170 }
+    window.emit('unmaximize')
+    window.emit('close', { preventDefault() {} })
+    expect(window.visible).toBe(false)
+    expect(saved()).toEqual({ version: 1, bounds: { x: 260, y: 170, width: 1300, height: 800 }, maximized: false })
+    // A hidden window is not a layout to reopen, whatever it reports.
+    window.maximized = true
+    window.emit('resize')
+    await vi.advanceTimersByTimeAsync(250)
+    expect(saved()).toMatchObject({ maximized: false })
+    fixture.trays[0].emit('click')
+    expect(window.visible).toBe(true)
+    // Quitting captures the window before hiding it for shutdown.
+    window.maximized = false
+    window.position = { x: 300, y: 200 }
+    window.emit('move')
+    const { app } = await import('electron')
+    app.quit()
+    expect(window.visible).toBe(false)
+    expect(saved()).toEqual({ version: 1, bounds: { x: 300, y: 200, width: 1300, height: 800 }, maximized: false })
+  } finally {
+    vi.useRealTimers()
+    Object.defineProperty(process, 'platform', platform)
+    vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true })
+  }
+})
+
+it.each([
+  ['unusable', { version: 1, bounds: { x: 0, y: 0, width: 0, height: 800 }, maximized: true }, { width: 1280, height: 840 }, ['failed to restore main-window state: main-window dimensions must be positive safe integers', 'warn']],
+  ['off-screen', { version: 1, bounds: { x: 4000, y: -900, width: 2400, height: 1600 }, maximized: false }, { x: 0, y: 25, width: 1728, height: 1092 }, undefined],
+])('opens the main window inside the current work area when its saved state is %s', async (_name, state, expected, warning) => {
+  const home = mkdtempSync(join(tmpdir(), 'main-window-fallback-'))
+  vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
+  writeFileSync(join(home, 'desktop-window-state.json'), JSON.stringify(state))
+  try {
+    await import('../src/main.ts')
+    await vi.waitFor(() => expect(fixture.windows).toHaveLength(1))
+    const window = fixture.windows[0]
+    expect({ x: window.options.x, y: window.options.y, width: window.options.width, height: window.options.height }).toEqual({ x: undefined, y: undefined, ...expected })
+    window.emit('ready-to-show')
+    expect(window.maximized).toBe(false)
+    if (warning) expect(fixture.diagnosticAppend).toHaveBeenCalledWith(...warning)
+    else expect(fixture.diagnosticAppend).not.toHaveBeenCalledWith(expect.stringContaining('main-window state'), 'warn')
+  } finally { vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
 })
 
 it('retains the Host when hiding to tray, restores the window, keeps failed-Host controls, validates IPC, and stops on explicit quit', async () => {
@@ -1335,6 +1576,36 @@ it.each([
   } finally { process.argv.splice(0, process.argv.length, ...argv); vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
 })
 
+it('relaunches into Desktop setup after Profile repair and shows where the previous configuration is', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'next-profile-repair-'))
+  vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
+  const argv = [...process.argv]
+  process.argv.push('--next-recovery')
+  try {
+    await import('../src/main.ts')
+    await vi.waitFor(() => expect(fixture.windows).toHaveLength(1))
+    const window = fixture.windows[0]
+    const sender = { sender: window.webContents, senderFrame: window.webContents.mainFrame }
+    const profiles = new NextProfiles(home)
+    expect(profiles.onboardingRequired('desktop')).toBe(false)
+    const { app, dialog, shell } = await import('electron')
+    // Continue past the confirmation, then ask to see the backup.
+    vi.mocked(dialog.showMessageBox).mockResolvedValueOnce({ response: 0, checkboxChecked: false }).mockResolvedValueOnce({ response: 1, checkboxChecked: false })
+    await fixture.handlers.get('dsh-next:command')!(sender, { type: 'recover' })
+    const backup = new NextRecovery(profiles).repairBackup('desktop')!.directory
+    const announcement = vi.mocked(dialog.showMessageBox).mock.calls.at(-1)!.at(-1) as { detail: string }
+    expect(announcement.detail).toContain(backup)
+    expect(shell.showItemInFolder).toHaveBeenCalledWith(backup)
+    expect(profiles.onboardingRequired('desktop')).toBe(true)
+    await vi.waitFor(() => expect(app.relaunch).toHaveBeenCalledOnce())
+    const args = vi.mocked(app.relaunch).mock.calls[0]![0]!.args!
+    expect(args).not.toContain('--next-recovery')
+    expect(args).not.toContain('--next-safe-mode')
+    expect(fixture.restart).not.toHaveBeenCalled()
+    expect(fixture.report).not.toHaveBeenCalled()
+  } finally { process.argv.splice(0, process.argv.length, ...argv); vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
+})
+
 it.each(['--next-safe-mode', '--next-recovery'])('restarts the whole app in normal mode from the recovery footer after %s', async mode => {
   const home = mkdtempSync(join(tmpdir(), 'next-recovery-footer-restart-'))
   vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
@@ -1467,6 +1738,37 @@ it('disables and re-enables a Profile bundle from recovery without running the p
   } finally { process.argv.splice(0, process.argv.length, ...argv); vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
 })
 
+it('reveals the saved failure report, explains a missing one, and clears the previous failed action', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'next-failure-report-'))
+  vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
+  const argv = [...process.argv]
+  process.argv.push('--next-recovery')
+  try {
+    await import('../src/main.ts')
+    await vi.waitFor(() => expect(fixture.windows).toHaveLength(1))
+    const window = fixture.windows[0]
+    const sender = { sender: window.webContents, senderFrame: window.webContents.mainFrame }
+    const command = fixture.handlers.get('dsh-next:command')!
+    const { shell } = await import('electron')
+    const logs = join(home, 'logs')
+    const report = join(logs, 'dsh-plugin-desktop-beta-failure-2026-10-29T10-30-00-000Z-host-boot.log')
+    mkdirSync(logs, { recursive: true })
+    writeFileSync(report, 'report')
+    fixture.runtime!.actionFailure = 'Diagnostics export failed'
+    fixture.failureReportFile.mockResolvedValueOnce(report)
+
+    await command(sender, { type: 'recovery-action', action: 'show-failure-report' })
+    expect(shell.showItemInFolder).toHaveBeenCalledWith(report)
+    expect(fixture.runtime!.actionFailure).toBe('')
+
+    await expect(command(sender, { type: 'recovery-action', action: 'show-failure-report' })).rejects.toThrow('诊断报告未能保存')
+    rmSync(report)
+    fixture.failureReportFile.mockResolvedValueOnce(report)
+    await expect(command(sender, { type: 'recovery-action', action: 'show-failure-report' })).rejects.toThrow(`找不到诊断报告：${report}`)
+    expect(shell.showItemInFolder).toHaveBeenCalledOnce()
+  } finally { process.argv.splice(0, process.argv.length, ...argv); vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
+})
+
 it('opens the window immediately without blocking on slow shell environment or system proxy probes', async () => {
   const home = mkdtempSync(join(tmpdir(), 'next-parallel-env-probe-'))
   vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
@@ -1489,6 +1791,48 @@ it('opens the window immediately without blocking on slow shell environment or s
     expect(fixture.runtimeOptions?.systemProxy?.()).toEqual({ HTTP_PROXY: 'http://127.0.0.1:7890' })
   } finally {
     vi.doUnmock('../src/system-proxy.ts')
+    vi.unstubAllEnvs()
+    rmSync(home, { recursive: true, force: true })
+  }
+})
+
+it('starts reading the login-shell environment before Electron is ready, and reads it once', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'next-early-shell-env-'))
+  vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
+  const read = vi.fn(async () => ({ updates: {}, source: 'process' as const, fallbackReason: 'not-packaged' as const }))
+  vi.doMock('../src/shell-environment.ts', async importOriginal => ({
+    ...await importOriginal<typeof import('../src/shell-environment.ts')>(),
+    resolveDesktopShellEnvironment: read,
+  }))
+  const { app } = await import('electron')
+  const ready = Promise.withResolvers<void>()
+  app.whenReady = () => ready.promise
+  try {
+    await import('../src/main.ts')
+    expect(read).toHaveBeenCalledOnce()
+    expect(fixture.windows).toHaveLength(0)
+    ready.resolve()
+    await vi.waitFor(() => expect(fixture.windows).toHaveLength(1))
+    await fixture.runtimeOptions!.prepareEnvironment!()
+    expect(read).toHaveBeenCalledOnce()
+    // The Host starts only after both probes; the record says what each cost.
+    expect(fixture.diagnosticAppend).toHaveBeenCalledWith(expect.objectContaining({ event: 'shell-environment.resolved',
+      fields: expect.objectContaining({ shellMs: expect.any(Number), systemProxyMs: expect.any(Number), systemProxyConfiguration: expect.any(String) }) }))
+  } finally {
+    vi.doUnmock('../src/shell-environment.ts')
+    vi.unstubAllEnvs()
+    rmSync(home, { recursive: true, force: true })
+  }
+})
+
+it('registers the application scheme with the V8 code cache', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'next-code-cache-'))
+  vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
+  try {
+    await import('../src/main.ts')
+    expect(fixture.registerSchemes).toHaveBeenCalledExactlyOnceWith([{ scheme: 'dsh-app',
+      privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true, codeCache: true } }])
+  } finally {
     vi.unstubAllEnvs()
     rmSync(home, { recursive: true, force: true })
   }

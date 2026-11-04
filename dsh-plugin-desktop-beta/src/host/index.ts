@@ -2,12 +2,11 @@
 import { auditHostPlugins, configureHostLogging, hostLog, hostOperation } from './logging.ts'
 import { basename, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { inspect } from 'node:util'
 import { loadLayeredEnv } from '@deepseek-ai/dsh-app-boot'
 import { runProfile } from '@deepseek-ai/dsh/profile-boot'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
-import { webIndexInjections } from '../upstream-family.ts'
+import { hostOperationDiagnostics, webIndexInjections } from '../upstream-family.ts'
 import { loadNextProfile, NEXT_PACKAGE, readNextProfilePatches } from '../profiles.ts'
 import { bundledPnpmInvocation } from '../bundled-pnpm.ts'
 import { configureNextBrowserAccess } from '../desktop-browser-access.ts'
@@ -19,11 +18,13 @@ import { maskSecrets } from '../mask-secrets.ts'
 import { MEMORY_SAMPLE_INTERVAL_MS, hostMemoryUsage } from '../memory-monitor.ts'
 import { parseSystemProxyProbe, SYSTEM_PROXY_ENV, withSystemProxy } from '../system-proxy.ts'
 import { watchPlatformLogin, type PlatformLoginAccount } from './platform-login.ts'
+import { installPlatformSessionPublisher } from './platform-session.ts'
 import { installAgentPresetResolution } from './agent-preset.ts'
 import { installCuaDriverResolution } from './cua-driver.ts'
 import { installOfficeEngineResolution } from './office-engine.ts'
 import { installSharpWasmResolution } from './sharp-wasm.ts'
 import { installSkillBadgeResolution } from './skill-badge.ts'
+import { formatFatalDiagnostic } from './fatal-diagnostic.ts'
 import * as desktopOffice from './office.ts'
 import { resolveOfficeConfig } from './office.ts'
 
@@ -66,6 +67,12 @@ export async function main(): Promise<void> {
   const { environment, resolution: proxy } = withSystemProxy(loadLayeredEnv('dsh-plugin-desktop-beta'), systemProxy, trustedHosts as string[])
   // One line on every start, direct included: a connectivity report cannot be answered without it.
   for (const line of [proxy.summary, ...proxy.diagnostics]) process.stderr.write(`dsh-plugin-desktop-beta: ${maskSecrets(line)}\n`)
+  const send = (value: object): Promise<void> => new Promise((resolveSend, reject) => {
+    if (!process.connected || !process.send) return resolveSend()
+    process.send(value, error => error ? reject(error) : resolveSend())
+  })
+  // Announced before the profile starts, so a startup failure and this run's plugin operations share one run identity.
+  const operations = hostOperationDiagnostics?.(send)
   const application = runProfile({
     environment, profile: basename(projectDir),
     resolvedProfile: { profile, installAnchor: NEXT_PACKAGE,
@@ -73,10 +80,6 @@ export async function main(): Promise<void> {
         [join(runtimeDir, 'host.cordis.patch.yml'), join(projectDir, 'desktop-next.cordis.patch.json'), runtimePatch], profilePatches) },
     patchFiles: [join(runtimeDir, 'host.cordis.patch.yml'), join(projectDir, 'desktop-next.cordis.patch.json'), runtimePatch], args: ['--no-open', '--port', String(preferences.port)],
     packageManager: bundledPnpmInvocation(runtimeDir),
-  })
-  const send = (value: object): Promise<void> => new Promise((resolveSend, reject) => {
-    if (!process.connected || !process.send) return resolveSend()
-    process.send(value, error => error ? reject(error) : resolveSend())
   })
   // Memory evidence for the Desktop's incident snapshots. Pushed rather than requested, so a Host too
   // busy or too short of memory to answer still leaves its last reading behind (#1511).
@@ -130,6 +133,9 @@ export async function main(): Promise<void> {
   })
   process.once('disconnect', () => { void stop().catch(fatal) })
   const { ctx } = await application
+  operations?.observe(ctx)
+  // The shell signs the official account plugin's embedded Platform pages (top-up, usage) in with this grant.
+  if (!stopping) installPlatformSessionPublisher(ctx, (session) => { void send({ type: 'platform-session', session }).catch(() => {}) })
   // Office skills and the workspace dependency tool need the bundled payload; a packaged Host without it fails here.
   const office = resolveOfficeConfig(runtimeDir, primaryRuntime, home)
   if (office === undefined) hostLog({ source: 'host', event: 'office.unavailable', level: 'warn', fields: { source: primaryRuntime } })
@@ -149,15 +155,12 @@ export async function main(): Promise<void> {
   }
 }
 
-/** Upper bound of the startup diagnostic carried over IPC; the head holds the message and stack. */
-const MAX_FATAL_DIAGNOSTIC_CHARS = 64 * 1024
-
 function fatal(error: unknown): void {
   const message = error instanceof Error ? error.message : String(error)
   // The shell receives the complete inspected error here, not through stderr:
   // stderr bytes and this IPC message race, and the shell reports the first
   // failure it sees.
-  const diagnostic = inspect(error, { depth: 4, maxArrayLength: 50 }).slice(0, MAX_FATAL_DIAGNOSTIC_CHARS)
+  const diagnostic = formatFatalDiagnostic(error)
   if (process.connected) process.send?.({ type: 'fatal', message, diagnostic }, () => { if (process.connected) process.disconnect() })
   console.error(error)
   process.exitCode = 1

@@ -6,7 +6,7 @@ Thank you for wanting to contribute to **DSH Desktop for Linux**. This repositor
 
 ## Regular users: use, report, and spread the word
 
-- Report problems or odd behavior in an [issue](https://github.com/Jic2007/dsh-desktop/issues): include your distribution, application version, install method (.deb / tar.gz), and reproduction steps.
+- Report problems in a [fork issue](https://github.com/AL-A-V-Parseval/dsh-desktop/issues): include your distribution, app version, installation format and reproduction steps.
 - Feature ideas and improvement suggestions are welcome as issues too.
 - Write tutorials or experience posts, or help improve and translate the documentation.
 
@@ -52,9 +52,9 @@ The `.deb` in this repository is built by hand with `ar` + `xz` (no `dpkg-deb`);
 
 ### Per-channel runtimes and Linux Stable
 
-The `stable` / `next` / `beta` names in `upstream.json` describe upstream source families, not this fork's release stability. Linux Stable uses the `next` workspace; the old `stable` workspace remains for regression checks. Current Next source follows DSH `0.2.1-rc.4` and Beta follows `0.2.2-alpha.2`, using pi-ai `1.1.0` and `1.4.0` respectively. Do not flatten the distinction with one global SDK override.
+The `stable` / `next` / `beta` names in `upstream.json` describe upstream source families, not this fork's release stability. Linux Stable uses the `next` workspace; the old `stable` workspace remains for regression checks. Current Next source follows DSH `0.2.1-rc.5` and Beta follows `0.2.2-alpha.3`, using pi-ai `1.1.0` and `1.4.0` respectively. Do not flatten the distinction with one global SDK override.
 
-Mirror shared changes while preserving each channel's dependency pins and `upstream-family` files; keep Next-only API differences in declared next-lead regions. Check all three vendored channels and retain each runtime's OAuth settings mount and model-catalog patch. See the [merge record](docs/upstream-sync-2026-10-29.md) and [catalog maintenance](docs/model-catalog-refresh.md).
+Mirror shared changes while preserving each channel's dependency pins and `upstream-family` files; keep Next-only API differences in declared next-lead regions. Check all three vendored channels and retain each runtime's OAuth settings mount and model-catalog patch. See the [current merge record](docs/upstream-sync-2026-11-04.md) and [catalog maintenance](docs/model-catalog-refresh.md).
 
 ### Commits and pull requests
 

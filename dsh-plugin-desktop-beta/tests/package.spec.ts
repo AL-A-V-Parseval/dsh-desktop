@@ -1,5 +1,8 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { OPTIONAL_BUNDLES } from '../src/upstream-family.ts'
 import { expect, it } from 'vitest'
 const read = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'))
@@ -16,7 +19,7 @@ it('declares every official optional bundle as a discoverable, version-aligned i
 
 it('archives the application like upstream Desktop while keeping fuses and native inventory aligned with Stable', () => {
   const next = read('../package.json'); const stable = read('../../dsh-plugin-desktop/package.json')
-  expect(next.version).toBe('2.0.21-beta.1-linux.1')
+  expect(next.version).toBe('2.0.21-beta.2-linux.1')
   expect(next.desktopName).toBe(`${next.build.linux.executableName}.desktop`)
   expect(next.repository).toEqual({ type: 'git', url: stable.repository.url, directory: 'dsh-plugin-desktop-beta' })
   expect(next.build.appId).toBe('ai.deepseek.dsh.desktop.beta')
@@ -48,9 +51,11 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
   expect(next.build.afterAllArtifactBuild).toBe('./scripts/verify-fuses.ts')
   expect(next.build.electronFuses).toEqual(stable.build.electronFuses)
   // Stable's rule already keeps the interpreter payloads and the wheels' .dylibs directories, identical across the two
-  // CPU builds. Next adds its own per-CPU native packages and pnpm's reflink addons from its bundled dist/node_modules.
+  // CPU builds. Next adds its own per-CPU native packages, pnpm's reflink addons from its bundled dist/node_modules
+  // and the terminal helpers of `@earendil-works/pi-tui`, which Beta's OAR subagents depend on; both CPU builds carry
+  // these for both CPUs.
   expect(next.build.mac.x64ArchFiles).toBe(stable.build.mac.x64ArchFiles
-    .replace('sherpa-onnx-darwin-*/**}', 'sherpa-onnx-darwin-*/**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**,@reflink/reflink-darwin-*/**}'))
+    .replace('sherpa-onnx-darwin-*/**}', 'sherpa-onnx-darwin-*/**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**,@reflink/reflink-darwin-*/**,@earendil-works/pi-tui/native/darwin/prebuilds/**}'))
   // Both CPU payloads ride beside the archive as extra resources; electron-builder must not re-sign the pre-signed payloads.
   // macOS also carries the manifest copy the updaters shipped in 2.0.14-beta.1 through 2.0.17-beta.1 read beside the archive.
   expect(next.build.mac.extraResources).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }, { from: '.desktop-build/payload/package.json', to: 'app/package.json' }])
@@ -67,4 +72,37 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
   expect(existsSync(new URL('../build/app-icon.icon/icon.json', import.meta.url))).toBe(true)
   expect(next.build.nsis).toMatchObject({ oneClick: false, perMachine: false, allowElevation: true, allowToChangeInstallationDirectory: true })
   expect(next.build.mac.notarize).toBe(true)
+})
+
+it('gives the Linux packages a hicolor icon for every theme size up to 512 pixels', async () => {
+  const next = read('../package.json')
+  expect(next.build.linux.icon).toBe('build/icons')
+  // Resolve the icon as electron-builder's Linux targets do; the Debian package and the AppImage install each result
+  // under hicolor/<size>x<size>/apps. A single PNG resolves to its own 1024x1024, which the hicolor theme does not declare.
+  const require = createRequire(new URL('../package.json', import.meta.url))
+  const { convertIcon } = require('app-builder-lib/out/util/iconConverter.js')
+  const project = fileURLToPath(new URL('..', import.meta.url))
+  const outDir = mkdtempSync(join(tmpdir(), 'dsh-linux-icons-'))
+  try {
+    const { icons, isFallback } = await convertIcon({ sources: [next.build.linux.icon], fallbackSources: [], roots: [join(project, 'build'), project], format: 'set', outDir })
+    expect(isFallback).toBe(false)
+    expect(icons.map((icon: { size: number }) => icon.size)).toEqual([16, 22, 24, 32, 48, 64, 128, 256, 512])
+    for (const { file, size } of icons) {
+      const png = readFileSync(file)
+      expect([png.readUInt32BE(16), png.readUInt32BE(20)], file).toEqual([size, size])
+    }
+  } finally {
+    rmSync(outDir, { recursive: true, force: true })
+  }
+})
+
+it('makes the Debian package depend on the GBM and ALSA libraries the executable links', () => {
+  const next = read('../package.json')
+  // A depends list replaces electron-builder's default Depends, so it keeps every default and appends what the executable
+  // also links: none of the defaults pulls in libgbm.so.1 or libasound.so.2, and on minimal Debian and Ubuntu systems the
+  // installed application then cannot start. Since the 64-bit time_t transition libasound2 is a virtual package, and
+  // OSS4's ALSA emulation provides it without a version; the version bound leaves only the real ALSA library to apt.
+  const require = createRequire(new URL('../package.json', import.meta.url))
+  const { default: FpmTarget } = require('app-builder-lib/out/targets/FpmTarget.js')
+  expect(next.build.deb.depends).toEqual([...FpmTarget.prototype.getDefaultDepends.call(undefined, 'deb'), 'libgbm1', 'libasound2 (>= 1.0.17)'])
 })
