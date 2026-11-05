@@ -22,5 +22,9 @@ Linux Stable 与 Beta 运行时共同升级至 DSH `0.2.2-rc.1`；本 fork 发�
 
 根 `yarn check` 通过：Market 320 项、共享 legacy 403 项、Next 全量 1,251 项、Beta 差异测试 681 项，总计 **2,655 项通过、17 项跳过**，并通过类型、布局与兼容检查。运行时一致时按现有规则选择 Beta 差异测试，未宣称执行 Beta 或 legacy 全量套件。
 
+Linux x64 AppImage 和 deb 构建通过。真实成品检查覆盖 Sharp WASM 有/无 Host 钩子的附件读取与图像解码、内置 `dsh 0.2.2-rc.1`、Host 默认/Office 覆盖/Office 停用模式及诊断导出。Beta 的真实 Electron Node-mode Host 也通过插件管理、恢复、Profile 切换和独立 Computer Use 注册检查。
+
+发行依赖与代码来自合并提交 `2cb10449fd`；后续发行记录提交仅补充实际验证结果，不修改应用代码或依赖。
+
 未执行 ARM64、Windows/macOS 原生打包、真实账号 OAuth 登录及付费模型调用。
 本次只合并并发布，不替换本地安装，不重启当前应用，也不包含 Tauri 或内存优化改造。

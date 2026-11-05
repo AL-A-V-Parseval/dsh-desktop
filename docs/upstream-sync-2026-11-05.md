@@ -42,7 +42,10 @@ pins are committed with the artifact.
 - Focused Next model-catalog/update/Profile/package checks passed (78 tests).
 - 58 bilingual records / 116 documents and the 362-file mirror passed.
 
-Package validation is recorded in the [release notes](release-2.0.22-next-linux.1.md).
+Linux x64 AppImage/deb and packaged Host/Sharp/CLI checks passed on merge commit
+`2cb10449fd`. Beta's real Electron Node-mode Host also passed on `0.2.2-rc.1`.
+The [release notes](release-2.0.22-next-linux.1.md) record coverage; the following
+release-record commit changes documentation only, not the built application code.
 No Tauri/memory refactor, local installation replacement, GUI restart, real-account
 OAuth or paid model call is part of this merge. ARM64 and Windows/macOS native
 packaging are outside this release's executed validation.
