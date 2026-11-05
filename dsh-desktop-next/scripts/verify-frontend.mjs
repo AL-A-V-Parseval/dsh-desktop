@@ -1,6 +1,6 @@
 /** Check the real official Web entry and sandboxed preload bundles without a GUI. */
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -122,6 +122,20 @@ for (const platform of ['darwin', 'win32', 'linux']) {
       assert.deepEqual(received, ['general', 'permissions'])
       stop()
       assert.equal(listeners.has('dsh-next:settings-open'), false)
+      // The official context menus offer Save as and cross-origin image copy only beside this carrier; a release whose
+      // client has no file actions gets none.
+      assert.equal(typeof exposed.get('dshDesktop').fileActions?.save,
+        existsSync(join(root, 'node_modules/@deepseek-ai/dsh-client-ui-file-actions')) ? 'function' : 'undefined')
+      // The official images drag out as files through this carrier; without it a release whose client drags files natively
+      // falls back to browser transfers.
+      const fileDrag = exposed.get('dshDesktop').fileDrag
+      if (existsSync(join(root, 'node_modules/@deepseek-ai/dsh-client-ui-file-drag'))) {
+        const source = { kind: 'resource', address: 'dsh-resource://file/session/s/a.png', mediaType: 'image/png' }
+        await fileDrag.prepare(source, 'request-1')
+        assert.deepEqual([...invocations.at(-1)], ['dsh-desktop:file-drag-prepare', source, 'request-1'])
+        await fileDrag.start('handle-1')
+        assert.deepEqual([...invocations.at(-1)], ['dsh-desktop:file-drag-start', 'handle-1'])
+      } else assert.equal(fileDrag, undefined)
       // The official composer refuses dropped folders without this bridge and uploads every
       // non-image file instead of citing it; the carrier name and `pathFor` are upstream's.
       const picked = { name: 'notes.md' }

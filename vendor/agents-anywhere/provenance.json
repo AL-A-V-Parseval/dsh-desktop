@@ -1,24 +1,24 @@
 {
   "repository": "https://github.com/anywhere-labs/Agents-Anywhere.git",
   "branch": "main",
-  "commit": "1f827133d6d6de86df424898d9b9738b6b3aebf3",
+  "commit": "296f70ed4036be3da039f1614b782fdbdbf8d150",
   "packageDirectory": "dsh-bridge-next",
   "sourceVersion": "2.1.0",
-  "desktopVersion": "2.1.0-desktop.c1f827133d6d6.r7c1a233b",
-  "artifact": "agents-anywhere-dsh-bridge-next-2.1.0-desktop.c1f827133d6d6.r7c1a233b.tgz",
-  "sha256": "8e8149cfd916b395f6319297658d08224ec7d90b1e54b8b9d257e6faa7fedf82",
+  "desktopVersion": "2.1.0-desktop.c296f70ed4036.r5dbd817f",
+  "artifact": "agents-anywhere-dsh-bridge-next-2.1.0-desktop.c296f70ed4036.r5dbd817f.tgz",
+  "sha256": "4022e628e7a6dc0212c11e554f5f356baa3f685cb1fbd670501dba36ea03cbb9",
   "runtimePeers": {
-    "@deepseek-ai/dsh-typert-protocol": "0.2.1-rc.3 || 0.2.2-alpha.3 || 0.2.1-rc.5",
-    "@deepseek-ai/dsh-llm": "0.2.1-rc.3 || 0.2.2-alpha.3 || 0.2.1-rc.5",
-    "@deepseek-ai/dsh-session": "0.2.1-rc.3 || 0.2.2-alpha.3 || 0.2.1-rc.5"
+    "@deepseek-ai/dsh-typert-protocol": "0.2.1-rc.3 || 0.2.2-rc.1",
+    "@deepseek-ai/dsh-llm": "0.2.1-rc.3 || 0.2.2-rc.1",
+    "@deepseek-ai/dsh-session": "0.2.1-rc.3 || 0.2.2-rc.1"
   },
   "manifestChanges": [
-    "version set to 2.1.0-desktop.c1f827133d6d6.r7c1a233b",
+    "version set to 2.1.0-desktop.c296f70ed4036.r5dbd817f",
     "release staging removes prepack/postpack hooks; build, typecheck and check:build run explicitly",
     "release staging pins the AA build-time DSH type graph to the source devDependencies",
-    "@deepseek-ai/dsh-typert-protocol peer accepts 0.2.1-rc.3 || 0.2.2-alpha.3 || 0.2.1-rc.5",
-    "@deepseek-ai/dsh-llm peer accepts 0.2.1-rc.3 || 0.2.2-alpha.3 || 0.2.1-rc.5",
-    "@deepseek-ai/dsh-session peer accepts 0.2.1-rc.3 || 0.2.2-alpha.3 || 0.2.1-rc.5"
+    "@deepseek-ai/dsh-typert-protocol peer accepts 0.2.1-rc.3 || 0.2.2-rc.1",
+    "@deepseek-ai/dsh-llm peer accepts 0.2.1-rc.3 || 0.2.2-rc.1",
+    "@deepseek-ai/dsh-session peer accepts 0.2.1-rc.3 || 0.2.2-rc.1"
   ],
   "sourceChanges": []
 }

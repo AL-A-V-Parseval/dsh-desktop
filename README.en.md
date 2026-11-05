@@ -25,14 +25,14 @@
 
 > **Linux release policy change (2026-10-27):** Starting with [`v2.0.20-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.20-next-linux.1), the former Next framework is this fork's **Stable / latest** mainline. The legacy framework receives no further releases; its last release is `v2.0.18-linux.1`. The `next` version suffix, `DSH NEXT` display name and internal identifiers are retained for installation, data-directory and upstream-merge compatibility; **they no longer identify a prerelease channel in this fork**. Signed packages and tags remain unchanged. Source-directory names are independent of release stability; see [`linux-release-policy.json`](linux-release-policy.json). Root `dev`, `start`, `package:dir` and `dist:linux` commands now use the new framework.
 >
-> The current published Stable release is [`v2.0.21-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.21-next-linux.1). Assets use `DSH-NEXT-<version>` and the portable executable is `dsh-desktop-next`. Data defaults to `~/.dsh`; an already selected directory takes precedence. Back up data before upgrading. See the [release notes](docs/release-2.0.21-next-linux.1.md) for changes and validation.
+> The current published Stable release is [`v2.0.22-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.22-next-linux.1). Assets use `DSH-NEXT-<version>` and the portable executable is `dsh-desktop-next`. Data defaults to `~/.dsh`; an already selected directory takes precedence. Back up data before upgrading. See the [release notes](docs/release-2.0.22-next-linux.1.md) for changes and validation.
 
 DSH Desktop integrates the local Web UI, Host service, and plugin system of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) into a native desktop application. It pins and runs a specific upstream version unchanged, composing desktop capabilities through the DeepSeek Harness plugin mechanism.
 
 This fork is **Linux-focused**: it maintains Linux releases and compatibility fixes while following upstream's cross-platform improvements, retaining this fork's Stable release and data-compatibility policy.
 
-- Merged upstream snapshot: `117e489913`; this Stable release is `2.0.21-next-linux.1`
-- Source runtimes: Linux Stable workspace `dsh-desktop-next/` → `0.2.1-rc.5`; Beta → `0.2.2-alpha.3`; legacy workspace retains `0.2.1-rc.3`. Pins live in [`upstream.json`](upstream.json); Linux release boundaries are defined by [`linux-release-policy.json`](linux-release-policy.json)
+- Merged upstream snapshot: `a8b98656fd`; this Stable release is `2.0.22-next-linux.1`
+- Source runtimes: Linux Stable workspace `dsh-desktop-next/` and Beta both use `0.2.2-rc.1`; legacy workspace retains `0.2.1-rc.3`. Pins live in [`upstream.json`](upstream.json); Linux release boundaries are defined by [`linux-release-policy.json`](linux-release-policy.json)
 - Published `linux.2` uses `0.2.1-rc.3`; merging source does not change its signed assets
 - Target platform: **Linux x64**
 - Artifacts: an AppImage, a portable archive (tar.gz) and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships alongside them, and the `.deb` also carries an internal `debsigs` signature

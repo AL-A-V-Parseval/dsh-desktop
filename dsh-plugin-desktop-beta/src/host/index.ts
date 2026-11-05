@@ -6,7 +6,7 @@ import { loadLayeredEnv } from '@deepseek-ai/dsh-app-boot'
 import { runProfile } from '@deepseek-ai/dsh/profile-boot'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
-import { hostOperationDiagnostics, webIndexInjections } from '../upstream-family.ts'
+import { hostOperationDiagnostics, installHostFileDragResources, webIndexInjections } from '../upstream-family.ts'
 import { loadNextProfile, NEXT_PACKAGE, readNextProfilePatches } from '../profiles.ts'
 import { bundledPnpmInvocation } from '../bundled-pnpm.ts'
 import { configureNextBrowserAccess } from '../desktop-browser-access.ts'
@@ -57,7 +57,8 @@ export async function main(): Promise<void> {
   delete process.env.DSH_NEXT_PREFERENCES
   delete process.env.DSH_NEXT_TRUSTED_HOSTS
   delete process.env[SYSTEM_PROXY_ENV]
-  const profile = loadNextProfile(projectDir, home)
+  const packageManager = bundledPnpmInvocation(runtimeDir)
+  const profile = loadNextProfile(projectDir, home, NEXT_PACKAGE, packageManager)
   const runtimePatch = join(projectDir, 'desktop-next.runtime.patch.json')
   atomicJson(runtimePatch, [
     { id: 'desktop-next-webserver', config: { host: '127.0.0.1', port: preferences.port } },
@@ -79,8 +80,11 @@ export async function main(): Promise<void> {
       readPatches: profilePatches => readNextProfilePatches(projectDir, home,
         [join(runtimeDir, 'host.cordis.patch.yml'), join(projectDir, 'desktop-next.cordis.patch.json'), runtimePatch], profilePatches) },
     patchFiles: [join(runtimeDir, 'host.cordis.patch.yml'), join(projectDir, 'desktop-next.cordis.patch.json'), runtimePatch], args: ['--no-open', '--port', String(preferences.port)],
-    packageManager: bundledPnpmInvocation(runtimeDir),
+    packageManager,
   })
+  // Native file drags borrow only the workspace files this Host authorizes, where the followed DSH release drags
+  // files natively; the requests may arrive while the profile still starts.
+  const dragResources = installHostFileDragResources?.(application, send)
   // Memory evidence for the Desktop's incident snapshots. Pushed rather than requested, so a Host too
   // busy or too short of memory to answer still leaves its last reading behind (#1511).
   const memory = setInterval(() => {
@@ -94,6 +98,7 @@ export async function main(): Promise<void> {
     const end = hostOperation('host', 'shutdown')
     clearInterval(memory)
     accountWatch.abort()
+    await dragResources?.stop()
     const running = await application.catch(() => undefined)
     try { await running?.shutdown.shutdown(0); end() } catch (error) { end(error); throw error }
     await send({ type: 'shutdown-complete' })
@@ -101,6 +106,7 @@ export async function main(): Promise<void> {
     process.exit(0)
   })()
   process.on('message', (value: unknown) => {
+    if (dragResources?.receive(value) === true) return
     if (typeof value === 'object' && value !== null && 'type' in value && value.type === 'logging-config') {
       const request = value as { requestId?: unknown; developerLogging?: unknown; logLevel?: unknown }
       if (!Number.isSafeInteger(request.requestId) || typeof request.developerLogging !== 'boolean' || !['debug', 'info', 'warn', 'error'].includes(String(request.logLevel))) return

@@ -10,6 +10,7 @@ import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, nativeTheme, net, Notification, protocol, safeStorage, screen, session, shell, type IpcMainInvokeEvent, type MenuItemConstructorOptions, type OpenDialogOptions } from 'electron'
 import { appRequestHeaders, forwardWebRequest, serveWebDocument } from './web-document.ts'
 import { installAppDownloads } from './app-downloads.ts'
+import { installDesktopFileDrag, installFileActions, liveshareOwnerLogin } from './upstream-family.ts'
 import { claimDesktopSingleInstance } from './single-instance.ts'
 import { NEXT_PACKAGE, NextProfiles, parseFeatures, profileName } from './profiles.ts'
 import { APP_URL, IPC, SHELL_URL } from './ipc.ts'
@@ -51,6 +52,7 @@ import { PLATFORM_IPC } from './platform-ipc.ts'
 import { NextUpdates } from './updates.ts'
 import { createArtifactRequest } from './update-transport.ts'
 import { NextUpdateInstaller } from './update-installer.ts'
+import { macUpdateArch } from './update-arch.ts'
 import { manualUpdateHint, releaseNotesUrl, updateLabel } from './update-state.ts'
 import { DESKTOP_SHUTDOWN_TIMEOUT_MS } from '../../dsh-plugin-desktop/src/shutdown.ts'
 import { isDesktopRendererStatus, NextRendererRecovery, type DesktopNavigationCause } from './renderer-recovery.ts'
@@ -126,6 +128,8 @@ let pendingNavigation: { readonly owner: BrowserWindow; readonly cause: Exclude<
 let rendererHealthy = false
 // Storage partitions outlive individual windows, so the guest owner is process-scoped.
 let desktopShortcuts: ReturnType<typeof installDesktopShortcuts> | undefined
+/** Removes the native file drag's temporary exports, where the followed DSH release drags files natively. */
+let disposeFileDrag: (() => Promise<void>) | undefined
 const browserGuests = new DesktopBrowserGuests(() => runtime.auth ? [new URL(runtime.auth.url).origin] : [])
 let shellWindow: BrowserWindow | undefined
 let recoveryRunner: ReturnType<typeof createPackageRunner> | undefined
@@ -247,6 +251,7 @@ const updateInstaller = new NextUpdateInstaller({ platform: process.platform, ex
   language: () => windowsLanguage,
   log: error => runtime.diagnostics.append(String(error), 'warn') })
 const updates = new NextUpdates({ version, platform: process.platform, packaged: app.isPackaged, userData: electronData,
+  arch: process.platform === 'darwin' ? macUpdateArch(process.arch, app.runningUnderARM64Translation) : undefined,
   request: (url, init) => net.fetch(url, { ...init, credentials: 'omit' }),
   artifactRequest: createArtifactRequest(),
   changed: () => { if (app.isReady() && !quitting) native.refresh() },
@@ -434,7 +439,18 @@ function createWindow(preload: string, primary = false): BrowserWindow {
   const openExternal = (url: string): void => {
     try { if (['https:', 'http:', 'mailto:'].includes(new URL(url).protocol)) void shell.openExternal(url).catch(error => runtime.report(error)) } catch { /* Ignore malformed external links. */ }
   }
-  window.webContents.setWindowOpenHandler(({ url }) => { openExternal(url); return { action: 'deny' } })
+  // Pages open their windows in the system browser, except the Relay sign-in popup the LiveShare owner page opens.
+  const ownerLogin = primary ? liveshareOwnerLogin : undefined
+  window.webContents.setWindowOpenHandler((details) => {
+    if (ownerLogin?.accepts(details)) return { action: 'allow', overrideBrowserWindowOptions: ownerLogin.windowOptions(window) }
+    openExternal(details.url)
+    return { action: 'deny' }
+  })
+  if (ownerLogin !== undefined) {
+    window.webContents.on('did-create-window', (child) => {
+      ownerLogin.guard(child.webContents, { hostOrigin: () => runtime.auth === undefined ? undefined : new URL(runtime.auth.url).origin, openExternal })
+    })
+  }
   window.webContents.on('will-navigate', (event, url) => {
     if (!url.startsWith(primary ? APP_URL : SHELL_URL)) { event.preventDefault(); openExternal(url) }
   })
@@ -1343,6 +1359,14 @@ async function main(): Promise<void> {
       return forwardWebRequest(new Request(url, { headers: { [NATIVE_ACCESS_HEADER]: auth.token } }), auth.url, auth.cookie, auth.token)
     },
   })
+  installFileActions?.({ app, ipcMain, net, session }, (event) => {
+    assertSender(event, mainWindow, APP_URL)
+    return mainWindow!
+  }, () => runtime.auth?.url)
+  disposeFileDrag = installDesktopFileDrag?.({ app, ipcMain }, (event) => {
+    assertSender(event, mainWindow, APP_URL)
+    return mainWindow!
+  }, (address, signal) => runtime.dragResource(address, signal))
   ipcMain.handle(IPC.material, event => { assertSender(event, mainWindow, APP_URL); return windowMaterial(runtime.preferences) })
   ipcMain.handle(IPC.command, (event, value: unknown) => { assertDesktopSender(event); return command(value, event.sender === shellWindow?.webContents ? 'shell' : 'app') })
   let picking: Promise<string | null> | undefined
@@ -1514,7 +1538,9 @@ app.on('before-quit', event => {
   // not a failed shutdown, and the next page open clears that storage again.
   const platformDone = runtime.diagnostics.operation('electron', 'platform.dispose')
   void Promise.all([updates.dispose(installingUpdate).then(() => updatesDone(), error => { updatesDone(error); throw error }), (async () => { try { await recoveryRunner?.dispose(); recoveryDone() } catch (error) { recoveryDone(error); throw error }; await runtime.close() })(),
-    platformView.dispose().then(() => platformDone(), error => platformDone(error))]).then(async () => {
+    platformView.dispose().then(() => platformDone(), error => platformDone(error)),
+    // A temporary drag export that cannot be removed is recorded, not a failed shutdown.
+    disposeFileDrag?.().catch(error => runtime.diagnostics.append(`File drag cleanup: ${String(error)}`, 'warn'))]).then(async () => {
     if (!finish()) return
     // A staged installer must survive until handoff; the next boot removes it.
     if (safeModeRequested && !installingUpdate) {
