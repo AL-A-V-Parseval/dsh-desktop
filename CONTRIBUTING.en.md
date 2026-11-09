@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for wanting to contribute to **DSH Desktop for Linux**. This repository is a community fork of [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) focused on making DSH Desktop run reliably on Linux. Whether you are a regular user, a plugin author, or a developer, there is a way to contribute that fits you.
+Thank you for wanting to contribute to **DSH Desktop for Linux**. This repository is a community fork of [anywhere-labs/deepseek-harness-desktop](https://github.com/anywhere-labs/deepseek-harness-desktop) focused on making DSH Desktop run reliably on Linux. Whether you are a regular user, a plugin author, or a developer, there is a way to contribute that fits you.
 
 > Pull requests unrelated to essential desktop functionality, and plugin-listing PRs, may not be accepted. This fork mainly accepts **Linux adaptation and fixes**.
 
@@ -10,7 +10,7 @@ Thank you for wanting to contribute to **DSH Desktop for Linux**. This repositor
 - Feature ideas and improvement suggestions are welcome as issues too.
 - Write tutorials or experience posts, or help improve and translate the documentation.
 
-> This fork has no separate community space; please discuss in this repository's issues. For upstream Windows / macOS issues, use the [upstream repository](https://github.com/anywhere-labs/dsh-desktop/issues).
+> This fork has no separate community space; please discuss in this repository's issues. For upstream Windows / macOS issues, use the [upstream repository](https://github.com/anywhere-labs/deepseek-harness-desktop/issues).
 
 ## Plugin authors: extend the ecosystem
 
@@ -41,7 +41,7 @@ corepack yarn aa:prepare-release  # Prepare official AA main; commit generated d
 corepack yarn package:dir         # output: dsh-desktop-next/dist/linux-unpacked/
 ```
 
-The `.deb` in this repository is built by hand with `ar` + `xz` (no `dpkg-deb`); see the root `README.md` and the Release for details.
+`corepack yarn dist:linux` uses the shared packaging scripts and electron-builder to generate AppImage and deb artifacts; packaging verification is not publication. Releases additionally require a signed tag, an internal deb signature, a portable archive and checksums, and verified GitHub immutable publication. Published assets cannot be overwritten. Current release and validation coverage is Linux x64.
 
 ### Repository boundaries (please read before starting)
 
@@ -54,7 +54,7 @@ The `.deb` in this repository is built by hand with `ar` + `xz` (no `dpkg-deb`);
 
 The `stable` / `next` / `beta` names in `upstream.json` describe upstream source families, not this fork's release stability. Linux Stable uses the `next` workspace; the old `stable` workspace remains for regression checks. Next and Beta now both use DSH `0.2.2-rc.1` and pi-ai `1.4.0`, so their shared implementation must mirror fully. The legacy runtime retains its own SDK and patches; do not apply cross-version global overrides.
 
-Mirror shared changes; if runtime versions diverge again, keep channel API differences behind the declared `upstream-family` boundaries. Check all three vendored channels and retain each runtime's OAuth settings mount and model-catalog patch. See the [current merge record](docs/upstream-sync-2026-11-05.md) and [catalog maintenance](docs/model-catalog-refresh.md).
+Mirror shared changes; if runtime versions diverge again, keep channel API differences behind the declared `upstream-family` boundaries. Check all three vendored channels and retain each runtime's OAuth settings mount and model-catalog patch. See the [current merge record](docs/upstream-sync-2026-11-09.md) and [catalog maintenance](docs/model-catalog-refresh.md).
 
 ### Commits and pull requests
 

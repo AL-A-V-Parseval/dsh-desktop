@@ -27,17 +27,17 @@
 >
 > 当前正式版为 [`v2.0.22-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.22-next-linux.1)。文件名前缀为 `DSH-NEXT-<version>`，便携程序为 `dsh-desktop-next`；默认数据目录为 `~/.dsh`，已选择的数据目录优先。升级前请备份数据，更新内容与验证见[发行说明](docs/release-2.0.22-next-linux.1.md)。
 
-DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的本地 Web UI、Host 服务和插件系统集成进原生桌面应用。它固定并原样运行特定上游版本，通过 DeepSeek Harness 的插件机制与上游能力组合。
+DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的官方 Web UI、Host 服务和插件系统集成进原生桌面应用。运行时固定为明确版本；桌面兼容修改通过版本限定补丁和插件组合实现，不修改上游源码子模块。
 
 本 fork **聚焦 Linux**：维护 Linux 发行与兼容修复，同时跟随上游的跨平台改进，保留本 fork 的 Stable 发布和数据兼容策略。
 
-- 上游合并快照：`a8b98656fd`；本次 Stable 版本为 `2.0.22-next-linux.1`
+- 上游合并快照：`233b76c65d`；源码版本为 `2.0.22-next-linux.1`，包含尚未发布的后续修复
 - 源码运行时：Linux Stable 工作区 `dsh-desktop-next/` 与 Beta 均使用 `0.2.2-rc.1`；旧工作区保留 `0.2.1-rc.3`。各源码 pin 见 [`upstream.json`](upstream.json)，Linux 发布边界见 [`linux-release-policy.json`](linux-release-policy.json)
-- 已发布 `linux.2` 使用 `0.2.1-rc.3`，不会因源码合并而改变已签名资产
+- 已发布 Stable `v2.0.22-next-linux.1` 使用 DSH `0.2.2-rc.1`；源码合并不替换其不可变 tag 或安装包
 - 目标平台：**Linux x64**
 - 产物：AppImage、便携包（tar.gz）与 Debian/Ubuntu 安装包（.deb），随 `SHA256SUMS` 提供校验和，`.deb` 另含 `debsigs` 内部签名
 
-## 本 fork 相对上游的改动
+## 当前功能与 Linux 适配
 
 ### 1. 新 Stable 桌面与 Linux 菜单
 
@@ -65,15 +65,15 @@ Linux 图像处理使用上游 Sharp 0.35.5 的 WASM 后端。旧的真实 Node 
 
 打包版携带与上游同源、按锁定清单校验的 Python、Node.js、pnpm 和 Office 技能，位于 `resources/runtime/<arch>/`。Office 与 `load_workspace_dependencies` 由单一 Host 组合挂载；`DSH_PRIMARY_RUNTIME` 可指定含 `runtime.json` 的 payload 目录，空字符串禁用该组合，避免新旧两套工具重复注册。
 
-### 本次源码合并的上游改进
+### 上游同步与发布范围
 
-新增独立的 Next 运行时通道、按版本选择的官方插件索引与更新流程、dshfind 来源选项、裸 `dsh-session:` 文本处理修复，以及渲染进程 OOM 的内存证据和可读 Host 退出诊断。Beta 另补齐 LiveShare、Ralph 和会话搜索的插件列表入口，不表示默认启用。这些是当前源码改进，不表示已发布 `linux.2` 安装包被更新；具体行为与验证入口见 [工作区文档](dsh-desktop-next/README.zh.md)。
+当前 Stable 与 Beta 均跟随 DSH `0.2.2-rc.1`，提供原生文件操作、图片拖拽、LiveShare 登录适配、插件操作记录和 Host/OOM 诊断。LiveShare、Ralph 与会话搜索在插件页可选启用；官方按需安装的 Computer Use 仅适用于 macOS，Linux 使用默认关闭的 Computer Use（Next）。
 
-11 月 4 日同步还带来 Linux 手动更新提示、arm64 打包支持、hicolor 图标、deb 的 GBM/ALSA 依赖、`<应用程序> dsh …` CLI、配置 BOM 兼容和 Host 失败报告等改进；官方 Computer Use 的按需安装仅适用于 Beta。已发布的本 fork `linux.2` 仍只提供 x64 安装包，不因合并源码而自动新增 arm64 资产。
+Linux 使用本 fork 的 Stable 更新提示、手动下载安装、hicolor 图标、GBM/ALSA deb 依赖，以及 `<应用程序> dsh …` CLI。源码已有 arm64 打包入口，但当前 Release 仅提供已验证的 x64 资产。本次新增的 macOS 窗口拖动修复仅进入源码，未发布新安装包；详见[最新同步记录](docs/upstream-sync-2026-11-09.md)和[工作区文档](dsh-desktop-next/README.zh.md)。
 
 ## 下载与运行
 
-从 [最新正式版](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest) 获取 Linux x64 的 **AppImage**、**便携包（tar.gz）** 或 **Debian 包**。将 `<version>` 替换为 Release 页面上的实际版本，例如 `2.0.20-next-linux.2`。
+从 [最新正式版](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest) 获取 Linux x64 的 **AppImage**、**便携包（tar.gz）** 或 **Debian 包**。将 `<version>` 替换为 Release 页面上的实际版本，例如 `2.0.22-next-linux.1`。
 
 ### AppImage（免安装）
 
@@ -106,7 +106,7 @@ sudo apt install ./DSH-NEXT-<version>-amd64.deb
 
 - Linux x64，且具备可运行 Electron 的桌面会话
 - 具备 Electron 所需的系统动态库；图像 WASM 和 Office 载荷随包携带，不要求系统安装 Node
-- 会话、设置、凭据与 Profile 默认在 `~/.dsh`；Electron 偏好在 `~/.config/DSH NEXT`，手动选择的数据目录优先
+- 会话、设置、凭据与 Profile 默认在 `~/.dsh`；Electron 浏览器状态位于所选数据目录的 `electron-user-data/`，数据目录选择记录在 `~/.config/DSH NEXT/home/`
 
 ### 校验下载完整性与来源
 
@@ -159,7 +159,7 @@ corepack yarn package:dir
 
 ## 已知限制
 
-- 仅适配 Linux。Windows / macOS 请使用[上游项目](https://github.com/anywhere-labs/dsh-desktop)。
+- 本 fork 仅发布和验证 Linux x64 安装包。Windows / macOS 请使用[上游项目](https://github.com/anywhere-labs/deepseek-harness-desktop)。
 - 发布来源与完整性由 GitHub release attestation（`gh release verify`）与 `SHA256SUMS` 共同保证，另有 GPG 签名 tag 与 `.deb` 内部签名；Linux 的托盘与原生集成等平台细节未额外打磨。
 - 版本中的 `next` 不代表本 fork 的预发布；Beta 仅用于开发验证。不要用源码构建结果覆盖同版本的不可变 Release。
 
@@ -168,23 +168,15 @@ corepack yarn package:dir
 - 用户指南：[`docs/user-guide.md`](docs/user-guide.md)
 - 常见问题：[`docs/faq.md`](docs/faq.md)
 - 文档索引：[`docs/README.md`](docs/README.md)
-- 上游项目：[anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop)
+- 上游项目：[anywhere-labs/deepseek-harness-desktop](https://github.com/anywhere-labs/deepseek-harness-desktop)
 
 ## 致谢
 
 本 fork 的全部核心能力均来自上游与以下开源项目：
 
-- [DSH Desktop](https://github.com/anywhere-labs/dsh-desktop) 与 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
+- [DSH Desktop](https://github.com/anywhere-labs/deepseek-harness-desktop) 与 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
 - [Cordis](https://github.com/cordiverse/cordis)
 - [Koishi](https://koishi.chat/)
-
-## 关于我们
-
-我们因对开源的热爱而相聚，以协作推动创新，共同将 AI 的可能性转化为触手可及的工具与体验。
-
-<p align="center">
-  <a href="https://github.com/anywhere-labs/about-us"><img src="https://img.shields.io/badge/%E8%AE%A4%E8%AF%86%E6%88%91%E4%BB%AC%E7%9A%84%E5%9B%A2%E9%98%9F-Anywhere%20Labs-4D6BFE?style=for-the-badge" alt="认识我们的团队"></a>
-</p>
 
 ## License
 

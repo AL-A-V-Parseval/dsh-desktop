@@ -14,7 +14,7 @@ This fork's Linux Stable uses `dsh-desktop-next/`. Published installers are on t
 
 | Document | Covers |
 | --- | --- |
-| [User guide](user-guide.en.md) | Installation, profiles, modes, terminal, plugins, and updates |
+| [User guide](user-guide.en.md) | Current Linux Stable installation, data/backups, Profiles, bundled CLI, plugins, updates and recovery |
 | [FAQ](faq.en.md) | Direct answers about platforms, bundled runtime, project status, data, plugins, and updates |
 | [Privacy Policy](../PRIVACY.md) | Official updates, downloads, local data, third-party services, and user choices |
 | [Why Desktop](why-desktop.en.md) | The boundary with upstream Harness and the case for plugins |
@@ -35,6 +35,8 @@ This fork's Linux Stable uses `dsh-desktop-next/`. Published installers are on t
 | [Desktop service reference](../dsh-plugin-desktop/docs/plugin-services.md) | Stable `desktopProfiles` and `desktopPnpm` contracts with TypeScript examples |
 | [Current workspace reference](../dsh-desktop-next/README.md) | New Stable build, runtime, recovery and platform limits |
 | [Model catalog maintenance](model-catalog-refresh.md) | Per-channel SDKs, catalog sources, Terra backports and reproducible verification |
+| [Current release notes](release-2.0.22-next-linux.1.md) | Published Stable features, upgrade guidance and executed validation coverage |
+| [Latest sync record](upstream-sync-2026-11-09.md) | Source-only fixes beyond published installers and validation boundaries |
 
 ## How the README files are organized
 

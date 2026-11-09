@@ -37,7 +37,7 @@ corepack yarn workspace dsh-desktop-next verify:window-controls
 corepack yarn workspace dsh-desktop-next verify:onboarding
 ```
 
-Set `DSH_NEXT_TEST_BROWSER_CHANNEL=chrome` to use an installed Google Chrome instead. Screenshots are saved under `dsh-desktop-next/.desktop-next/verification/`. Native macOS window movement still needs manual verification. Next uses the official frontend's window drag ownership, interactive-control exclusions, modal portal geometry, and Electron region-recall watcher. The conversation header and plugin page headers own their draggable boxes. The official frame places the sidebar and new-session controls beside the macOS traffic lights. Next adds no title-row drag override, fixed caption band, sidebar-control positioning, or modal/fullscreen drag override.
+Set `DSH_NEXT_TEST_BROWSER_CHANNEL=chrome` to use an installed Google Chrome instead. Screenshots are saved under `dsh-desktop-next/.desktop-next/verification/`. Native macOS window movement still needs manual verification. Next uses the official frontend's window drag ownership, interactive-control exclusions, modal portal geometry, and Electron region-recall watcher. The conversation header and plugin page headers own their draggable boxes. The official frame places the sidebar and new-session controls beside the macOS traffic lights. Next adds no title-row drag override, fixed caption band, sidebar-control positioning, or modal/fullscreen drag override. The one exception is the content of the scrollers below those rows: Chromium collects app-region boxes without clipping them, so a control scrolled beneath a row would subtract its whole box. `src/client/styles.ts` removes those boxes and the unpainted part of the collapsed Plugins head, and `verify:window-controls` checks each row with a control run on the official rules alone.
 
 ## App icon resources
 
@@ -189,17 +189,17 @@ Next contributes an application-owned profile layer at runtime; its recompositio
 
 ## Current limits
 
-Packaging entry points and the Next update client are implemented. Releases still require producing and validating platform artifacts and configuring the online Next channel. Stable/Beta data migration is not provided. Our enhanced/extended window modes remain deferred. An unpublished Next update channel is reported as unavailable; Next never installs a Stable/Beta package. Enhanced window modes remain hidden. Headless Node/Electron checks do not qualify cross-platform installers or visual behavior.
+This workspace is this fork's Linux Stable mainline. Published `v2.0.22-next-linux.1` uses DSH `0.2.2-rc.1`; later source changes do not replace its immutable assets. Linux releases are x64 AppImage, deb and portable archives. ARM64 and native Windows/macOS packages are not qualified by this fork's current release checks. Enhanced/extended window modes from the legacy shell are not current features. Linux has a bundled `<app> dsh …` CLI, not a tray terminal launcher. Headless checks do not replace native platform or visual acceptance.
 
 ## Bundled runtime payload
 
 A packaged installation carries a pinned first-party runtime payload so Office documents and workspace dependency queries need no system Python, Node.js, or pip:
 
-- **Location**: `resources/runtime/primary-runtime/` (interpreters and libraries) and `resources/runtime/office-skills/` (skill assets). The payload ships as ordinary files outside ASAR.
+- **Location**: `resources/runtime/<arch>/primary-runtime/` (interpreters and libraries) and sibling `office-skills/` (skill assets); published Linux x64 packages use `<arch>=x64`. The payload ships as ordinary files outside ASAR.
 - **Contents**: Python `3.12.14` with numpy, pandas, python-docx, python-pptx, openpyxl, Pillow, lxml, XlsxWriter and their dependencies, Node.js `24.21.0`, pnpm `11.8.0`, and the `runtime.json` manifest recording every version.
-- **Assembly**: `yarn prepare:primary-runtime` (also invoked by the packaging flow) downloads the archives locked by the pinned upstream checkout (`deepseek-harness/scripts/primary-runtime/lock.json`), verifies each SHA-256, unpacks them below `runtime/`, and then runs a native smoke on a matching host: Python imports, Office document round trips, `pip check`, and the Node and pnpm versions. Archives are cached by digest under the repository-root `.cache/primary-runtime`.
-- **Activation**: the packaged application publishes the payload directory as `DSH_BUNDLED_PRIMARY_RUNTIME`, and `cordis.patch.yml` inserts the `workspace-dependencies` and `skill-office` rows behind it. An explicit `DSH_PRIMARY_RUNTIME` points at a self-managed payload, and an empty value disables both capabilities.
-- **When absent**: development runs, an unprepared `package:dir`, or a removed payload leave both rows disabled and the rest of the application unaffected.
+- **Assembly**: `corepack yarn workspace dsh-desktop-next prepare:runtime` downloads the archives and wheels pinned by `deepseek-harness/scripts/primary-runtime/lock.json` into `.desktop-build/downloads` and assembles `.desktop-build/runtime/<arch>/`. Packaging verifies and smoke-tests supported payloads. Development `dev`/`start` entry points also prepare this tree.
+- **Activation**: the shell selects the CPU-specific payload and passes it to the Host, which mounts one Office composition. `DSH_PRIMARY_RUNTIME` can select a directory containing `runtime.json` and sibling `office-skills`; an empty string disables Office. The retired `DSH_BUNDLED_PRIMARY_RUNTIME` publisher and duplicate Loader rows are not used.
+- **When absent**: a development Host with no prepared payload leaves Office disabled. A packaged Host requires its payload and fails if it is missing, unless Office was explicitly disabled.
 
 The `load_workspace_dependencies` tool returns absolute paths for the Python interpreter, site-packages, the Node.js executable, and the pnpm entry; the `office-docx`, `office-pptx`, and `office-xlsx` skills are enabled by default. Interpreter, wheel, and Node.js license texts ship inside the file tree (`dependencies/python/`, each `*.dist-info/`, `dependencies/node/LICENSE`).
 
@@ -207,14 +207,20 @@ The `desktop-pnpm` Host row provides one package-manager capability against the 
 
 `run()` returns live stdout and stderr streams, a `done` promise that settles after the complete process tree exits, and `cancel()`. One operation may run per generation. The service uses the ordinary DSH subprocess provider, the exact packaged JavaScript entry, shell-free argv, and child-scoped DSH home, Electron-backed Node, CI, and native-module ABI values. The public runtime path still does not expose `node` or `dsh`; its private helper and the `ELECTRON_RUN_AS_NODE` and npm ABI variables exist only inside package-manager subprocess trees. The launcher does not modify the system `PATH`, shell startup files, profile configuration, or `.env` documents.
 
-Plugin authors should use the supported contract imports, lifecycle rules, and adaptation patterns in the [Desktop plugin service architecture](docs/plugin-services.md).
+Plugin authors should use the supported contract imports, lifecycle rules, and adaptation patterns in the [shared Desktop plugin service architecture](../dsh-plugin-desktop-beta/docs/plugin-services.md).
 
 ## Packaging and updates
 
-The product version is `2.0.22-next`. Run from the repository root:
+The fork's product version is `2.0.22-next-linux.1`. Run the Linux entry points from the repository root:
 
 ```sh
 corepack yarn package:dir:next
+corepack yarn dist:linux
+```
+
+The following inherited entry points require their native platforms and release credentials; they are not Linux release verification:
+
+```sh
 corepack yarn dist:mac-smoke:next
 corepack yarn dist:mac:next
 corepack yarn dist:win:next
@@ -230,7 +236,9 @@ The Host mounts upstream's Office composition: the `load_workspace_dependencies`
 
 Signed macOS releases sign the payloads before electron-builder runs, as upstream Desktop does: every Mach-O file receives a hardened-runtime, timestamped Developer ID signature with a per-file identifier, and a signature whose secure timestamp request fails is attempted up to three times; the standalone Node receives the JIT entitlement V8 needs, the x64 Node additionally `com.apple.security.cs.allow-unsigned-executable-memory` for executable code pages, including under Rosetta; Python and its extension modules receive no entitlements. `signIgnore` keeps electron-builder from re-signing the payloads with the inherited application entitlements, and the universal merge rule keeps them identical across both CPU builds. Without this pass the Python `.so` extension modules would stay unsigned, because osx-sign signs only extension-less binaries, `.dylib` and `.node` files, and notarization rejects unsigned Mach-O code. A PKCS#12 certificate supplied through `MAC_CERT_P12_BASE64` is imported into a temporary keychain for the pass; an identity in the login keychain is used as is. `verify-mac-release.ts` checks the signatures, the entitlement policy and the native payload's imports inside the mounted image.
 
-Settings and the tray expose update checks. Packaged builds check shortly after startup and every six hours; downloads start only on a user click. The tray displays bytes or a percentage, then Install and restart. Installation hides windows and stops the Host before handing off. macOS verifies Next identity, version and signing team, packages the application from the downloaded DMG into a local ZIP, and hands it to Electron's Squirrel.Mac for signature validation and replacement, without implementing our own application replacement or weakening signing. The identity and version check reads `Contents/Resources/app/package.json` in the mounted image, which archived releases keep as a copy of the archived manifest for exactly this check. Windows verifies the Next installer identity/version and hands off to NSIS for a silent update and relaunch. Development runs can check but cannot replace the source tree or development Electron runtime.
+**Linux fork updates:** settings and the tray check this repository's GitHub Stable/latest for `-linux.N` versions without sending installation UUID/current-version headers. Packaged builds check shortly after startup and every six hours. Available updates open this fork's release page; download and installation remain manual. Development runs cannot replace the source tree.
+
+**Inherited macOS/Windows flow:** downloads start only on a user click. The tray displays bytes or a percentage, then Install and restart. Installation hides windows and stops the Host before handing off. macOS verifies Next identity, version and signing team, packages the application from the downloaded DMG into a local ZIP, and hands it to Electron's Squirrel.Mac for signature validation and replacement, without implementing our own application replacement or weakening signing. The identity and version check reads `Contents/Resources/app/package.json` in the mounted image, which archived releases keep as a copy of the archived manifest for exactly this check. Windows verifies the Next installer identity/version and hands off to NSIS for a silent update and relaunch.
 
 The AA landingpage contract is `GET https://www.dshdesktop.cn/api/desktop/version`, with `X-DSH-Desktop-Channel: next` and the installed version; installation identity is sent only to this endpoint. Downloads use `/api/downloads/mac` or `/api/downloads/windows` with a pinned `X-DSH-Desktop-Target-Version`. On macOS both requests also send `X-DSH-Desktop-Arch: arm64` or `x64`, the CPU of the Mac; an Intel build that Rosetta translates sends `arm64`, so its next update is the Apple Silicon build. The service answers the header with the DMG for that CPU, or with the universal DMG while a version has none, and any digest it supplies must be that DMG's. Clients that send no CPU, as every release before per-CPU DMGs does, must be offered a version that still has a universal DMG, because the updater installs only an application whose version is the one the check announced. Storage redirects receive none of these headers. Only Next versions are accepted; SHA-256 is enforced when supplied. Failures, unpublished channels and older servers never appear as up to date. The service must deploy Next support and configure real artifacts whose embedded versions match the response (`x.y.z-next` or `x.y.z-next.N`).
 

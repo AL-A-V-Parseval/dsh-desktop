@@ -37,7 +37,7 @@ corepack yarn workspace dsh-desktop-next verify:window-controls
 corepack yarn workspace dsh-desktop-next verify:onboarding
 ```
 
-设置 `DSH_NEXT_TEST_BROWSER_CHANNEL=chrome` 可使用已安装的 Google Chrome。截图保存在 `dsh-desktop-next/.desktop-next/verification/`。macOS 原生窗口拖动仍需手工验证。Next 使用官方前端的窗口拖动区域归属、交互控件排除规则、弹窗 Portal 几何布局和 Electron 拖动区域重算监听器。会话顶栏和插件页顶栏各自持有拖动区域；官方框架把侧栏和新会话控件放在 macOS 红黄绿按钮旁。Next 不增加标题行拖动覆盖、固定标题带、侧栏控件定位或弹窗／全屏拖动覆盖。
+设置 `DSH_NEXT_TEST_BROWSER_CHANNEL=chrome` 可使用已安装的 Google Chrome。截图保存在 `dsh-desktop-next/.desktop-next/verification/`。macOS 原生窗口拖动仍需手工验证。Next 使用官方前端的窗口拖动区域归属、交互控件排除规则、弹窗 Portal 几何布局和 Electron 拖动区域重算监听器。会话顶栏和插件页顶栏各自持有拖动区域；官方框架把侧栏和新会话控件放在 macOS 红黄绿按钮旁。Next 不增加标题行拖动覆盖、固定标题带、侧栏控件定位或弹窗／全屏拖动覆盖。唯一的例外是这些行下方滚动区里的内容：Chromium 收集拖动区域时不按滚动容器裁剪，滚到行下面的控件会把自己的整个盒子从行里减掉。`src/client/styles.ts` 去掉这些盒子以及插件页顶栏收起后未绘制的部分，`verify:window-controls` 对每一行都带一组只用官方规则的对照。
 
 ## 应用图标资源
 
@@ -189,30 +189,36 @@ Next 是正式的 Profile bundle，因此上游插件管理器重新组合配置
 
 ## 当前边界
 
-打包入口和 Next 自动更新客户端已接入；发布仍需生成并验证对应平台的安装包，再配置线上 Next 渠道。不迁移 Stable/Beta 数据。我们自己的增强／扩展窗口模式继续留待后续迁移。更新服务尚未发布 Next 时会显示暂时不可用，不会安装 Stable/Beta 包。增强窗口模式仍隐藏。Node/Electron 的无图形检查不代表跨平台安装包和视觉验收完成。
+本工作区是本 fork 的 Linux Stable 主线。已发布 `v2.0.22-next-linux.1` 使用 DSH `0.2.2-rc.1`，后续源码改动不替换其不可变资产。Linux 发布 x64 AppImage、deb 和便携归档；ARM64 与 Windows/macOS 原生安装包不在本 fork 当前发行验证范围内。旧架构的增强／扩展窗口模式不是当前功能。Linux 提供 `<应用程序> dsh …` 内置 CLI，不提供托盘终端入口。无图形检查不能替代原生平台或视觉验收。
 
 ## 内置运行时载荷
 
 打包版随应用携带一份固定版本的第一方运行时载荷，让 Office 文档与工作区依赖查询不依赖系统 Python、Node.js 或 pip：
 
-- **位置**：`resources/runtime/primary-runtime/`（解释器与库）与 `resources/runtime/office-skills/`（技能资源）。载荷不在 ASAR 内，以普通文件随包分发。
+- **位置**：`resources/runtime/<arch>/primary-runtime/`（解释器与库）与相邻的 `office-skills/`（技能资源）；已发布 Linux x64 包的 `<arch>` 为 `x64`。载荷不在 ASAR 内，以普通文件随包分发。
 - **内容**：Python `3.12.14`（含 numpy、pandas、python-docx、python-pptx、openpyxl、Pillow、lxml、XlsxWriter 及其依赖）、Node.js `24.21.0`、pnpm `11.8.0`，以及记录全部版本的 `runtime.json`。
-- **组装**：`yarn prepare:primary-runtime`（打包流程会自动调用）按上游 pin 的 `deepseek-harness/scripts/primary-runtime/lock.json` 下载归档并逐个校验 SHA-256，解包到 `runtime/`，再在本机目标上执行原生冒烟：Python 导入、Office 文档读写往返、`pip check`、Node 与 pnpm 版本。归档按摘要缓存到仓库根 `.cache/primary-runtime`。
-- **启用条件**：打包版启动时把载荷目录发布为 `DSH_BUNDLED_PRIMARY_RUNTIME`，`cordis.patch.yml` 据此插入 `workspace-dependencies` 与 `skill-office` 两行。显式设置 `DSH_PRIMARY_RUNTIME` 可指向自备载荷，设为空字符串则完全关闭这两项能力。
-- **缺失时的行为**：开发运行、未准备载荷的 `package:dir` 或手动删除载荷后，两行保持禁用，应用其余功能不受影响。
+- **组装**：`corepack yarn workspace dsh-desktop-next prepare:runtime` 把上游 `deepseek-harness/scripts/primary-runtime/lock.json` 锁定的归档与 wheel 下载到 `.desktop-build/downloads`，并在 `.desktop-build/runtime/<arch>/` 组装。打包流程校验载荷，并对可运行的目标执行冒烟。开发 `dev`／`start` 入口也会准备这棵目录树。
+- **启用条件**：壳按 CPU 选择载荷并传给 Host，由 Host 挂载单一 Office 组合。`DSH_PRIMARY_RUNTIME` 可选择含 `runtime.json` 且相邻有 `office-skills` 的目录；空字符串禁用 Office。已退役的 `DSH_BUNDLED_PRIMARY_RUNTIME` 发布变量和重复 Loader 条目不再使用。
+- **缺失时的行为**：未准备载荷的开发 Host 不启用 Office；打包 Host 要求载荷存在，缺失时失败，除非显式禁用了 Office。
 
 `load_workspace_dependencies` 工具返回 Python 解释器、site-packages、Node 可执行文件与 pnpm 入口的绝对路径；`office-docx`、`office-pptx`、`office-xlsx` 三个技能默认启用。载荷自带的解释器、wheel 与 Node.js 许可证文本随文件树分发（`dependencies/python/`、各 `*.dist-info/`、`dependencies/node/LICENSE`）。
 
 `run()` 会返回实时 stdout 与 stderr stream、在完整 process tree 退出后才 settle 的 `done` promise，以及 `cancel()`。每个 generation 同时最多运行一个 operation。Service 使用普通 DSH subprocess provider、准确的已打包 JavaScript entry、无 shell argv，以及只属于 child 的 DSH home、Electron-backed Node、CI 与 native-module ABI 值。公开 runtime path 仍不会暴露 `node` 或 `dsh`；其中私有 helper、`ELECTRON_RUN_AS_NODE` 与 npm ABI 变量只存在于 package-manager subprocess tree 内。Launcher 不会修改系统 `PATH`、shell 启动文件、profile 配置或 `.env` 文档。
 
-插件作者应遵循 [Desktop 插件 service 架构](docs/plugin-services.zh.md)中记录的受支持 contract import、生命周期规则与适配模式。
+插件作者应遵循[共享 Desktop 插件 service 架构](../dsh-plugin-desktop-beta/docs/plugin-services.zh.md)中记录的受支持 contract import、生命周期规则与适配模式。
 
 ## 打包与更新
 
-产品版本为 `2.0.22-next`。在仓库根目录运行：
+本 fork 产品版本为 `2.0.22-next-linux.1`。在仓库根目录运行 Linux 入口：
 
 ```sh
 corepack yarn package:dir:next
+corepack yarn dist:linux
+```
+
+下列继承自上游的入口需要对应原生平台与发布凭据，不构成 Linux 发行验证：
+
+```sh
 corepack yarn dist:mac-smoke:next
 corepack yarn dist:mac:next
 corepack yarn dist:win:next
@@ -228,7 +234,9 @@ Host 挂载上游的 Office 组合：`load_workspace_dependencies` 工具首次�
 
 签名的 macOS 发布版在运行 electron-builder 之前先给载荷签名，与上游桌面端一致：每个 Mach-O 文件都获得带 hardened runtime、时间戳和逐文件标识符的 Developer ID 签名，安全时间戳请求失败的签名最多尝试三次；独立 Node 获得 V8 所需的 JIT 权限，x64 的 Node 额外获得 `com.apple.security.cs.allow-unsigned-executable-memory` 以便使用可执行代码页，包括在 Rosetta 下运行时；Python 及其扩展模块不带任何权限。`signIgnore` 阻止 electron-builder 用继承的应用权限重新签名载荷，universal 合并规则则让它们在两个 CPU 构建之间保持一致。没有这一步，Python 的 `.so` 扩展模块会保持未签名，因为 osx-sign 只签无扩展名的二进制、`.dylib` 和 `.node` 文件，而公证会拒绝未签名的 Mach-O 代码。通过 `MAC_CERT_P12_BASE64` 提供的 PKCS#12 证书会在这一步导入临时钥匙串；登录钥匙串中的身份直接使用。`verify-mac-release.ts` 在挂载的镜像中检查签名、权限策略和本机载荷的导入。
 
-桌面设置和托盘均可检查更新。安装版启动后延迟检查，之后每 6 小时检查一次；只有用户点击下载才下载。托盘显示字节数或百分比，完成后点击“安装并重启”。安装前先隐藏窗口并停止 Host。macOS 校验 Next 身份、版本和签名团队，将已下载 DMG 中的应用封装为本地 ZIP，交给 Electron 的 Squirrel.Mac 原生更新器验证和替换；不会改写应用目录或降低签名要求。身份和版本校验读取挂载镜像中的 `Contents/Resources/app/package.json`，归档后的发布版正是为这一步保留了归档内清单的副本。Windows 校验 Next 安装器身份和版本，交接给 NSIS 静默更新并重新启动。开发运行只允许检查，不替换源码或 Electron 开发运行时。
+**Linux fork 更新：** 桌面设置和托盘为 `-linux.N` 版本查询本仓库 GitHub Stable/latest，不发送安装 UUID 或当前版本请求头。安装版启动后延迟检查，之后每 6 小时检查。发现更新后打开本 fork 发布页，下载和安装仍由用户手动完成。开发运行不能替换源码目录。
+
+**继承的 macOS/Windows 流程：** 只有用户点击下载才下载。托盘显示字节数或百分比，完成后点击“安装并重启”。安装前先隐藏窗口并停止 Host。macOS 校验 Next 身份、版本和签名团队，将已下载 DMG 中的应用封装为本地 ZIP，交给 Electron 的 Squirrel.Mac 原生更新器验证和替换；不会改写应用目录或降低签名要求。身份和版本校验读取挂载镜像中的 `Contents/Resources/app/package.json`，归档后的发布版正是为这一步保留了归档内清单的副本。Windows 校验 Next 安装器身份和版本，交接给 NSIS 静默更新并重新启动。
 
 服务契约沿用 AA landingpage：`GET https://www.dshdesktop.cn/api/desktop/version`，请求头 `X-DSH-Desktop-Channel: next` 和当前版本；安装标识只发给版本接口。下载使用 `/api/downloads/mac` 或 `/api/downloads/windows`，固定 `X-DSH-Desktop-Target-Version`。在 macOS 上，这两个请求还会携带 `X-DSH-Desktop-Arch: arm64` 或 `x64`，即这台 Mac 的 CPU；经 Rosetta 转译运行的 Intel 版发送 `arm64`，因此下一次更新换成 Apple Silicon 版。服务据此返回该 CPU 的 DMG，某版本没有该 CPU 的 DMG 时返回 universal DMG，提供的摘要也必须属于这个 DMG。不发送 CPU 的客户端（按 CPU 分包之前的版本都是这样）必须拿到一个仍有 universal DMG 的版本，因为更新器只安装版本与检查结果一致的应用。跨存储重定向不携带这些请求头。仅接受 Next 版本，服务提供 SHA-256 时强制校验；错误、空渠道和旧版服务均不会显示“已是最新版本”。服务端必须部署 Next 通道支持并配置真实产物，且版本与包内版本一致（支持 `x.y.z-next` 和 `x.y.z-next.N`）。
 

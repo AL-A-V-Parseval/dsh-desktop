@@ -1,6 +1,6 @@
 # 参与贡献
 
-感谢你愿意为 **DSH Desktop for Linux** 做出贡献。本仓库是 [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop) 的社区 fork，聚焦让 DSH Desktop 在 Linux 上稳定可用；无论你是普通用户、插件作者还是开发者，都有适合你的贡献方式。
+感谢你愿意为 **DSH Desktop for Linux** 做出贡献。本仓库是 [anywhere-labs/deepseek-harness-desktop](https://github.com/anywhere-labs/deepseek-harness-desktop) 的社区 fork，聚焦让 DSH Desktop 在 Linux 上稳定可用；无论你是普通用户、插件作者还是开发者，都有适合你的贡献方式。
 
 > 与上游桌面版必要功能无关的 PR、以及其他插件收录相关的 PR，可能不会被接受。本仓库主要接受 **Linux 适配与修复** 相关的改动。
 
@@ -10,7 +10,7 @@
 - 有功能想法或改进建议，也欢迎提 issue 讨论。
 - 写使用教程、体验文章，或帮助完善和翻译文档。
 
-> 本 fork 不设独立社群，讨论请在本仓库 issue 进行；上游 Windows / macOS 相关问题请到[上游仓库](https://github.com/anywhere-labs/dsh-desktop/issues)。
+> 本 fork 不设独立社群，讨论请在本仓库 issue 进行；上游 Windows / macOS 相关问题请到[上游仓库](https://github.com/anywhere-labs/deepseek-harness-desktop/issues)。
 
 ## 插件作者：扩展生态
 
@@ -41,7 +41,7 @@ corepack yarn aa:prepare-release  # 准备最新官方 AA main；提交生成的
 corepack yarn package:dir         # 产物：dsh-desktop-next/dist/linux-unpacked/
 ```
 
-本仓库的 `.deb` 使用 `ar` + `xz` 手工打包（不依赖 `dpkg-deb`），脚本与产物说明见根目录 `README.md` 与 Release。
+Linux AppImage 和 deb 由 `corepack yarn dist:linux` 经共享打包脚本调用 electron-builder 生成，打包校验不等于发布。正式发布还需签名 tag、为 deb 添加内部签名、生成便携归档与校验和，并验证 GitHub 不可变 Release；已发布资产不可覆盖。当前发布与验证范围为 Linux x64。
 
 ### 仓库边界（开始前务必了解）
 
@@ -54,7 +54,7 @@ corepack yarn package:dir         # 产物：dsh-desktop-next/dist/linux-unpacke
 
 `upstream.json` 的 `stable` / `next` / `beta` 是上游源码家族名，不等于本 fork 的发布稳定性：Linux Stable 使用 `next` 工作区，旧 `stable` 工作区仅保留回归。当前 Next 与 Beta 均使用 DSH `0.2.2-rc.1` 和 pi-ai `1.4.0`，共享实现应完整镜像；旧运行时仍保留自己的 SDK 和补丁，不使用跨版本全局覆盖。
 
-共享改动通过镜像脚本同步；以后运行时再次分叉时，频道 API 差异仍应放在声明的 `upstream-family` 边界。检查三个 vendored channel，保留各自 OAuth 设置挂载和模型目录补丁。当前合并记录见 [`docs/upstream-sync-2026-11-05.md`](docs/upstream-sync-2026-11-05.md)，目录维护见 [`docs/model-catalog-refresh.md`](docs/model-catalog-refresh.md)。
+共享改动通过镜像脚本同步；以后运行时再次分叉时，频道 API 差异仍应放在声明的 `upstream-family` 边界。检查三个 vendored channel，保留各自 OAuth 设置挂载和模型目录补丁。当前合并记录见 [`docs/upstream-sync-2026-11-09.md`](docs/upstream-sync-2026-11-09.md)，目录维护见 [`docs/model-catalog-refresh.md`](docs/model-catalog-refresh.md)。
 
 ### 提交与 PR
 

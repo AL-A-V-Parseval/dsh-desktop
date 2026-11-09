@@ -2,10 +2,13 @@
 
 `pi-model-catalog.json` records the public npm catalog snapshot bundled with Desktop.
 The catalog refresh changes only `dist/providers/data/*.json` (including its manifest)
-inside `patches/pi-ai@<version>.patch`. Next follows pi-ai 1.1.0 and Beta follows
-1.4.0; Beta's receipt is `pi-model-catalog-1.4.0.json`. Protocol/OAuth code stays on
-each channel's pinned runtime, with the streaming JSON compatibility fix retained
-for both. Do not force either SDK version globally across the two channels.
+inside `patches/pi-ai@<version>.patch`. Linux Stable (Next) and Beta now both run
+DSH `0.2.2-rc.1` with pi-ai `1.4.0`; their catalog receipt is
+`pi-model-catalog-1.4.0.json`. `pi-model-catalog.json` and the pi-ai `1.1.0` patch
+retain the earlier Next catalog history, not the current runtime selection.
+Protocol/OAuth code stays on each runtime's pinned SDK, including its streaming
+JSON compatibility fix. Preserve the retained legacy family's separate dependency
+graph rather than introducing one global SDK override.
 
 To reproduce the committed refresh, download the base runtime tarball and the
 versioned catalog metadata/tarball from npm, then run:

@@ -6,7 +6,7 @@
 
 ## DSH Desktop 是什么？
 
-本 fork 是面向 Linux x64 的开源 DeepSeek Harness 桌面客户端。它将官方 Web UI、Host 与插件系统装进原生应用，提供系统托盘、桌面设置、终端、Profile 和恢复功能。上游另有 Windows/macOS 产品。
+本 fork 是面向 Linux x64 的开源 DeepSeek Harness 桌面客户端。它将官方 Web UI、Host 与插件系统装进原生应用，提供系统托盘、桌面设置、内置 CLI、Profile 和恢复功能。当前正式版为 `v2.0.22-next-linux.1`，使用 DSH `0.2.2-rc.1`；上游另有 Windows/macOS 产品。
 
 ## 这是 DeepSeek 官方产品吗？
 
@@ -34,15 +34,15 @@ Desktop Host、profile 和 DSH home 位于本机。是否向外部服务发送�
 
 ## 可以安装 DSH 插件吗？
 
-可以。优先使用官方插件页面与市场的安装、开关、卸载和更新流程；操作由官方插件管理器处理，是否需要重载以页面提示为准。托盘终端仍可运行 `dsh plugin add`、`dsh plugin remove`、`dsh plugin update`，默认作用于当前 Profile；不要同时使用多个进程修改同一 Profile。
+可以。优先使用官方插件页面与市场的安装、开关、卸载和更新流程；操作由官方插件管理器处理，是否需要重载以页面提示为准。Linux 没有托盘终端，可从系统终端运行 `dsh-desktop-next dsh plugin --profile <名称> add <插件>` 等内置 CLI 命令；不要同时使用多个进程修改同一 Profile。
 
 ## Desktop profile 和已有 web profile 会自动同步吗？
 
-不会自动复制插件。每个 profile 都有自己的 bundle 和依赖组合；切换 profile 后，终端中的默认插件命令会作用于当前 profile，也可以使用 `--profile <name>` 显式指定目标。
+不会自动复制插件。每个 Profile 都有自己的 bundle 和依赖组合；CLI 操作时使用 `--profile <name>` 显式指定目标。切换 Profile 不隔离同一数据根内的会话、设置与凭据。
 
 ## 应用如何更新？
 
-从本 fork 的 Stable/latest Release 下载适合当前安装方式的包，校验来源后备份数据再替换，不要覆盖正在运行的程序目录。AppImage/便携包替换文件，Debian/Ubuntu 用 `apt install ./<文件>.deb`。旧架构已停止发版；切换至新 Stable 前请阅读根 README 的数据目录说明。此处不承诺 Linux 与上游 macOS/Windows 安装器具有相同自动更新流程。
+Linux 的 `-linux.N` 版本从本仓库 GitHub Stable/latest 检查更新，不发送安装 UUID；应用不会自动下载或安装。从发布页下载适合当前安装方式的包，校验后备份数据、退出应用再替换，不要覆盖正在运行的程序目录。AppImage/便携包替换文件，Debian/Ubuntu 用 `sudo apt install ./<文件>.deb`。旧架构已停止发版，源码合并不改变已发布的不可变资产。
 
 ## GPT-6.1 Terra 在哪里？
 

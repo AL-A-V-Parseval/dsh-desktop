@@ -1,120 +1,74 @@
 # DSH Desktop 用户指南
 
-## Linux Stable 快速入口
+[English](user-guide.en.md)
 
-本 fork 当前使用 `dsh-desktop-next` 新架构作为 Stable；`next` 是兼容名称，不表示预发布。请从[本 fork Release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest)获取 Linux x64 AppImage、tar.gz 或 deb。文件名、启动和验签命令见[根 README](../README.md)。图像使用随包 Sharp WASM，无需系统 Node 或旧桥接变量。
+本指南适用于本 fork 的 Linux Stable，当前已发布版为 `v2.0.22-next-linux.1`，内核为 DSH `0.2.2-rc.1`。`dsh-desktop-next`、`DSH NEXT` 和版本中的 `next` 都是兼容标识，不表示预发布。源码可能包含尚未进入安装包的修复。
 
-- 默认数据为 `~/.dsh`，手动选择的数据目录优先；Electron 偏好为 `~/.config/DSH NEXT`。升级前备份，避免多个安装同时访问同一数据目录。
-- 在官方设置中打开“桌面设置”；托盘提供 Profile、恢复与诊断工具。Profile 共享所属 home 的会话、设置与凭据，不是账号隔离容器。
-- 插件页管理市场、AA 远控与 Computer Use；远控和电脑操作默认关闭。安装、更新与卸载经官方插件管理器处理。
-- OpenAI 与 OpenAI Codex OAuth 目录包含 `gpt-6.1-terra`，账号权限仍以服务商为准；不自动改写自定义模型列表。
-- 浏览器访问默认关闭，局域网 HTTPS 入口单独授权；只分享给可信设备，不把访问 token 放进问题报告。
-- 需要排障时先使用恢复助手、导出并检查诊断；当前源码还提供 OOM 内存证据与 Host 退出诊断，这不表示旧发布安装包已获得该功能。
+## 安装与启动
 
-新架构的完整操作说明以 [`dsh-desktop-next/README.zh.md`](../dsh-desktop-next/README.zh.md) 和[当前 FAQ](faq.md)为准。
+从[本 fork 最新 Release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest)获取 Linux x64 AppImage、便携 tar.gz 或 deb。下载验证、安装和启动命令见[根 README](../README.md#下载与运行)。包内已有 Electron、DSH、Python/Node.js/pnpm 和 Office 资源，无需另装系统 Node 或设置旧 Sharp 桥接变量。
 
-## 以下为旧架构历史参考
+安装版不会在启动时自动更新插件代码。云端模型、插件安装、AA 连接和更新检查仍可能联网。Linux ARM64 源码入口不代表已提供对应的正式包。
 
-下文保留用于理解旧版本与上游平台差异，其中三种窗口模式、旧启动命令、网络与更新流程不适用于当前 Linux Stable；不应据此重配新架构。
+## 数据与备份
 
-## 安装与首次启动
+- 默认数据目录为 `~/.dsh`。应用内选择优先，其次是启动前设置的 `DSH_DESKTOP_NEXT_HOME`，最后使用默认值；旧 `DSH_HOME` 不用于选择桌面数据目录。
+- 数据目录选择记录位于 `~/.config/DSH NEXT/home/`，浏览器状态位于所选数据目录的 `electron-user-data/`。不要把数据目录设在应用安装目录里。
+- 升级前从桌面设置备份数据，正常退出应用，再替换安装包。不要让多个安装或 CLI 同时修改同一 Profile。
+- Profile 分开保存插件依赖、激活列表和补丁；同一个数据目录里的会话、设置与凭据仍共享，Profile 不是账号隔离容器。
 
-从产品下载入口获取 macOS 或 Windows 安装包；Linux 的 deb、AppImage 和 tar.gz 在 [GitHub Release](https://github.com/anywhere-labs/dsh-desktop/releases/latest) 下载，选择与安装方法见 [README 的 Linux 安装](../README.md#linux)。安装后的 DSH Desktop 自带运行所需的 Electron、Node 和 DSH 依赖，普通用户不需要另行安装 Node.js 或 pnpm。
+## 窗口、设置与 Profile
 
-首次启动时，应用会准备默认 profile，并在本机启动官方 DSH Web surface。关闭窗口通常只会隐藏窗口；可以从托盘重新打开，选择 **退出** 才会结束应用和 Host 进程。
+官方主界面内的 **设置 → 桌面设置** 提供后台运行、数据目录、访问权限、日志和桌面工具。Linux 原生菜单栏默认隐藏，键盘快捷键保留；旧架构的兼容／扩展／增强三模式不适用于本版。
 
-## 用文件夹启动
+开启后台运行且托盘可用时，关闭主窗口不代表退出；从托盘选择退出才停止 Host。托盘不可用时，关闭主窗口会退出应用。
 
-除了在界面里选择目录，还可以在启动时直接指定一个文件夹。该文件夹会被注册为工作区并自动打开；如果它已经是工作区，则直接打开，不会重复创建。
+托盘可新建和切换 Profile，也可打开恢复与诊断工具。切换 Profile 会完整重启应用并中断当前任务；更改端口会重启 Host。浏览器访问开关即时生效。
 
-- **Windows 拖放**：把文件夹拖到桌面快捷方式或开始菜单里的 **DSH Desktop** 图标上。应用没运行时会先启动，已经在运行时会抬到前台并打开这个工作区。
-- **命令行**：稳定版运行 `dsh-desktop <文件夹>`，Beta 运行 `dsh-desktop-beta <文件夹>`。相对路径按当前目录解析。安装后的 EXE 同样接受一个文件夹参数。
+## 模型和插件
 
-路径不存在、指向的是文件，或者位于 exFAT、FAT32、网络盘等不受支持的存储上时，应用会弹出原生提示并且不注册该工作区。用文件夹启动是一次性的：之后由设置触发的重启不会再次打开它。
+服务商登录、自定义模型和凭据保持原有配置。OpenAI API 与 OpenAI Codex OAuth 目录包含 `gpt-6.1-terra`；是否能调用由账号权限决定，目录更新不会覆盖显式自定义模型列表。
 
-已知限制：Windows 任务栏上固定的图标暂不接受拖放（需要注册文件夹关联，后续版本处理）；Linux 只支持命令行；macOS 暂不支持这两种方式。
+优先在官方**插件**页安装、更新、启停和卸载插件，按页面提示重载。市场、AA 远控和 Computer Use 在列表顶部有各自入口；远控和电脑操作默认关闭。选择一个市场会停用另一个，但不删除已安装的插件。
 
-## Profile
+LiveShare、Ralph、会话搜索和 OAR 子智能体是可选功能。OAR 使用本机已安装并登录的 Codex/Claude Code CLI，权限按其插件设置生效；不是所有可选工具都随包附带外部 CLI。
 
-Profile 是一组 DSH bundle、依赖和 patch 的组合。托盘中的 **Profile** 菜单会列出现有 profile，以及可按需创建的 `desktop` 和 `web` 默认 profile。
+升级 DSH 内核后，为其他版本安装的官方 Codex/Claude Code 子智能体或官方 Computer Use 可能被移除并重新显示为未安装；在插件页重新开启即可安装匹配版本，不需要删除会话。官方按需 Computer Use 仅适用于 macOS；Linux 使用 Computer Use（Next）。
 
-选择 profile 后应用会有序重启。新 profile 在 Host、窗口和浏览器客户端都成功启动后才会被记录为最近一次可用 profile；启动失败会回到上一次可用选择。官方 profile 默认使用同一个 DSH home，所以 sessions、settings 和 storage 通常不需要迁移。自定义配置（patch）如果主动改写持久化路径，则以该 profile 自己的设置为准。
+## Linux 命令行
 
-切换 profile 不会把旧 profile 的插件偷偷复制到新 profile。要管理目标 profile，请在终端中显式写出 profile，或者在切换后使用终端里的默认命令。
-
-## 窗口模式与材质
-
-- **兼容模式**：保持 profile 的官方 layout/sidebar/conversation 组合完整，并把它放在独立的 36 像素 Desktop frame 下方。frame 可以拖动，图标操作仍可点击，官方 dialog 只会占用与 frame 无关的下方内容 viewport。
-- **扩展窗口**：安装 Desktop 自有 layout 与 sidebar surface，并在其中承载官方 sidebar、conversation 和 details occupant。36 像素顶部 frame 与左侧 sidebar surface 组成一个带圆角内拐角的倒 L 材质区域。
-- **增强模式**：保留独立 root registration 与紧凑内部 caption；macOS 使用 20 像素内容 inset 和 32 像素拖动区域，Windows 与 Linux 使用 32 像素 caption row，不复用扩展窗口的独立 frame。
-
-macOS 自定义窗口模式可以打开或关闭透明材质。Windows 不提供材质选项，始终使用不透明窗口。旧版 Windows 亚克力和 Mica 偏好都会安全地按关闭处理，其中亚克力还会在设置文件可写时自动迁移。切换模式或材质都会重启应用，不会在正在运行的 renderer 中热替换 root slot 或窗口材质。Linux 提供兼容、扩展与增强三种模式；扩展与增强模式通过 Window Controls Overlay 保留原生最小化/最大化/关闭按钮，内容会为命令栏让出顶部空间，避免与这些按钮重叠。
-
-## 本地 Web 端口
-
-Desktop 默认让系统随机分配本地 Web 端口（`dsh-desktop.port: 0`），可避免与其他服务发生端口冲突。依赖浏览器 `localStorage` 的界面插件按 origin 隔离数据；如果这类插件需要在 Desktop 重启后继续读取设置，请在设置中指定一个固定端口：
-
-```yaml
-dsh-desktop:
-  port: 43189
-```
-
-端口必须是 `0` 到 `65535` 之间的整数。修改后应用会有序重启。服务默认只监听 `127.0.0.1`；只有在“桌面设置”中确认危险提示并明确允许局域网访问后，才会改为监听所有网络接口。固定端口如果已被其他程序占用，Desktop 将无法启动；此时需要释放该端口，或把设置改回 `0` 或另一个空闲端口。
-
-## 插件管理
-
-插件是给 DSH 添加能力的扩展包，例如模型、工具、界面和工作流。DSH Desktop 使用的就是官方 Harness 的插件体系，官方插件可以直接安装使用；多个插件遵循统一的约定，可以一起安装、一起工作。
-
-普通 DSH 插件仍使用官方 CLI 语义：
+Linux 当前没有托盘“打开终端”功能。在系统终端中通过应用程序的 `dsh` 子命令使用内置 CLI，例如便携版：
 
 ```sh
-dsh plugin --profile desktop add <plugin>
-dsh plugin --profile desktop remove <plugin>
-dsh plugin --profile desktop update
+./dsh-desktop-next dsh --version
+./dsh-desktop-next dsh plugin --profile desktop add <plugin>
+./dsh-desktop-next dsh plugin --profile desktop remove <plugin>
 ```
 
-在 DSH Desktop 托盘打开的终端中，裸 `dsh` 和不带 `--profile` 的 plugin 命令默认使用当前激活 profile：
+deb 安装后可将 `./dsh-desktop-next` 换成 `dsh-desktop-next`；AppImage 使用对应文件路径。显式指定目标 Profile，执行前停止会修改同一 Profile 的其他操作。此入口不会打开桌面窗口，不要求系统全局安装 `dsh` 或修改 shell 配置。
 
-```sh
-dsh plugin add <plugin>
-dsh plugin remove <plugin>
-dsh plugin update
-```
+## 浏览器访问与远控
 
-显式 `--profile <name>` 始终优先。插件变更后需要重启 DSH Desktop，才能让新的 bundle 进入 Loader 组合。
+浏览器访问默认关闭。本机访问启用后提供认证链接；局域网访问单独启用 HTTPS/WSS 入口，Host 仍绑定 `127.0.0.1`。请只向可信设备提供登录链接，并核对局域网 CA 指纹；访问 token 不应进入截图或问题报告。
 
-## 打开终端
-
-可以从托盘、Desktop 设置或 Desktop frame 选择 **Open DSH Terminal**；设置中的旁边提供重启下拉菜单，可以普通重启或 **重启到恢复模式**，两种操作都必须确认。macOS 会打开 Terminal，Windows 会优先使用 Windows Terminal，找不到时回退到 PowerShell 或命令提示符。
-
-欢迎信息会显示：应用版本、当前 profile、profile 目录和 DSH home。Desktop 会在自己的 user-data 目录生成 `dsh`、`pnpm` 和 `node` 私有 shim，只对这个终端进程设置 PATH，不会修改系统 PATH 或用户 shell 配置。
+AA 远控通过插件页独立开启，不等于开放普通浏览器访问。切换 Profile、退出或重启应用都会停止原 Host 及其连接。电脑操作授权也不因开启远控而自动获得。
 
 ## 更新
 
-打包后的 macOS/Windows 应用会在后台检查 `https://www.dshdesktop.cn/api/desktop/version`。后台检查不阻塞启动；网络错误、非 200、非法版本或服务端版本不新时保持静默。发现新版本时，应用会更新托盘并且每个版本只发送一次非阻塞系统通知，不会自动弹出下载确认；点击通知会显示 Desktop。
+Linux 的 `-linux.N` 版本查询本仓库 GitHub Stable/latest Release，不查询上游 Next 更新服务，不发送安装 UUID。托盘和桌面设置可检查更新；发现新版本后前往发布页，校验下载，再手动替换 AppImage/便携包或执行 `sudo apt install ./<文件名>.deb`。
 
-托盘中的 **Check for Updates…** 是当前发行通道的手动检查：稳定版只接收稳定更新，Beta 只接收 Beta 更新。即使已经是当前版本，也会显示结果；检查失败会提示稍后重试。Beta 还提供 **安装稳定版…**，它会在保留 Beta 的同时安装稳定版。用户取消不会访问计数下载入口。
+自动检查不会自动下载或安装，也不会原地修改已经发布的同版本资产。旧架构不再发布新版本。
 
-确认下载后，应用会先打开原生的“保存更新安装包”对话框，默认建议保存到 Downloads；你可以改用其他目录和文件名，取消对话框则不会开始下载。保存后应用才会请求当前平台的固定下载地址，并记录安装包位置。macOS 会打开 DMG，由用户把应用替换到 Applications；Windows 会准备 NSIS 安装器，再询问是否退出并启动安装。升级完成并重新启动后，应用会询问是否删除安装包以释放磁盘空间，也可以选择保留。下载和安装失败不会破坏当前版本，托盘仍可重试。
+## 排障与恢复
 
-打包后的 Linux 应用同样在后台检查新版本，每个版本只通知一次，但不会在应用内下载或安装。托盘里的新版本菜单项、设置中的 **前往下载** 和点击通知后的提示都会打开该版本的 GitHub 发布页，请下载与当前安装方式相同的安装包手动更新：deb 用 `sudo apt install ./<文件名>.deb` 覆盖安装，AppImage 用新文件替换旧文件。Linux 的版本检查不发送安装 UUID。
+先从托盘或桌面设置导出诊断。当前诊断是有大小限制的 JSON，包含版本、运行状态、日志及近期证据，不是旧版 ZIP；不主动遍历会话和凭据文件。日志仍可能含本机路径与插件输出，公开分享前应检查。
 
-## 排查
+恢复助手可以在没有正常 Host 时显示失败原因，提供重试、切换 Profile、安全模式、修复、回滚和诊断：
 
-Desktop 的确认、警告与操作结果会打开独立、基于 shadcn 的桌面级模态窗口，而不是侵入官方页面的 overlay。恢复窗口会先展示进入原因，再提供 **插件管理**、**回滚**、**切换配置** 与 **诊断** 四个 Tab；它与新增 Profile 窗口顶部的 utility frame 都不会重复显示标题。
+- **安全模式**使用临时数据，不加载原有凭据；退出后回到原 Profile，临时内容不保留。
+- **修复 Profile**先备份配置，再停用额外插件并重置补丁选择；不会删除共享会话或凭据，但之后需重新配置插件。
+- **回滚 Profile**恢复最近健康启动的配置，不等于回滚所有插件版本或共享数据。备份在数据目录的 `recovery/` 中。
 
-- **应用能够进入托盘**：右键托盘图标，选择 **导出诊断信息…**。确认隐私提示后，Desktop 会生成 `diagnostics-*.zip` 并在文件管理器中显示它。
-- **应用持续闪退，无法进入托盘**：在 PowerShell 中直接运行安装后的程序并加上恢复参数。默认安装位置的命令如下；如果安装时修改过目录，请替换为实际的 EXE 路径。
+Host 失败报告、插件操作记录和 OOM 内存快照可帮助定位问题；一次内存大占用不证明发生泄漏。请勿上传未经检查的完整数据目录、凭据或访问链接。
 
-  ```powershell
-  & "$env:LOCALAPPDATA\Programs\DSH Desktop\DSH Desktop.exe" --export-diagnostics
-  ```
-
-  通过 npm 安装时，稳定版可运行 `dsh-desktop --export-diagnostics`，Beta 可运行 `dsh-desktop-beta --export-diagnostics`。这个命令不会启动 Host、profile、插件或窗口；完成后会在终端输出诊断 ZIP 的绝对路径。
-- **诊断包内容**：包含最近的应用日志、本地 Crashpad `.dmp`、当前运行标记和 `system-info.txt`。系统信息会记录 Desktop、Electron、Node、平台和架构版本。日志会对可识别的认证凭据脱敏，但本地路径、工作区 ID、会话 ID 和崩溃时的内存片段仍可能存在。公开上传前必须检查；不适合公开的 dump 应通过可信渠道提供。
-- **窗口消失了**：先检查系统托盘，关闭窗口不是退出。
-- **插件没有出现**：确认命令作用于目标 profile，并重启应用。
-- **终端命令找不到**：从托盘重新打开 Desktop 终端；系统 shell 的全局 PATH 不会被 Desktop 修改。
-- **更新没有提示**：后台错误会静默；使用托盘手动检查查看结果。
-
-更底层的生命周期、打包和平台限制属于开发者文档，见[文档索引](README.md)。
+完整功能与技术边界见[工作区参考](../dsh-desktop-next/README.zh.md)、[FAQ](faq.md)和[文档索引](README.md)。旧架构设计见[历史架构说明](architecture.md)，不要据此修改当前 Stable 配置。

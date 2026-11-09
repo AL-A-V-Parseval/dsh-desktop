@@ -6,7 +6,7 @@ This page covers this Linux fork's Stable mainline. Consult [this fork's latest 
 
 ## What is DSH Desktop?
 
-This fork is an open-source DeepSeek Harness desktop client for Linux x64. It hosts the official Web UI, Host and plugin system with a tray, Desktop settings, terminal, Profiles and recovery. Upstream separately ships Windows/macOS products.
+This fork is an open-source DeepSeek Harness desktop client for Linux x64. It hosts the official Web UI, Host and plugin system with a tray, Desktop settings, a bundled CLI, Profiles and recovery. Current Stable is `v2.0.22-next-linux.1`, using DSH `0.2.2-rc.1`; upstream separately ships Windows/macOS products.
 
 ## Is this an official DeepSeek product?
 
@@ -34,15 +34,15 @@ The Desktop Host, profiles, and DSH home live on the local machine. Whether cont
 
 ## Can I install DSH plugins?
 
-Yes. Prefer the official Plugins page and market installation, toggling, removal and update flows; the official plugin manager owns these operations. Follow any reload prompt shown by the UI. Tray terminals still support `dsh plugin add`, `dsh plugin remove` and `dsh plugin update`, targeting the active Profile by default. Avoid concurrent processes modifying one Profile.
+Yes. Prefer the official Plugins page and market installation, toggling, removal and update flows; the official plugin manager owns these operations. Follow any reload prompt shown by the UI. Linux has no tray terminal; run bundled CLI commands such as `dsh-desktop-next dsh plugin --profile <name> add <plugin>` from a system terminal. Avoid concurrent processes modifying one Profile.
 
 ## Does the Desktop profile automatically sync with an existing web profile?
 
-No plugins are copied automatically. Each profile has its own bundle and dependency composition. After switching profiles, default plugin commands target the active profile; `--profile <name>` can always select one explicitly.
+No plugins are copied automatically. Each Profile has its own bundle and dependency composition; select the CLI target explicitly with `--profile <name>`. Switching Profiles does not isolate conversations, settings or credentials within the same data home.
 
 ## How are updates installed?
 
-Download the appropriate asset from this fork's Stable/latest Release, verify its provenance, back up data and stop the application before replacement. Replace AppImage/portable files or use `apt install ./<file>.deb` on Debian/Ubuntu. The legacy framework is retired; read the root README's data-directory guidance before migrating. This does not promise that Linux shares upstream's macOS/Windows automatic installer flow.
+Linux `-linux.N` versions check this repository's GitHub Stable/latest without sending an installation UUID; the app does not automatically download or install updates. Download the appropriate asset, verify it, back up data and quit before replacement. Replace AppImage/portable files or use `sudo apt install ./<file>.deb` on Debian/Ubuntu. The legacy framework is retired; source merges do not change immutable published assets.
 
 ## Where is GPT-6.1 Terra?
 

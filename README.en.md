@@ -27,17 +27,17 @@
 >
 > The current published Stable release is [`v2.0.22-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.22-next-linux.1). Assets use `DSH-NEXT-<version>` and the portable executable is `dsh-desktop-next`. Data defaults to `~/.dsh`; an already selected directory takes precedence. Back up data before upgrading. See the [release notes](docs/release-2.0.22-next-linux.1.md) for changes and validation.
 
-DSH Desktop integrates the local Web UI, Host service, and plugin system of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) into a native desktop application. It pins and runs a specific upstream version unchanged, composing desktop capabilities through the DeepSeek Harness plugin mechanism.
+DSH Desktop integrates the official Web UI, Host service, and plugin system of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) into a native desktop application. Runtime versions are pinned; desktop compatibility changes use version-scoped patches and plugin composition without editing the upstream source submodule.
 
 This fork is **Linux-focused**: it maintains Linux releases and compatibility fixes while following upstream's cross-platform improvements, retaining this fork's Stable release and data-compatibility policy.
 
-- Merged upstream snapshot: `a8b98656fd`; this Stable release is `2.0.22-next-linux.1`
+- Merged upstream snapshot: `233b76c65d`; the source version is `2.0.22-next-linux.1` with subsequent unreleased fixes
 - Source runtimes: Linux Stable workspace `dsh-desktop-next/` and Beta both use `0.2.2-rc.1`; legacy workspace retains `0.2.1-rc.3`. Pins live in [`upstream.json`](upstream.json); Linux release boundaries are defined by [`linux-release-policy.json`](linux-release-policy.json)
-- Published `linux.2` uses `0.2.1-rc.3`; merging source does not change its signed assets
+- Published Stable `v2.0.22-next-linux.1` uses DSH `0.2.2-rc.1`; source merges do not replace its immutable tag or installers
 - Target platform: **Linux x64**
 - Artifacts: an AppImage, a portable archive (tar.gz) and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships alongside them, and the `.deb` also carries an internal `debsigs` signature
 
-## Changes in this fork
+## Current features and Linux integration
 
 ### 1. New Stable shell and Linux menus
 
@@ -65,15 +65,15 @@ See `.yarn/patches/`, `patches/`, and the commit history for details.
 
 Packaged builds carry the upstream-pinned, checksum-verified Python, Node.js, pnpm and Office payload under `resources/runtime/<arch>/`. Office and `load_workspace_dependencies` are mounted by one Host-owned composition. `DSH_PRIMARY_RUNTIME` can select a payload directory containing `runtime.json`; an empty string disables the composition without duplicate tool registrations.
 
-### Upstream improvements in this source merge
+### Upstream sync and release scope
 
-This merge brings a separate Next runtime channel, release-specific official plugin indexes and updates, a dshfind source option, bare `dsh-session:` text handling, and renderer-OOM memory evidence with readable Host exit diagnostics. Beta also lists LiveShare, Ralph and session search without enabling them by default. These are source changes, not replacements for published `linux.2` installers. See the [workspace documentation](dsh-desktop-next/README.md) for behavior and verification entry points.
+Stable and Beta both follow DSH `0.2.2-rc.1`, with native file actions, image dragging, LiveShare sign-in integration, plugin-operation history and Host/OOM diagnostics. LiveShare, Ralph and session search can be enabled from Plugins. On-demand official Computer Use is macOS-only; Linux uses Computer Use (Next), disabled by default.
 
-The November 4 sync additionally brings Linux manual-update notices, arm64 packaging, hicolor icons, GBM/ALSA deb dependencies, the `<app> dsh …` CLI, UTF-8 BOM configuration support and Host failure reports. On-demand official Computer Use installation is Beta-only. This fork's published `linux.2` still ships x64 assets only; merging source does not create arm64 release assets.
+Linux uses this fork's Stable update notices, manual downloads/installations, hicolor icons, GBM/ALSA deb dependencies and the `<app> dsh …` CLI. Source includes arm64 packaging entry points, but current Releases ship verified x64 assets only. The latest macOS window-drag correction is source-only; no new installers were published. See the [latest sync record](docs/upstream-sync-2026-11-09.md) and [workspace documentation](dsh-desktop-next/README.md).
 
 ## Download and run
 
-Download a Linux x64 **AppImage**, **portable archive (tar.gz)** or **Debian package** from the [latest Stable release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest). Replace `<version>` with the actual release version, for example `2.0.21-next-linux.1`.
+Download a Linux x64 **AppImage**, **portable archive (tar.gz)** or **Debian package** from the [latest Stable release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest). Replace `<version>` with the actual release version, for example `2.0.22-next-linux.1`.
 
 ### AppImage (no installation)
 
@@ -106,7 +106,7 @@ All forms require:
 
 - Linux x64 with a desktop session able to run Electron
 - Electron's required system libraries; image WASM and Office payloads are bundled, so system Node is not required
-- Conversations, settings, credentials and Profiles default to `~/.dsh`; Electron preferences live in `~/.config/DSH NEXT`. An explicitly selected data directory takes precedence
+- Conversations, settings, credentials and Profiles default to `~/.dsh`; Electron browser state lives in `electron-user-data/` within the selected data directory, whose selection is recorded under `~/.config/DSH NEXT/home/`
 
 ### Verify downloads and provenance
 
@@ -159,7 +159,7 @@ Builds require Node.js `^22.19.0` or `>=24.0.0`, Corepack and root Yarn `4.18.0`
 
 ## Known limitations
 
-- Linux only. For Windows / macOS use the [upstream project](https://github.com/anywhere-labs/dsh-desktop).
+- This fork releases and validates Linux x64 installers only. For Windows / macOS use the [upstream project](https://github.com/anywhere-labs/deepseek-harness-desktop).
 - Release provenance and integrity come from the GitHub release attestation (`gh release verify`) and `SHA256SUMS`, plus GPG-signed tags and the internal `.deb` signature; Linux tray and native integration details are not additionally polished.
 - `next` in a version does not mean prerelease in this fork; Beta is for development checks. Do not replace immutable Release assets with a source rebuild of the same version.
 
@@ -168,23 +168,15 @@ Builds require Node.js `^22.19.0` or `>=24.0.0`, Corepack and root Yarn `4.18.0`
 - User guide: [`docs/user-guide.md`](docs/user-guide.md)
 - FAQ: [`docs/faq.md`](docs/faq.md)
 - Docs index: [`docs/README.md`](docs/README.md)
-- Upstream project: [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop)
+- Upstream project: [anywhere-labs/deepseek-harness-desktop](https://github.com/anywhere-labs/deepseek-harness-desktop)
 
 ## Credits
 
 All core capabilities come from upstream and these open-source projects:
 
-- [DSH Desktop](https://github.com/anywhere-labs/dsh-desktop) and [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
+- [DSH Desktop](https://github.com/anywhere-labs/deepseek-harness-desktop) and [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
 - [Cordis](https://github.com/cordiverse/cordis)
 - [Koishi](https://koishi.chat/)
-
-## About Us
-
-United by a passion for open source, we collaborate to turn the possibilities of AI into accessible tools and meaningful experiences.
-
-<p align="center">
-  <a href="https://github.com/anywhere-labs/about-us"><img src="https://img.shields.io/badge/Meet%20the%20Team-Anywhere%20Labs-4D6BFE?style=for-the-badge" alt="Meet the Team"></a>
-</p>
 
 ## License
 
