@@ -13,3 +13,40 @@ diff --git a/lib/client.js b/lib/client.js
  					className: ModelsSection_module_css_default["customized"],
  					children: [(0, react_jsx_runtime.jsx)("summary", {
  						className: ModelsSection_module_css_default["customizedSummary"],
+@@ -2422,7 +2425,7 @@
+ 			return row.apiKeyEnv !== void 0 ? row.credential?.configured === true : row.derivedCredential?.configured === true;
+ 		}
+ 		function targetOf(row) {
+-			const managedRef = deriveKeyRef(row.entry.provider);
++			const managedRef = row.entry.provider === "deepseek-official" && row.entry.settingsPath.length === 0 && row.removable ? row.apiKeyEnv : deriveKeyRef(row.entry.provider);
+ 			const credentialRef = row.apiKeyEnv === managedRef && row.credential?.configured === true && row.credential.writable ? managedRef : void 0;
+ 			return {
+ 				provider: row.entry.provider,
+@@ -2443,6 +2446,18 @@
+ 		/** Replace the one provider placeholder in localized destructive-action copy. */
+ 		function providerCopy(template, target) {
+ 			return template.replace("{provider}", () => providerTargetLabel(target));
++		}
++		/** The built-in API stays available to add again after its user settings and local key are removed. */
++		function deepSeekApiRow(row, namespace, rows) {
++			if (row.entry.provider !== "deepseek-official" || row.entry.settingsPath.length !== 0 || namespace === void 0 || row.credential === void 0) return row;
++			const hasUserSettings = namespace.user !== void 0 && namespace.user !== null && Object.keys(namespace.user).length > 0;
++			const sharedCredential = rows.some((other) => other.entry.provider !== row.entry.provider && other.apiKeyEnv === row.apiKeyEnv);
++			const configured = hasUserSettings || row.credential.configured;
++			return {
++				...row,
++				configured,
++				removable: configured && !sharedCredential && row.credential.writable && (!row.credential.configured || row.credential.source === "file")
++			};
+ 		}
+ 		/**
+ 		* Render the Models section content column.
+@@ -2474,7 +2489,7 @@
+ 						...row.entry,
+ 						displayName: t("deepSeekAccount")
+ 					}
+-				} : row)
++				} : deepSeekApiRow(row, snapshot.namespaces.get(row.entry.settingsNs), snapshot.rows))
+ 			};
+ 			/** A new or failed surface waits for a current snapshot; background refreshes preserve its drafts. */
+ 			const [hasReadySnapshot, setHasReadySnapshot] = (0, react.useState)(state.status === "ready");
