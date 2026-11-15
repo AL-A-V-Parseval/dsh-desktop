@@ -25,15 +25,15 @@
 
 > **Linux release policy change (2026-10-27):** Starting with [`v2.0.20-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.20-next-linux.1), the former Next framework is this fork's **Stable / latest** mainline. The legacy framework receives no further releases; its last release is `v2.0.18-linux.1`. The `next` version suffix, `DSH NEXT` display name and internal identifiers are retained for installation, data-directory and upstream-merge compatibility; **they no longer identify a prerelease channel in this fork**. Signed packages and tags remain unchanged. Source-directory names are independent of release stability; see [`linux-release-policy.json`](linux-release-policy.json). Root `dev`, `start`, `package:dir` and `dist:linux` commands now use the new framework.
 >
-> The current published Stable release is [`v2.0.22-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.22-next-linux.1). Assets use `DSH-NEXT-<version>` and the portable executable is `dsh-desktop-next`. Data defaults to `~/.dsh`; an already selected directory takes precedence. Back up data before upgrading. See the [release notes](docs/release-2.0.22-next-linux.1.md) for changes and validation.
+> The current published Stable release is [`v2.0.23-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.23-next-linux.1). Assets use `DSH-NEXT-<version>` and the portable executable is `dsh-desktop-next`. Data defaults to `~/.dsh`; an already selected directory takes precedence. Back up data before upgrading. See the [release notes](docs/release-2.0.23-next-linux.1.md) for changes and validation.
 
 DSH Desktop integrates the official Web UI, Host service, and plugin system of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) into a native desktop application. Runtime versions are pinned; desktop compatibility changes use version-scoped patches and plugin composition without editing the upstream source submodule.
 
 This fork is **Linux-focused**: it maintains Linux releases and compatibility fixes while following upstream's cross-platform improvements, retaining this fork's Stable release and data-compatibility policy.
 
-- Merged upstream snapshot: `b3c0442392`; the source version is `2.0.23-next-linux.1`, pending this packaging validation
+- Merged upstream snapshot: `b3c0442392`; the source version is `2.0.23-next-linux.1` and has passed this packaging validation
 - Source runtimes: Linux Stable workspace `dsh-desktop-next/` and Beta both use `0.2.2-rc.3`; legacy workspace retains `0.2.1-rc.3`. Pins live in [`upstream.json`](upstream.json); Linux release boundaries are defined by [`linux-release-policy.json`](linux-release-policy.json)
-- Published Stable `v2.0.22-next-linux.1` uses DSH `0.2.2-rc.1`; source merges do not replace its immutable tag or installers
+- Stable `v2.0.23-next-linux.1` uses DSH `0.2.2-rc.3`; subsequent source merges do not replace its immutable tag or installers
 - Target platform: **Linux x64**
 - Artifacts: an AppImage, a portable archive (tar.gz) and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships alongside them, and the `.deb` also carries an internal `debsigs` signature
 
@@ -67,13 +67,13 @@ Packaged builds carry the upstream-pinned, checksum-verified Python, Node.js, pn
 
 ### Upstream sync and release scope
 
-Stable and Beta both follow DSH `0.2.2-rc.1`, with native file actions, image dragging, LiveShare sign-in integration, plugin-operation history and Host/OOM diagnostics. LiveShare, Ralph and session search can be enabled from Plugins. On-demand official Computer Use is macOS-only; Linux uses Computer Use (Next), disabled by default.
+Stable and Beta both follow DSH `0.2.2-rc.3`, with chat import, native file actions, image dragging, LiveShare sign-in integration, configurable Host startup limits and renderer diagnostics. DeepSeek API configuration can be deleted and re-added without affecting account login. LiveShare, Ralph and session search can be enabled from Plugins. On-demand official Computer Use is macOS-only; Linux uses Computer Use (Next), disabled by default.
 
 Linux uses this fork's Stable update notices, manual downloads/installations, hicolor icons, GBM/ALSA deb dependencies and the `<app> dsh …` CLI. Source includes arm64 packaging entry points, but current Releases ship verified x64 assets only. The latest macOS window-drag correction is source-only; no new installers were published. See the [latest sync record](docs/upstream-sync-2026-11-09.md) and [workspace documentation](dsh-desktop-next/README.md).
 
 ## Download and run
 
-Download a Linux x64 **AppImage**, **portable archive (tar.gz)** or **Debian package** from the [latest Stable release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest). Replace `<version>` with the actual release version, for example `2.0.22-next-linux.1`.
+Download a Linux x64 **AppImage**, **portable archive (tar.gz)** or **Debian package** from the [latest Stable release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest). Replace `<version>` with the actual release version, for example `2.0.23-next-linux.1`.
 
 ### AppImage (no installation)
 

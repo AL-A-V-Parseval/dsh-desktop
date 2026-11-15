@@ -25,15 +25,15 @@
 
 > **Linux 发版主线调整（2026-10-27）：** 自 [`v2.0.20-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.20-next-linux.1) 起，原 Next 新架构成为本 fork 的 **Stable / latest**，旧架构停止发版（最后一版为 `v2.0.18-linux.1`）。为兼容已有安装、数据目录及后续上游合并，保留版本中的 `next`、`DSH NEXT` 显示名称和内部标识，**它们不再表示本 fork 的预发布通道**。已签名的安装包及 tag 不变；源码目录名与发布稳定性分开管理，规则见 [`linux-release-policy.json`](linux-release-policy.json)。根目录的 `dev`、`start`、`package:dir`、`dist:linux` 默认使用新架构。
 >
-> 当前正式版为 [`v2.0.22-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.22-next-linux.1)。文件名前缀为 `DSH-NEXT-<version>`，便携程序为 `dsh-desktop-next`；默认数据目录为 `~/.dsh`，已选择的数据目录优先。升级前请备份数据，更新内容与验证见[发行说明](docs/release-2.0.22-next-linux.1.md)。
+> 当前正式版为 [`v2.0.23-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.23-next-linux.1)。文件名前缀为 `DSH-NEXT-<version>`，便携程序为 `dsh-desktop-next`；默认数据目录为 `~/.dsh`，已选择的数据目录优先。升级前请备份数据，更新内容与验证见[发行说明](docs/release-2.0.23-next-linux.1.md)。
 
 DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的官方 Web UI、Host 服务和插件系统集成进原生桌面应用。运行时固定为明确版本；桌面兼容修改通过版本限定补丁和插件组合实现，不修改上游源码子模块。
 
 本 fork **聚焦 Linux**：维护 Linux 发行与兼容修复，同时跟随上游的跨平台改进，保留本 fork 的 Stable 发布和数据兼容策略。
 
-- 上游合并快照：`b3c0442392`；源码版本为 `2.0.23-next-linux.1`，等待本次打包验证
+- 上游合并快照：`b3c0442392`；源码版本为 `2.0.23-next-linux.1`，已通过本次打包验证
 - 源码运行时：Linux Stable 工作区 `dsh-desktop-next/` 与 Beta 均使用 `0.2.2-rc.3`；旧工作区保留 `0.2.1-rc.3`。各源码 pin 见 [`upstream.json`](upstream.json)，Linux 发布边界见 [`linux-release-policy.json`](linux-release-policy.json)
-- 已发布 Stable `v2.0.22-next-linux.1` 使用 DSH `0.2.2-rc.1`；源码合并不替换其不可变 tag 或安装包
+- Stable `v2.0.23-next-linux.1` 使用 DSH `0.2.2-rc.3`；后续源码合并不替换其不可变 tag 或安装包
 - 目标平台：**Linux x64**
 - 产物：AppImage、便携包（tar.gz）与 Debian/Ubuntu 安装包（.deb），随 `SHA256SUMS` 提供校验和，`.deb` 另含 `debsigs` 内部签名
 
@@ -67,13 +67,13 @@ Linux 图像处理使用上游 Sharp 0.35.5 的 WASM 后端。旧的真实 Node 
 
 ### 上游同步与发布范围
 
-当前 Stable 与 Beta 均跟随 DSH `0.2.2-rc.1`，提供原生文件操作、图片拖拽、LiveShare 登录适配、插件操作记录和 Host/OOM 诊断。LiveShare、Ralph 与会话搜索在插件页可选启用；官方按需安装的 Computer Use 仅适用于 macOS，Linux 使用默认关闭的 Computer Use（Next）。
+当前 Stable 与 Beta 均跟随 DSH `0.2.2-rc.3`，提供聊天导入、原生文件操作、图片拖拽、LiveShare 登录适配、可配置 Host 启动限时和渲染器诊断。DeepSeek API 配置支持删除及重新添加，不影响账号登录。LiveShare、Ralph 与会话搜索在插件页可选启用；官方按需安装的 Computer Use 仅适用于 macOS，Linux 使用默认关闭的 Computer Use（Next）。
 
 Linux 使用本 fork 的 Stable 更新提示、手动下载安装、hicolor 图标、GBM/ALSA deb 依赖，以及 `<应用程序> dsh …` CLI。源码已有 arm64 打包入口，但当前 Release 仅提供已验证的 x64 资产。本次新增的 macOS 窗口拖动修复仅进入源码，未发布新安装包；详见[最新同步记录](docs/upstream-sync-2026-11-09.md)和[工作区文档](dsh-desktop-next/README.zh.md)。
 
 ## 下载与运行
 
-从 [最新正式版](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest) 获取 Linux x64 的 **AppImage**、**便携包（tar.gz）** 或 **Debian 包**。将 `<version>` 替换为 Release 页面上的实际版本，例如 `2.0.22-next-linux.1`。
+从 [最新正式版](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest) 获取 Linux x64 的 **AppImage**、**便携包（tar.gz）** 或 **Debian 包**。将 `<version>` 替换为 Release 页面上的实际版本，例如 `2.0.23-next-linux.1`。
 
 ### AppImage（免安装）
 

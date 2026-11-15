@@ -2,7 +2,7 @@
 
 [中文](user-guide.md)
 
-This guide covers this fork's Linux Stable. The current published version is `v2.0.22-next-linux.1`, using DSH `0.2.2-rc.1`. `dsh-desktop-next`, `DSH NEXT` and `next` in the version are compatibility identifiers, not prerelease labels. Source may contain fixes not yet included in installers.
+This guide covers this fork's Linux Stable. The current published version is `v2.0.23-next-linux.1`, using DSH `0.2.2-rc.3`. `dsh-desktop-next`, `DSH NEXT` and `next` in the version are compatibility identifiers, not prerelease labels. Source may contain fixes not yet included in installers.
 
 ## Installation and launch
 
@@ -28,6 +28,8 @@ The tray offers Profile creation/switching, recovery and diagnostics. Switching 
 ## Models and plugins
 
 Provider sign-in, custom models and credentials keep their existing configuration. OpenAI API and OpenAI Codex OAuth catalogs include `gpt-6.1-terra`; access depends on account entitlement. Catalog refreshes do not overwrite explicit custom model lists.
+
+Remove an unused DeepSeek API configuration with **Delete** in Models settings and confirm to remove its local key and user settings. It remains available through **Add model provider**. DeepSeek account login is unaffected. Environment, read-only or shared keys do not get a delete action.
 
 Prefer the official **Plugins** page for installation, updates, toggling and removal, following its reload prompts. Markets, AA remote control and Computer Use have entries above the list; remote control and computer access default to off. Selecting one market disables the other without deleting installed plugins.
 

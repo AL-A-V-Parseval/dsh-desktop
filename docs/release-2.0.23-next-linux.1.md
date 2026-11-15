@@ -25,6 +25,8 @@ Linux Stable 发布主线仍为 `dsh-desktop-next`；Next 内部名称和数据�
 
 真实 Host/Chromium 临时 Profile 验证了 rc.3 下 API 取消、删除和重新添加，其他设置和测试密钥保持不变。Beta 的真实 Electron Node-mode Host 检查通过。
 
-安装包成品验证将在构建完成后补充。
+Linux x64 AppImage 和 deb 已构建，便携包已生成。成品验证覆盖 Sharp WASM 有/无 Host 钩子的附件读取与图像解码、内置 `dsh 0.2.2-rc.3`、Host 默认/Office 覆盖/Office 停用模式和诊断导出；Office 两个官方插件均核对了唯一性和实际激活状态。deb 内部签名与 SHA256SUMS 校验通过。
+
+应用代码和依赖来自 `252a1e82cd`；后续发行记录提交仅更新文档，不修改已验证的应用字节。签名 tag、公钥和 SHA256SUMS 随发行提供。
 未执行 ARM64、Windows/macOS 原生打包、真实账号 OAuth 登录或付费模型调用。
 不会自动替换或重启本机已安装应用。
