@@ -3,7 +3,7 @@
 `pi-model-catalog.json` records the public npm catalog snapshot bundled with Desktop.
 The catalog refresh changes only `dist/providers/data/*.json` (including its manifest)
 inside `patches/pi-ai@<version>.patch`. Linux Stable (Next) and Beta now both run
-DSH `0.2.2-rc.1` with pi-ai `1.4.0`; their catalog receipt is
+DSH `0.2.2-rc.3` with pi-ai `1.4.0`; their catalog receipt is
 `pi-model-catalog-1.4.0.json`. The retained legacy workspace still uses pi-ai
 `1.1.0`, its active `patches/pi-ai@1.1.0.patch` and `pi-model-catalog.json` receipt.
 These are not historical-only files and must remain until that dependency retires.

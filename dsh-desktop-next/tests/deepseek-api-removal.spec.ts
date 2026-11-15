@@ -30,7 +30,7 @@ interface ModelActions {
 const root = dirname(fileURLToPath(import.meta.resolve('@deepseek-ai/dsh-client-ui-settings-models')))
 const source = readFileSync(join(root, 'client.js'), 'utf8')
 let actions: ModelActions
-runInNewContext(source.replace('exports.apply = apply;',
+runInNewContext(source.replace(/exports\.apply\s*=\s*apply;/,
   'Object.assign(exports, { deepSeekApiRow, targetOf, removeProviderProfile }); exports.apply = apply;'), {
   window: { __ModuleLoader__: { load: (definition: { factory(require: (name: string) => object): ModelActions }) => {
     const dependencies: Record<string, object> = {
