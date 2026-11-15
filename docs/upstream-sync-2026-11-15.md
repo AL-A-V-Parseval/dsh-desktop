@@ -19,6 +19,11 @@ The target Linux Stable version is `2.0.23-next-linux.1`; Beta source version is
   with explicit override/disable, model catalog/OAuth integration and API removal.
   `scripts/patch-models-settings.mjs` reproduces the Models patch against the new
   minified bundle and composes its source map; it never edits upstream source.
+- Packaged validation exposed the rc.3 Office ownership change: an empty
+  `DSH_PRIMARY_RUNTIME` must disable the official Web-profile Office rows, not
+  merely skip Desktop's former manual mount. The follow-up correction explicitly
+  disables them and checks real plugin activation/uniqueness in all three packaged
+  modes, replacing the obsolete Desktop-only log assertion.
 - Existing unused-patch cleanup remains intact. No local application replacement,
   real-account login, paid model call or Tauri migration is part of this release.
 

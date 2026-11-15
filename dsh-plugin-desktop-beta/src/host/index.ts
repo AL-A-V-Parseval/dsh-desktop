@@ -67,9 +67,13 @@ export async function main(): Promise<void> {
   atomicJson(runtimePatch, [
     { id: 'desktop-next-webserver', config: { host: '127.0.0.1', port: preferences.port } },
     { id: 'connection', config: { trustedHosts } },
-    ...(OFFICE_IN_WEB_PROFILE && office ? [
+    ...(OFFICE_IN_WEB_PROFILE ? office ? [
       { id: 'workspace-dependencies', disabled: false, config: office },
       { id: 'skill-office', config: { pythonEnvironment: 'workspace-dependencies' } },
+    ] : [
+      // Web now supplies these rows itself; an absent Desktop composition must disable them explicitly.
+      { id: 'workspace-dependencies', disabled: true },
+      { id: 'skill-office', disabled: true },
     ] : []),
   ])
   // runProfile installs the outbound proxy policy from this environment before any plugin mounts.

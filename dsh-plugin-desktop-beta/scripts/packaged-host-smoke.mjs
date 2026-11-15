@@ -45,10 +45,23 @@ try {
   await runtime.start()
   const state = runtime.state()
   if (state.phase !== 'ready' || failures !== 0) throw new Error(`Packaged Host did not reach ready: phase=${state.phase} failure=${state.failure}`)
-  const officeMounted = runtime.diagnostics.snapshot().includes('office.mount.complete')
-  if (officeMounted !== (officeMode !== 'disabled')) throw new Error(`Office mode ${officeMode}: unexpected mount state ${String(officeMounted)}`)
   const auth = runtime.auth
   if (!auth) throw new Error('Packaged Host reported ready without native credentials')
+  // rc.3 owns Office in the Web profile, so a Desktop-only mount log no longer proves activation.
+  const rpcId = crypto.randomUUID()
+  const pluginsResponse = await fetch(new URL('/api/pluginManager/listPlugins', auth.url), {
+    method: 'POST', headers: { cookie: auth.cookie, 'x-dsh-desktop-renderer': auth.token,
+      origin: new URL(auth.url).origin, 'content-type': 'application/json' },
+    body: JSON.stringify({ type: 'client-request', rpcId, method: 'pluginManager/listPlugins', payload: { args: {} } }),
+  })
+  const pluginsReply = await pluginsResponse.json()
+  if (!pluginsReply.result.ok) throw new Error(`Cannot inspect packaged Office: ${JSON.stringify(pluginsReply.result.error)}`)
+  for (const moduleName of ['@deepseek-ai/dsh-skill-office', '@deepseek-ai/dsh-tool-workspace-dependencies']) {
+    const rows = pluginsReply.result.value.filter(row => row.moduleName === moduleName)
+    if (rows.length !== 1) throw new Error(`Office mode ${officeMode}: expected one ${moduleName}, got ${rows.length}`)
+    const active = rows[0].enabled && rows[0].fiberPhase === 'active'
+    if (active !== (officeMode !== 'disabled')) throw new Error(`Office mode ${officeMode}: ${moduleName} activation ${String(active)}`)
+  }
   // Only the native capability passes the request gate; a bare loopback browser request is refused.
   const response = await fetch(new URL(auth.url).origin)
   if (response.status !== 403) throw new Error(`Packaged Host exposed the application to ordinary browsers: HTTP ${String(response.status)}`)

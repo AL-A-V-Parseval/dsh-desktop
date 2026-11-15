@@ -9,6 +9,7 @@ Linux Stable 发布主线仍为 `dsh-desktop-next`；Next 内部名称和数据�
 - 合入 AppImage 沙箱运行路径、直连网络策略、工作目录已删除时技能列表等修复，以及新鲸尾图标。
 - 新增 DeepSeek API 配置删除：确认后移除其本地密钥和用户设置，可重新添加；环境变量、只读或共享密钥不提供删除。DeepSeek 账号登录保持独立。
 - 保留 Linux 快捷键、Sharp WASM、Office 单次组合与覆盖/停用选项、OAuth 入口和模型兼容补丁。
+- 修复 rc.3 改由官方 Web Profile 挂载 Office 后的停用适配；成品检查直接核对插件激活状态，确保无重复挂载。
 - 清理先前版本遗留的 15 个无引用补丁；legacy 仍使用的 pi-ai 1.1.0 保留。
 - 内置 dshmarket `1.73.19`；Agents Anywhere 从官方 main `aa12e7a2c181` 重新构建，构建记录和校验信息随源码提交。
 
