@@ -35,7 +35,7 @@
 | [Desktop service 参考](../dsh-plugin-desktop/docs/plugin-services.md) | `desktopProfiles`、`desktopPnpm` 的稳定 contract 和 TypeScript 示例 |
 | [当前工作区参考](../dsh-desktop-next/README.zh.md) | 新 Stable 的构建、运行、恢复与平台限制 |
 | [模型目录维护](model-catalog-refresh.md) | 分频道 SDK、目录来源、Terra 补全与可复现校验 |
-| [当前发行说明](release-2.0.23-next-linux.1.md) | 已发布 Stable 的功能、升级注意事项和实际验证范围 |
+| [当前发行说明](release-2.0.23-next-linux.2.md) | 已发布 Stable 的功能、升级注意事项和实际验证范围 |
 | [最新同步记录](upstream-sync-2026-11-09.md) | 当前源码比已发布安装包新增的修复与验证边界 |
 
 ## README 文件怎么分工

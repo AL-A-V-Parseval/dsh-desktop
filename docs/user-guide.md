@@ -2,7 +2,7 @@
 
 [English](user-guide.en.md)
 
-本指南适用于本 fork 的 Linux Stable，当前已发布版为 `v2.0.23-next-linux.1`，内核为 DSH `0.2.2-rc.3`。`dsh-desktop-next`、`DSH NEXT` 和版本中的 `next` 都是兼容标识，不表示预发布。源码可能包含尚未进入安装包的修复。
+本指南适用于本 fork 的 Linux Stable，当前已发布版为 `v2.0.23-next-linux.2`，内核为 DSH `0.2.2-rc.3`。`dsh-desktop-next`、`DSH NEXT` 和版本中的 `next` 都是兼容标识，不表示预发布。源码可能包含尚未进入安装包的修复。
 
 ## 安装与启动
 

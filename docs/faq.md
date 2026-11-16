@@ -6,7 +6,7 @@
 
 ## DSH Desktop 是什么？
 
-本 fork 是面向 Linux x64 的开源 DeepSeek Harness 桌面客户端。它将官方 Web UI、Host 与插件系统装进原生应用，提供系统托盘、桌面设置、内置 CLI、Profile 和恢复功能。当前正式版为 `v2.0.23-next-linux.1`，使用 DSH `0.2.2-rc.3`；上游另有 Windows/macOS 产品。
+本 fork 是面向 Linux x64 的开源 DeepSeek Harness 桌面客户端。它将官方 Web UI、Host 与插件系统装进原生应用，提供系统托盘、桌面设置、内置 CLI、Profile 和恢复功能。当前正式版为 `v2.0.23-next-linux.2`，使用 DSH `0.2.2-rc.3`；上游另有 Windows/macOS 产品。
 
 ## 这是 DeepSeek 官方产品吗？
 
