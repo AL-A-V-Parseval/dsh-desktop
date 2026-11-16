@@ -107,6 +107,7 @@ async function verifyFinalArtifacts(result: { outDir: string }): Promise<string[
       runPackagedNode(path, [join(desktopRoot, 'scripts', 'packaged-sharp-smoke.mjs'), root], 120_000, 'Packaged sharp smoke failed'),
       // Linux carries no native backends: even a standalone attachment reader must fall back to WASM, never a legacy bridge worker.
       ...(target.platform === 'linux' ? [runPackagedNode(path, [join(desktopRoot, 'scripts', 'packaged-sharp-smoke.mjs'), root, '--without-host-hook'], 120_000, 'Packaged sharp standalone attachment smoke failed')] : []),
+      ...(target.platform === 'linux' ? [runPackagedNode(path, [join(desktopRoot, 'scripts', 'packaged-office-smoke.mjs'), root], 180_000, 'Packaged Office render smoke failed')] : []),
       // Linux has no tray terminal; the application executable itself answers `<app> dsh …` (#1568).
       ...target.platform === 'linux' ? [
         runPackagedNode(path, [join(desktopRoot, 'scripts', 'packaged-dsh-command-smoke.mjs'), root], 120_000, 'Packaged dsh command smoke failed'),

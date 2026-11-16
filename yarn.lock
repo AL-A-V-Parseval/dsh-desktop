@@ -23,9 +23,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@agents-anywhere/dsh-bridge-next@file:vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.2.0-desktop.caa12e7a2c181.r6c2a8ac0.tgz::locator=deepseek-harness-desktop%40workspace%3A.":
-  version: 2.2.0-desktop.caa12e7a2c181.r6c2a8ac0
-  resolution: "@agents-anywhere/dsh-bridge-next@file:vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.2.0-desktop.caa12e7a2c181.r6c2a8ac0.tgz#vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.2.0-desktop.caa12e7a2c181.r6c2a8ac0.tgz::hash=f99f94&locator=deepseek-harness-desktop%40workspace%3A."
+"@agents-anywhere/dsh-bridge-next@file:vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.2.0-desktop.c98dd0e6e5ddc.r6c2a8ac0.tgz::locator=deepseek-harness-desktop%40workspace%3A.":
+  version: 2.2.0-desktop.c98dd0e6e5ddc.r6c2a8ac0
+  resolution: "@agents-anywhere/dsh-bridge-next@file:vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.2.0-desktop.c98dd0e6e5ddc.r6c2a8ac0.tgz#vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.2.0-desktop.c98dd0e6e5ddc.r6c2a8ac0.tgz::hash=6f2889&locator=deepseek-harness-desktop%40workspace%3A."
   dependencies:
     "@dataiku/uv": "npm:0.12.0"
     clsx: "npm:2.1.1"
@@ -39,7 +39,7 @@ __metadata:
     "@deepseek-ai/dsh-typert-protocol": 0.2.1-rc.3 || 0.2.2-rc.3
     "@deepseek-ai/schemastery": ~3.18.4 || ~3.19.0
     react: ^18.3.1
-  checksum: 10c0/fb2267c48710eb17254aa93fc496ed92d5400c0848644550cf3b83c92153c7b60bb4373540c6ff65bd5433a1eb0e200435dff2fd34b5c4e788b34681e77ab70e
+  checksum: 10c0/389340e8ced4fba8b7ce6811b26678ae62201dfcbe10cf9997b31ec6733a3ba7e4c2b2af3dd57e286288d5c704946cfab3be0d6681dc7b2bb74a6bd5023ba4b4
   languageName: node
   linkType: hard
 
@@ -12555,6 +12555,38 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@deepseek-ai/libreoffice-kit@patch:@deepseek-ai/libreoffice-kit@npm%3A0.2.3#./patches/libreoffice-kit@0.2.3.patch::locator=deepseek-harness-desktop%40workspace%3A.":
+  version: 0.2.3
+  resolution: "@deepseek-ai/libreoffice-kit@patch:@deepseek-ai/libreoffice-kit@npm%3A0.2.3#./patches/libreoffice-kit@0.2.3.patch::version=0.2.3&hash=f4028a&locator=deepseek-harness-desktop%40workspace%3A."
+  dependencies:
+    "@deepseek-ai/libreoffice-kit-darwin-arm64": "npm:0.2.3"
+    "@deepseek-ai/libreoffice-kit-darwin-x64": "npm:0.2.3"
+    "@deepseek-ai/libreoffice-kit-wasm": "npm:0.2.3"
+    "@deepseek-ai/libreoffice-kit-win32-arm64": "npm:0.2.3"
+    "@deepseek-ai/libreoffice-kit-win32-x64": "npm:0.2.3"
+    fflate: "npm:0.8.2"
+    fontkit: "npm:2.0.4"
+    koffi: "npm:3.1.1"
+    saxes: "npm:6.0.0"
+  dependenciesMeta:
+    "@deepseek-ai/libreoffice-kit-darwin-arm64":
+      optional: true
+    "@deepseek-ai/libreoffice-kit-darwin-x64":
+      optional: true
+    "@deepseek-ai/libreoffice-kit-wasm":
+      optional: true
+    "@deepseek-ai/libreoffice-kit-win32-arm64":
+      optional: true
+    "@deepseek-ai/libreoffice-kit-win32-x64":
+      optional: true
+    koffi:
+      optional: true
+  bin:
+    dsoffice: lib/cli.js
+  checksum: 10c0/f0f34f7d66ef6be8964bbfd526dc7fad9bfab4022ed29a15d00e8c650e627041d2709424c0b59e1bc5d11ad992886f1f3083c84a8deca7fb962abd385efe07ed
+  languageName: node
+  linkType: hard
+
 "@deepseek-ai/node-addon-system-darwin-arm64@npm:0.1.2":
   version: 0.1.2
   resolution: "@deepseek-ai/node-addon-system-darwin-arm64@npm:0.1.2"
@@ -17124,7 +17156,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dsh-desktop-next@workspace:dsh-desktop-next"
   dependencies:
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.2.0-desktop.caa12e7a2c181.r6c2a8ac0.tgz"
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.2.0-desktop.c98dd0e6e5ddc.r6c2a8ac0.tgz"
     "@base-ui/react": "npm:^1.7.0"
     "@deepseek-ai/cordis": "npm:4.1.0"
     "@deepseek-ai/cordis-plugin-group": "npm:1.1.0"
@@ -17385,7 +17417,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dsh-plugin-desktop-beta@workspace:dsh-plugin-desktop-beta"
   dependencies:
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.2.0-desktop.caa12e7a2c181.r6c2a8ac0.tgz"
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.2.0-desktop.c98dd0e6e5ddc.r6c2a8ac0.tgz"
     "@base-ui/react": "npm:^1.7.0"
     "@deepseek-ai/cordis": "npm:4.1.0"
     "@deepseek-ai/cordis-plugin-group": "npm:1.1.0"
@@ -17646,7 +17678,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dsh-plugin-desktop@workspace:dsh-plugin-desktop"
   dependencies:
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.2.0-desktop.caa12e7a2c181.r6c2a8ac0.tgz"
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.2.0-desktop.c98dd0e6e5ddc.r6c2a8ac0.tgz"
     "@base-ui/react": "npm:^1.7.0"
     "@deepseek-ai/cordis": "npm:4.0.5"
     "@deepseek-ai/cordis-plugin-group": "npm:1.0.5"
