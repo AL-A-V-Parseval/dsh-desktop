@@ -220,7 +220,8 @@ it('hides the Linux native menu at launch and after menu refresh without droppin
     const main = fixture.windows[0]
     expect(main.options.autoHideMenuBar).toBe(true)
     expect(main.menuBarVisible).toBe(false)
-    expect(fixture.applicationMenu.map((item: any) => item.role)).toEqual([undefined, 'editMenu', 'viewMenu', 'windowMenu'])
+    expect(fixture.applicationMenu.slice(1).map((item: any) => item.label)).toEqual(['编辑', '查看', '窗口'])
+    expect(fixture.applicationMenu[1].submenu.map((item: any) => item.role)).toContain('copy')
     expect(fixture.applicationMenu[0].submenu.at(-1).accelerator).toBe('CmdOrCtrl+Q')
     expect(fixture.trays[0].menu.at(-1).accelerator).toBe('CmdOrCtrl+Q')
     main.menuBarVisible = true
@@ -228,6 +229,7 @@ it('hides the Linux native menu at launch and after menu refresh without droppin
     expect(main.setMenuBarVisibility).toHaveBeenCalledWith(false)
     expect(main.menuBarVisible).toBe(false)
     expect(main.setAutoHideMenuBar).toHaveBeenCalledWith(true)
+    expect(fixture.applicationMenu.slice(1).map((item: any) => item.label)).toEqual(['Edit', 'View', 'Window'])
     expect(fixture.applicationMenu[0].submenu.at(-1).accelerator).toBe('CmdOrCtrl+Q')
     expect(fixture.trays[0].menu.some((item: any) => item.accelerator === 'CmdOrCtrl+,')).toBe(true)
   } finally {
@@ -243,7 +245,7 @@ it.each(['darwin', 'win32'] as const)('preserves the application-menu policy on 
     const { BrowserWindow } = await import('electron')
     const window = new BrowserWindow({ show: false })
     const { refreshApplicationMenu } = await import('../src/native-desktop.ts')
-    refreshApplicationMenu([{ label: 'Quit', accelerator: 'CmdOrCtrl+Q' }])
+    refreshApplicationMenu([{ label: 'Quit', accelerator: 'CmdOrCtrl+Q' }], 'zh')
     expect(window.setAutoHideMenuBar).not.toHaveBeenCalled()
     expect(window.setMenuBarVisibility).not.toHaveBeenCalled()
     if (target === 'win32') expect(fixture.applicationMenu).toBeNull()
@@ -525,7 +527,7 @@ it('preserves safe desktop state and blocks relaunch when final Host shutdown fa
   }
 })
 
-it('captures scoped client errors with either Electron console-message signature without crashing on missing text', async () => {
+it('captures scoped client errors from Electron console-message events without crashing on missing text', async () => {
   const home = mkdtempSync(join(tmpdir(), 'next-console-message-'))
   vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
   try {
@@ -536,10 +538,10 @@ it('captures scoped client errors with either Electron console-message signature
     await vi.waitFor(() => expect(fixture.diagnosticAppend.mock.calls.filter(([record]) => record?.event === 'shell-environment.resolved')).toEqual([[expect.objectContaining({ source: 'desktop' })]]))
     fixture.diagnosticAppend.mockClear()
     Object.assign(fixture.preferences, { developerLogging: true })
-    consoleMessage.emit('console-message', {}, 2, '[next-ui-diagnostic] aa=false')
+    consoleMessage.emit('console-message', { level: 'warning', message: '[next-ui-diagnostic] aa=false' })
     consoleMessage.emit('console-message', { message: "slot entry crashed in 'sidebar.footer.action': error" })
-    consoleMessage.emit('console-message', {}, 2)
-    consoleMessage.emit('console-message', {}, 2, 'unrelated output')
+    consoleMessage.emit('console-message', { level: 'warning' })
+    consoleMessage.emit('console-message', { level: 'warning', message: 'unrelated output' })
     expect(fixture.diagnosticAppend).toHaveBeenCalledTimes(3)
     Object.assign(fixture.preferences, { developerLogging: false })
     consoleMessage.emit('console-message', { level: 'warning', message: 'web boot: warning: optional plugin loading', sourceId: 'dsh-app://app/assets/entry.js', lineNumber: 25 })

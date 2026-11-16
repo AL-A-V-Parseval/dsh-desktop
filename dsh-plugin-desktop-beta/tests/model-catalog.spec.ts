@@ -13,7 +13,7 @@ it('keeps the provider OAuth mount in the settings package selected by this runt
 it('ships the refreshed public catalog without replacing the protocol/OAuth runtime', () => {
   const root = dirname(fileURLToPath(import.meta.resolve('@earendil-works/pi-ai')))
   const version = JSON.parse(readFileSync(join(root, '..', 'package.json'), 'utf8')).version as string
-  expect(['1.1.0', '1.4.0']).toContain(version)
+  expect(['1.1.0', '1.3.0']).toContain(version)
   const receiptName = version === '1.1.0' ? 'pi-model-catalog.json' : `pi-model-catalog-${version}.json`
   const receipt = JSON.parse(readFileSync(new URL(`../../${receiptName}`, import.meta.url), 'utf8'))
   expect(version).toBe(receipt.runtimeVersion)
@@ -33,16 +33,17 @@ it('ships the refreshed public catalog without replacing the protocol/OAuth runt
   }
   const patch = readFileSync(new URL(`../../patches/pi-ai@${version}.patch`, import.meta.url), 'utf8')
   expect(createHash('sha256').update(patch).digest('hex')).toBe(receipt.patchSha256)
-  // Completion-event parsing is required. Reject only the old incremental parsing
-  // hunks, not every call to parseStreamingJson in the provider implementation.
-  for (const section of patch.split('# Desktop data-only model catalog refresh\n')[0]!.split(/^diff --git /mu).slice(1)) {
+  // Completion-event parsing remains required. Preserve every upstream runtime
+  // hunk, including Gemini replay signatures as well as incremental parsing removal.
+  const runtimePatch = patch.split('# Desktop data-only model catalog refresh\n')[0]!
+  expect(runtimePatch).toMatch(/^-.*parseStreamingJson\(/mu)
+  for (const section of runtimePatch.split(/^diff --git /mu).slice(1)) {
     const file = section.slice(2, section.indexOf(' '))
     const installed = readFileSync(join(root, '..', file), 'utf8')
     for (const hunk of section.split(/^@@ [^\n]*\n/mu).slice(1)) {
       const lines = hunk.split('\n').filter(line => /^[ +-]/u.test(line))
       const before = lines.filter(line => !line.startsWith('+')).map(line => line.slice(1)).join('\n')
       const after = lines.filter(line => !line.startsWith('-')).map(line => line.slice(1)).join('\n')
-      expect(before).toMatch(/parseStreamingJson\(/u)
       expect(installed, file).toContain(after)
       expect(installed, file).not.toContain(before)
     }

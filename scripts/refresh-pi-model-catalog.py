@@ -30,7 +30,7 @@ def main():
     base, latest, metadata_path = map(Path, sys.argv[1:])
     with tarfile.open(base) as archive:
         runtime_version = json.loads(archive.extractfile('package/package.json').read())['version']
-    if runtime_version not in ['1.1.0', '1.4.0']:
+    if runtime_version not in ['1.1.0', '1.3.0', '1.4.0']:
         raise ValueError('Unreviewed pi-ai runtime version')
     metadata = json.loads(metadata_path.read_text())
     integrity = 'sha512-' + base64.b64encode(hashlib.sha512(latest.read_bytes()).digest()).decode()

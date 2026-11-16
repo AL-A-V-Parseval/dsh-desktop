@@ -12657,13 +12657,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@earendil-works/pi-agent-core@npm:1.4.0":
-  version: 1.4.0
-  resolution: "@earendil-works/pi-agent-core@npm:1.4.0"
+"@earendil-works/pi-agent-core@npm:1.3.0":
+  version: 1.3.0
+  resolution: "@earendil-works/pi-agent-core@npm:1.3.0"
   dependencies:
-    "@earendil-works/pi-ai": "npm:1.4.0"
+    "@earendil-works/pi-ai": "npm:1.3.0"
     typebox: "npm:1.3.27"
-  checksum: 10c0/8679ba7c80454beaa7fef2eb7d9e3161b83298b4bfe8f64eb20dd8acf990467d538f2ab827f626d9bb83007d730105f02e41269011c9d4c592d725425be404a0
+  checksum: 10c0/ce70fb3d9d202def3b53ce96ded81b5d2c3a3cb9e949ec55b9bb1683e7d4dbb714f7402eea4283d73418391d377e76c7f4ca7cf287be62b9bcc3916519210c73
   languageName: node
   linkType: hard
 
@@ -12687,13 +12687,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@earendil-works/pi-ai@npm:1.4.0":
-  version: 1.4.0
-  resolution: "@earendil-works/pi-ai@npm:1.4.0"
+"@earendil-works/pi-ai@npm:1.3.0":
+  version: 1.3.0
+  resolution: "@earendil-works/pi-ai@npm:1.3.0"
   dependencies:
     "@anthropic-ai/sdk": "npm:0.129.0"
     "@aws-sdk/client-bedrock-runtime": "npm:3.1127.0"
-    "@earendil-works/pi-telemetry": "npm:1.4.0"
+    "@earendil-works/pi-telemetry": "npm:1.3.0"
     "@google/genai": "npm:2.21.0"
     "@smithy/node-http-handler": "npm:4.12.1"
     http-proxy-agent: "npm:9.1.0"
@@ -12703,7 +12703,7 @@ __metadata:
     typebox: "npm:1.3.27"
   bin:
     pi-ai: dist/cli.js
-  checksum: 10c0/2484bf538b8c7976eaeb317d2ac6932020a8542c724509e2b73d392c01970d5e021240cc74cf33c84ee8b8178988ec09ef14b17dbc4b476cf86284bac51cf740
+  checksum: 10c0/341943325b72c447577b13e67eacc78293aa51af6afe12c6050ec9e0bfe66a15c0391d790954a0ce92b364a2b568c0b3f079c526f1e5889043535aae6d096b97
   languageName: node
   linkType: hard
 
@@ -12727,13 +12727,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@earendil-works/pi-ai@patch:@earendil-works/pi-ai@npm%3A1.4.0#./patches/pi-ai@1.4.0.patch::locator=deepseek-harness-desktop%40workspace%3A.":
-  version: 1.4.0
-  resolution: "@earendil-works/pi-ai@patch:@earendil-works/pi-ai@npm%3A1.4.0#./patches/pi-ai@1.4.0.patch::version=1.4.0&hash=f90d5d&locator=deepseek-harness-desktop%40workspace%3A."
+"@earendil-works/pi-ai@patch:@earendil-works/pi-ai@npm%3A1.3.0#./patches/pi-ai@1.3.0.patch::locator=deepseek-harness-desktop%40workspace%3A.":
+  version: 1.3.0
+  resolution: "@earendil-works/pi-ai@patch:@earendil-works/pi-ai@npm%3A1.3.0#./patches/pi-ai@1.3.0.patch::version=1.3.0&hash=910271&locator=deepseek-harness-desktop%40workspace%3A."
   dependencies:
     "@anthropic-ai/sdk": "npm:0.129.0"
     "@aws-sdk/client-bedrock-runtime": "npm:3.1127.0"
-    "@earendil-works/pi-telemetry": "npm:1.4.0"
+    "@earendil-works/pi-telemetry": "npm:1.3.0"
     "@google/genai": "npm:2.21.0"
     "@smithy/node-http-handler": "npm:4.12.1"
     http-proxy-agent: "npm:9.1.0"
@@ -12743,28 +12743,28 @@ __metadata:
     typebox: "npm:1.3.27"
   bin:
     pi-ai: dist/cli.js
-  checksum: 10c0/630211a1bcfc573d63affe10d4482db09f106f7f365651cdef753c0f6c1ec6e5fdd2c1c02db122abb4ad0aad549a3f6c905f60635b9faa2c8f77bc9338bfb022
+  checksum: 10c0/ecae0c3909e0ecfbbaa50911a036436fca68f1ee5c047b1790aec5b3a24f7613e6173d3cf47af086ff8fe0dfc56ef9b44982dba72e2cd65e61dbeba7473416b0
   languageName: node
   linkType: hard
 
-"@earendil-works/pi-codemode@npm:1.4.0":
-  version: 1.4.0
-  resolution: "@earendil-works/pi-codemode@npm:1.4.0"
+"@earendil-works/pi-codemode@npm:1.3.0":
+  version: 1.3.0
+  resolution: "@earendil-works/pi-codemode@npm:1.3.0"
   dependencies:
     quickjs-wasi: "npm:3.6.2"
-  checksum: 10c0/a49f0f70a06896eab9f32840834c6074fd70501b0257952e6737406dd66022603dd8d868009d5a4253201e6bef43048eead8a3a4d4c1734ca8b2967065b09c60
+  checksum: 10c0/72b37f6363cd4de052e7cdd7374f383b91ab1564089370ace9c7e25a275f94b4a1309f1e77f24fc5dfb46b3421d9bf2ee98fb246ffd85b8191ea45687c7816d7
   languageName: node
   linkType: hard
 
-"@earendil-works/pi-coding-agent@npm:^1.3.0":
-  version: 1.4.0
-  resolution: "@earendil-works/pi-coding-agent@npm:1.4.0"
+"@earendil-works/pi-coding-agent@npm:1.3.0":
+  version: 1.3.0
+  resolution: "@earendil-works/pi-coding-agent@npm:1.3.0"
   dependencies:
-    "@earendil-works/pi-agent-core": "npm:1.4.0"
-    "@earendil-works/pi-ai": "npm:1.4.0"
-    "@earendil-works/pi-codemode": "npm:1.4.0"
-    "@earendil-works/pi-mcp": "npm:1.4.0"
-    "@earendil-works/pi-tui": "npm:1.4.0"
+    "@earendil-works/pi-agent-core": "npm:1.3.0"
+    "@earendil-works/pi-ai": "npm:1.3.0"
+    "@earendil-works/pi-codemode": "npm:1.3.0"
+    "@earendil-works/pi-mcp": "npm:1.3.0"
+    "@earendil-works/pi-tui": "npm:1.3.0"
     "@silvia-odwyer/photon-node": "npm:0.3.4"
     brace-expansion: "npm:5.0.12"
     chalk: "npm:6.0.0"
@@ -12784,16 +12784,16 @@ __metadata:
     yaml: "npm:2.9.0"
   bin:
     pi: dist/bundle/cli.js
-  checksum: 10c0/f62a7f20f90f1e4c6d9cf1a4eae9193d50f525ca389fb81b2304e323e92bd3b89b2474df43278026e8dd0c9a84edffa8654104291b84887cdc1a9d272275a15d
+  checksum: 10c0/882351ea24771a2c1ee47a1971729273ca3d7cbfe5f6bc5c792bd456aec1cca610a2f051c40003d4363d99671628b2fcb22305d5ca891cda26c4a7574507eda7
   languageName: node
   linkType: hard
 
-"@earendil-works/pi-mcp@npm:1.4.0":
-  version: 1.4.0
-  resolution: "@earendil-works/pi-mcp@npm:1.4.0"
+"@earendil-works/pi-mcp@npm:1.3.0":
+  version: 1.3.0
+  resolution: "@earendil-works/pi-mcp@npm:1.3.0"
   dependencies:
     cross-spawn: "npm:7.0.6"
-  checksum: 10c0/cf109ac93f85f69c9d0523a8ff86f6c6e033c12a517d16acb1dc6f2acc5280c0e99e6587c3d575ecb57d03ae0ea57147bc5bbeb276d49e09cf3908bb7b63a590
+  checksum: 10c0/3a052097c2fa2fc772a709be8ec1674c0bd1a5c41b07c3b531b6daafa8f2691240d3a1b7805f7aaad065775d17726ea7a496accc8ea433c829594ce52f22e8b4
   languageName: node
   linkType: hard
 
@@ -12804,21 +12804,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@earendil-works/pi-telemetry@npm:1.4.0":
-  version: 1.4.0
-  resolution: "@earendil-works/pi-telemetry@npm:1.4.0"
-  checksum: 10c0/ee9b1c1fe5fc6df6ecb169ad9ed9e3ffebca47872a4403259aaa4e276163964d4aafdc0fe579603d9dd1da3fc544f4f60636ab197db66230942559acf3380d09
+"@earendil-works/pi-telemetry@npm:1.3.0":
+  version: 1.3.0
+  resolution: "@earendil-works/pi-telemetry@npm:1.3.0"
+  checksum: 10c0/90655230375be50bc69112f5d5192939dbcc550b7c7cd9aa5b01b521afbc8bb0d5e84d56e5608aa4ce95c939e27976591aa179d4a7f3680a1cb06630c4d61e12
   languageName: node
   linkType: hard
 
-"@earendil-works/pi-tui@npm:1.4.0":
-  version: 1.4.0
-  resolution: "@earendil-works/pi-tui@npm:1.4.0"
+"@earendil-works/pi-tui@npm:1.3.0":
+  version: 1.3.0
+  resolution: "@earendil-works/pi-tui@npm:1.3.0"
   dependencies:
     get-east-asian-width: "npm:1.6.0"
     marked: "npm:18.0.11"
-    marked-cjk-friendly: "npm:0.1.2"
-  checksum: 10c0/740e895f79f523a19d506071ae3f805a61641c817711dc8efc21cf98d628ae19a45c337678d8477b866463303ce2792f395563e49c4e19a0386d1539a189fbc9
+  checksum: 10c0/a26cdafbcac0888ba05ba85c47a23deb99a2439469ffac9b271b04e91a17a14fdf1f4fab081cc12067be3ce83f809668b7d6b997f6899d1cb374253eb6f0e929
   languageName: node
   linkType: hard
 
@@ -17334,7 +17333,7 @@ __metadata:
     diff: "npm:^9.0.0"
     dsh-codex-signin: "npm:0.1.0"
     dsh-community-market: "npm:0.1.0-dev.0"
-    dshmarket: "npm:1.73.19"
+    dshmarket: "npm:1.73.20"
     electron: "npm:44.7.0"
     electron-builder: "npm:26.15.7"
     extract-zip: "npm:2.0.1"
@@ -17595,7 +17594,7 @@ __metadata:
     diff: "npm:^9.0.0"
     dsh-codex-signin: "npm:0.1.0"
     dsh-community-market: "npm:0.1.0-dev.0"
-    dshmarket: "npm:1.73.19"
+    dshmarket: "npm:1.73.20"
     electron: "npm:44.7.0"
     electron-builder: "npm:26.15.7"
     extract-zip: "npm:2.0.1"
@@ -17844,7 +17843,7 @@ __metadata:
     clsx: "npm:^2.1.1"
     dsh-codex-signin: "npm:0.1.0"
     dsh-community-market: "npm:0.1.0-dev.0"
-    dshmarket: "npm:1.73.19"
+    dshmarket: "npm:1.73.20"
     electron: "npm:44.7.0"
     electron-builder: "npm:26.15.7"
     extract-zip: "npm:2.0.1"
@@ -17882,9 +17881,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"dshmarket@npm:1.73.19":
-  version: 1.73.19
-  resolution: "dshmarket@npm:1.73.19"
+"dshmarket@npm:1.73.20":
+  version: 1.73.20
+  resolution: "dshmarket@npm:1.73.20"
   dependencies:
     js-yaml: "npm:^4.3.2"
     undici: "npm:^7.29.1"
@@ -17897,13 +17896,13 @@ __metadata:
       optional: true
     "@deepseek-ai/schemastery":
       optional: true
-  checksum: 10c0/74912d919e429d33ddee6bbacbbdd0f09f9f85904bccb9bb06966c85c296e361242e95ae887a9ae3d6828b0b6f380008c84efb87fec04aae7e3dc28c17bf5e28
+  checksum: 10c0/91d798efc16da286df1f32a4c529ac98ee0e8f6ba1ae1fe83b9d5462a1c03bdaf498f94bdde6123996492f6907b6b226808c06bf5495831603c816413a212e0a
   languageName: node
   linkType: hard
 
-"dshmarket@patch:dshmarket@npm%3A1.73.19#./.yarn/patches/dshmarket-desktop.patch::locator=deepseek-harness-desktop%40workspace%3A.":
-  version: 1.73.19
-  resolution: "dshmarket@patch:dshmarket@npm%3A1.73.19#./.yarn/patches/dshmarket-desktop.patch::version=1.73.19&hash=12800f&locator=deepseek-harness-desktop%40workspace%3A."
+"dshmarket@patch:dshmarket@npm%3A1.73.20#./.yarn/patches/dshmarket-desktop.patch::locator=deepseek-harness-desktop%40workspace%3A.":
+  version: 1.73.20
+  resolution: "dshmarket@patch:dshmarket@npm%3A1.73.20#./.yarn/patches/dshmarket-desktop.patch::version=1.73.20&hash=41dee8&locator=deepseek-harness-desktop%40workspace%3A."
   dependencies:
     js-yaml: "npm:^4.3.2"
     undici: "npm:^7.29.1"
@@ -17916,7 +17915,7 @@ __metadata:
       optional: true
     "@deepseek-ai/schemastery":
       optional: true
-  checksum: 10c0/7cf1c207f57c34d2013602c7f004cc64251335370ce27a26552988b7c6743855edf0997c6c702af1eebb0c39c9901cf9c2bf9755368a9d4b2f0927a3a52cc526
+  checksum: 10c0/313e6d25a88084922aab9d14ee33a865644a3f493f709853a99d24402d75e9d3b2ab72bf3cfc89752f6af67676cd19269447a9754203c694c735ae4a2de4a7d4
   languageName: node
   linkType: hard
 
@@ -20246,15 +20245,6 @@ __metadata:
   version: 3.0.4
   resolution: "markdown-table@npm:3.0.4"
   checksum: 10c0/1257b31827629a54c24a5030a3dac952256c559174c95ce3ef89bebd6bff0cb1444b1fd667b1a1bb53307f83278111505b3e26f0c4e7b731e0060d435d2d930b
-  languageName: node
-  linkType: hard
-
-"marked-cjk-friendly@npm:0.1.2":
-  version: 0.1.2
-  resolution: "marked-cjk-friendly@npm:0.1.2"
-  peerDependencies:
-    marked: ">=15.0.0"
-  checksum: 10c0/c8fd628710938d032f465e8ff70c6248b89ed36d0852fc125de68d7726dda708aa2ac796b14405c93aa2c1e72da46222f97e628be1f86c6594dbe007aa0ee25b
   languageName: node
   linkType: hard
 
