@@ -25,15 +25,14 @@
 
 > **Linux release policy change (2026-10-27):** Starting with [`v2.0.20-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.20-next-linux.1), the former Next framework is this fork's **Stable / latest** mainline. The legacy framework receives no further releases; its last release is `v2.0.18-linux.1`. The `next` version suffix, `DSH NEXT` display name and internal identifiers are retained for installation, data-directory and upstream-merge compatibility; **they no longer identify a prerelease channel in this fork**. Signed packages and tags remain unchanged. Source-directory names are independent of release stability; see [`linux-release-policy.json`](linux-release-policy.json). Root `dev`, `start`, `package:dir` and `dist:linux` commands now use the new framework.
 >
-> The current published Stable release is [`v2.0.24-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.24-next-linux.1). Assets use `DSH-NEXT-<version>` and the portable executable is `dsh-desktop-next`. Data defaults to `~/.dsh`; an already selected directory takes precedence. Back up data before upgrading. See the [release notes](docs/release-2.0.24-next-linux.1.md) for changes and validation.
+> The current published Stable release is [`v2.0.23-next-linux.3`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.23-next-linux.3). Assets use `DSH-NEXT-<version>` and the portable executable is `dsh-desktop-next`. Data defaults to `~/.dsh`; an already selected directory takes precedence. Back up data before switching versions. See the [release notes](docs/release-2.0.23-next-linux.3.md) for changes and validation.
 
 DSH Desktop integrates the official Web UI, Host service, and plugin system of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) into a native desktop application. Runtime versions are pinned; desktop compatibility changes use version-scoped patches and plugin composition without editing the upstream source submodule.
 
 This fork is **Linux-focused**: it maintains Linux releases and compatibility fixes while following upstream's cross-platform improvements, retaining this fork's Stable release and data-compatibility policy.
 
-- Merged upstream snapshot: `e66243ece4`; source version `2.0.23-next-linux.3` (unreleased, retains the merged features and fixes)
+- Merged upstream snapshot: `e66243ece4`; source version `2.0.23-next-linux.3` retains the merged features and fixes
 - Source runtimes: Linux Stable workspace `dsh-desktop-next/` and Beta both use `0.2.2-rc.4`; legacy workspace retains `0.2.1-rc.3`. Pins live in [`upstream.json`](upstream.json); Linux release boundaries are defined by [`linux-release-policy.json`](linux-release-policy.json)
-- Stable `v2.0.24-next-linux.1` uses DSH `0.2.2-rc.4`; subsequent source merges do not replace its immutable tag or installers
 - Target platform: **Linux x64**
 - Artifacts: an AppImage, a portable archive (tar.gz) and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships alongside them, and the `.deb` also carries an internal `debsigs` signature
 
@@ -73,7 +72,7 @@ Linux uses this fork's Stable update notices, manual downloads/installations, hi
 
 ## Download and run
 
-Download a Linux x64 **AppImage**, **portable archive (tar.gz)** or **Debian package** from the [latest Stable release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest). Replace `<version>` with the actual release version, for example `2.0.24-next-linux.1`.
+Download a Linux x64 **AppImage**, **portable archive (tar.gz)** or **Debian package** from the [latest Stable release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest). Replace `<version>` with the actual release version, for example `2.0.23-next-linux.3`.
 
 ### AppImage (no installation)
 

@@ -1,7 +1,7 @@
 # Upstream sync — 2026-11-18
 
-Merged 24 upstream commits through `e66243ece4`. Next/Beta move to Desktop 2.0.24
-and DSH `0.2.2-rc.4`; legacy keeps `0.2.1-rc.3`. The installed and published Linux
+Merged 24 upstream commits through `e66243ece4`. Next/Beta move to DSH
+`0.2.2-rc.4`; legacy keeps `0.2.1-rc.3`. At the time of this merge, Linux
 Stable remains `2.0.23-next-linux.2`.
 
 - Merged the ARM64 Linux reconnect fix, Desktop settings tabs, classic icon
