@@ -3,7 +3,7 @@
 `pi-model-catalog.json` records the public npm catalog snapshot bundled with Desktop.
 The catalog refresh changes only `dist/providers/data/*.json` (including its manifest)
 inside `patches/pi-ai@<version>.patch`. Linux Stable (Next) and Beta now both run
-DSH `0.2.2-rc.3` with upstream-patched pi-ai `1.3.0`; their catalog receipt is
+DSH `0.2.2-rc.4` with upstream-patched pi-ai `1.3.0`; their catalog receipt is
 `pi-model-catalog-1.3.0.json`. Its data comes from the same reviewed public `1.4.0`
 snapshot and additions, without replacing the `1.3.0` protocol/OAuth runtime,
 streaming fix or Gemini tool-call signature replay fix. Stable `v2.0.23-next-linux.2`
@@ -46,9 +46,15 @@ Commit the patch, provenance and lockfile together. It does not modify user
 provider settings, custom models, credentials, defaults or saved conversations.
 Account-specific remote discovery remains separate and may depend on entitlement.
 
-Published npm data may predate a model release. Reviewed mainline backports live in
-`pi-model-catalog-additions.json`, with pinned source links and explicit route-specific
-changes. The refresh generator applies these additions reproducibly, rebuilds the
+Published npm data may predate a model release. Reviewed backports for the active
+Next/Beta SDK live in `pi-model-catalog-additions-1.3.0.json`; the earlier SDKs use
+`pi-model-catalog-additions.json`. GPT-6.2 Astra and Sol are available in the
+source catalog on `openai` (Responses API, 1,050,000 tokens) and `openai-codex`
+(Codex defaults: 272,000 and 500,000 tokens, respectively). Both list 128,000
+output tokens. These entries do not change speeds or grant account access.
+The npm `1.5.2` catalog changes the loader and provider file set, so this refresh
+keeps the reviewed `1.4.0` baseline rather than transplanting an incompatible catalog.
+The refresh generator applies the additions reproducibly, rebuilds the
 manifest hashes, records both snapshot dates, and fails if a published catalog
 already contains the addition (so the temporary backport can be reviewed/retired).
 An npm version bump alone is not evidence that its embedded model list is current.

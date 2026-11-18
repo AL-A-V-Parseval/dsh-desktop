@@ -15,7 +15,7 @@ const require = createRequire(join(root, 'dsh-desktop-next/package.json'))
 const MagicString = require('magic-string')
 const remapping = require('@jridgewell/remapping')
 const ts = require('typescript')
-const version = '0.2.2-rc.3'
+const version = '0.2.2-rc.4'
 
 function onboarding() {
   function DesktopOnboardingNavigation({ busy, t, onBack, onSkip }) {
@@ -231,7 +231,7 @@ patchPackage('dsh-experimental-inspector', ({ once }) => {
 patchPackage('dsh-sandbox-windows-acl', ({ once, cwd }) => {
   const typesFile = readdirSync(join(cwd, 'lib')).find(file => /^types-.*\.js$/u.test(file))
   assert.ok(typesFile)
-  const desktopPatch = readFileSync(join(root, 'patches/dsh-sandbox-windows-acl@0.2.2-rc.3.patch'), 'utf8')
+  const desktopPatch = readFileSync(join(root, `patches/dsh-sandbox-windows-acl@${version}.patch`), 'utf8')
   const aclPatch = desktopPatch.slice(desktopPatch.indexOf('diff --git a/lib/types-')).replaceAll('types-DXWX0PXB.js', typesFile)
   execFileSync('git', ['apply', '-'], { cwd, input: aclPatch })
   once('import { join } from "node:path";', 'import { join } from "node:path";\nimport { spawn } from "node:child_process";\nimport { createRequire } from "node:module";')
@@ -239,12 +239,13 @@ patchPackage('dsh-sandbox-windows-acl', ({ once, cwd }) => {
   once('const api = await win32();', 'await ensureConsoleHost();\n\tconst api = await win32();')
 }, () => 'lib/runner.js')
 
-// These master fixes remain necessary in rc.2; upstream has not absorbed them.
+// These master fixes remain necessary in rc.2; upstream has not absorbed them. Each edit only inserts lines.
 patchPackage('dsh-sandbox-local', ({ once }) => {
-  once('import { join } from "node:path";', 'import { dirname, join } from "node:path";')
+  once('import { join } from "node:path";', 'import { join } from "node:path";\nimport { dirname } from "node:path";')
   once('args.push("--tmpfs", "/tmp");', 'args.push("--tmpfs", "/tmp");\n\t\t// Preserve the read-only AppImage runner mount beneath the masked /tmp.\n\t\tconst executableDir = dirname(process.execPath);\n\t\tif (executableDir.startsWith("/tmp/")) args.push("--ro-bind", executableDir, executableDir);')
+  // A removed private temp is recreated rather than handed out again; the upstream line becomes the else branch.
   once('const existing = this.tempCapabilities.get(key);\n\t\tif (existing !== void 0) return existing;',
-    'const existing = this.tempCapabilities.get(key);\n\t\tif (existing !== void 0) {\n\t\t\tif (existsSync(existing.dir)) return existing;\n\t\t\tthis.tempCapabilities.delete(key);\n\t\t\tthis.ctx.logger.warn(`sandbox-local: windows-acl private temp ${existing.dir} was removed; creating a new one`);\n\t\t\ttry { existing.grant.dispose(); } catch (error) { this.ctx.logger.warn(error); }\n\t\t}');
+    'const existing = this.tempCapabilities.get(key);\n\t\tif (existing !== void 0 && !existsSync(existing.dir)) {\n\t\t\tthis.tempCapabilities.delete(key);\n\t\t\tthis.ctx.logger.warn(`sandbox-local: windows-acl private temp ${existing.dir} was removed; creating a new one`);\n\t\t\ttry { existing.grant.dispose(); } catch (error) { this.ctx.logger.warn(error); }\n\t\t} else\n\t\tif (existing !== void 0) return existing;');
 }, () => 'lib/index.js')
 
 patchPackage('dsh-experimental-client-ui-cot-translation', ({ once }) => {

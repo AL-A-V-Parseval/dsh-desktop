@@ -14,6 +14,7 @@ import { installDesktopFileDrag, installFileActions, liveshareOwnerLogin } from 
 import { claimDesktopSingleInstance } from './single-instance.ts'
 import { NEXT_PACKAGE, NextProfiles, parseFeatures, profileName } from './profiles.ts'
 import { APP_URL, IPC, SHELL_URL } from './ipc.ts'
+import { clientDiagnosticRecord, parseClientDiagnostic } from './client-diagnostic.ts'
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
 import { preferredDesktopLocale, resolveDesktopLocale } from './menu-locale.ts'
 import { NativeLocaleStore } from './native-locale.ts'
@@ -22,10 +23,12 @@ import { probeSystemProxy, type DesktopSystemProxyProbe } from './system-proxy.t
 import { readSystemProxyConfiguration } from './system-proxy-configuration.ts'
 import { resolveDesktopShellEnvironment, type DesktopShellEnvironmentResolution } from './shell-environment.ts'
 import { ensureUtf8Locale } from './shell-locale.ts'
+import type { DesktopAppIcon } from './app-icon.ts'
 import { DEFAULT_PROFILE, NATIVE_ACCESS_HEADER, type DesktopCommand, type DesktopState, type DesktopSettingsPage } from './desktop-contract.ts'
 import { portsChanged, parsePreferences } from './desktop-preferences.ts'
 import { hostStartupLimitTitle, hostStartupTimeoutFromId, hostStartupTimeoutLabel } from './host-startup-limit.ts'
-import { NativeDesktop, applyWindowMaterial, refreshApplicationMenu } from './native-desktop.ts'
+import { NativeDesktop, appWindowIcon, applyWindowMaterial, refreshApplicationMenu } from './native-desktop.ts'
+import { syncLinuxDesktopEntry, syncWindowsShortcuts, windowsShortcutDirectories } from './installed-app-icon.ts'
 import { desktopLanAddresses } from './lan-addresses.ts'
 import { createLanHttpsCertificate, lanHttpsCertificateDiagnostic } from './lan-https-certificate.ts'
 import { desktopTerminalStateDirectory, openDesktopTerminal } from './desktop-terminal.ts'
@@ -41,7 +44,6 @@ import { windowMaterial } from './window-material.ts'
 import { captureMainWindowState, FileMainWindowStateStore, fitMainWindowBounds, sameMainWindowState, type MainWindowState } from './main-window-state.ts'
 import { DE_ELEVATED_ARGUMENT, ONBOARDING_ARGUMENT, RECOVERY_ARGUMENT, SAFE_ARGUMENT, relaunchApp, relaunchArguments } from './relaunch.ts'
 import { DESKTOP_RUNTIME_FILE, readInstalledPackageVersion, verifyPackagedRuntimeIdentity } from './runtime-tree.ts'
-import { unpackedPath } from './asar-archive-policy.ts'
 import { createNativePermissions, installMediaPermissions } from './electron-permissions.ts'
 import { DATA_DIRECTORY_VARIABLE, dataDirectoryChange, dataDirectoryLocationFile, dataDirectoryLocationRoot, readDataDirectory, rememberDataDirectory, sameDirectory, validateDataDirectory } from './data-directory.ts'
 import { assertBackupLocation, backupDirectoryName, copyDataDirectory } from './data-backup.ts'
@@ -52,10 +54,11 @@ import { DesktopPlatformView, platformBounds } from './platform-view.ts'
 import { PLATFORM_IPC } from './platform-ipc.ts'
 import { NextUpdates } from './updates.ts'
 import { updateDownloadDirectory } from './update-downloads.ts'
+import { isWindowsPortableCopy } from './update-portable.ts'
 import { createArtifactRequest } from './update-transport.ts'
 import { NextUpdateInstaller } from './update-installer.ts'
 import { macUpdateArch } from './update-arch.ts'
-import { manualUpdateHint, releaseNotesUrl, updateLabel } from './update-state.ts'
+import { manualUpdate, manualUpdateHint, releaseNotesUrl, updateLabel } from './update-state.ts'
 import { DESKTOP_SHUTDOWN_TIMEOUT_MS } from '../../dsh-plugin-desktop/src/shutdown.ts'
 import { isDesktopRendererStatus, NextRendererRecovery, type DesktopNavigationCause } from './renderer-recovery.ts'
 import { collectRendererDiagnostics, rendererDiagnosticsFields } from './renderer-diagnostics.ts'
@@ -130,6 +133,10 @@ let rendererDocumentId = ''
 let pendingNavigation: { readonly owner: BrowserWindow; readonly cause: Exclude<DesktopNavigationCause, 'page'> } | undefined
 /** The main window's interface has mounted at least once, so a later renderer failure stops a running Desktop. */
 let rendererHealthy = false
+/** The main-window document whose Next client reports its own failures, and the newest client logger message recorded from it. */
+let clientReports: { readonly document: string; sn: number } | undefined
+/** Console copies of what the Next client reports itself: slot crashes, and errors and rejections nothing caught. */
+const CLIENT_REPORTED = /^(?:slot entry crashed in '|slot factory occurrence crashed in '|Uncaught )/u
 // Storage partitions outlive individual windows, so the guest owner is process-scoped.
 let desktopShortcuts: ReturnType<typeof installDesktopShortcuts> | undefined
 /** Removes the native file drag's temporary exports, where the followed DSH release drags files natively. */
@@ -156,7 +163,8 @@ let hostEnvironmentReady: Promise<void> | undefined
 let windowsLanguage = 'en'
 const require = createRequire(NEXT_PACKAGE)
 const webRoot = dirname(require.resolve('@deepseek-ai/dsh-web-frontend/dist/index.html'))
-const version = (JSON.parse(readFileSync(NEXT_PACKAGE, 'utf8')) as { version: string }).version
+const manifest = JSON.parse(readFileSync(NEXT_PACKAGE, 'utf8')) as { version: string; desktopName?: string }
+const version = manifest.version
 /** The dsh runtime beside this shell; a development tree may hoist it elsewhere, and the packaged check then reports it. */
 let dshVersion: string | undefined
 try { dshVersion = readInstalledPackageVersion(root, '@deepseek-ai/dsh') } catch { /* Not installed beside the shell; only diagnostics lose the field. */ }
@@ -258,12 +266,15 @@ const platformLogin = new PlatformLoginWindow({
   warn: error => runtime.diagnostics.append(String(error), 'warn'),
 })
 const native = new NativeDesktop({ root, language: () => windowsLanguage, state, window: () => mainWindow,
-  show: openMain, run, warn: error => runtime.diagnostics.append(String(error), 'warn') })
+  show: openMain, run, warn: error => runtime.diagnostics.append(String(error), 'warn'),
+  appIcon: (): DesktopAppIcon => runtime.preferences.appIcon, dark: systemDark, packaged: app.isPackaged,
+  windows: () => BrowserWindow.getAllWindows(), dock: () => app.dock, installed: applyInstalledAppIcon })
 const permissions = createNativePermissions()
 const updateInstaller = new NextUpdateInstaller({ platform: process.platform, executable: process.execPath,
   language: () => windowsLanguage,
   log: error => runtime.diagnostics.append(String(error), 'warn') })
 const updates = new NextUpdates({ version, platform: process.platform, packaged: app.isPackaged, userData: electronData,
+  portable: isWindowsPortableCopy(process.platform, app.isPackaged, process.execPath),
   downloads: updateDownloadDirectory(process.platform),
   arch: process.platform === 'darwin' ? macUpdateArch(process.arch, app.runningUnderARM64Translation) : undefined,
   request: (url, init) => net.fetch(url, { ...init, credentials: 'omit' }),
@@ -287,7 +298,51 @@ const updates = new NextUpdates({ version, platform: process.platform, packaged:
   },
 })
 
-function state(): DesktopState {
+/**
+ * Whether Windows and Linux show the Dark rendition of the app icon, as macOS does with the bundle's layered icon:
+ * on Windows while the taskbar and Start menu are dark, whatever theme apps use; on Linux while the theme the app
+ * follows is dark, which is the system's unless the app has a theme of its own. macOS needs no help.
+ */
+function systemDark(): boolean {
+  if (process.platform === 'win32') return nativeTheme.shouldUseDarkColorsForSystemIntegratedUI
+  return process.platform === 'linux' && nativeTheme.shouldUseDarkColors
+}
+
+/**
+ * Show the app icon in what the installed package shows outside the running app: the Windows shortcuts and the Linux
+ * desktop entry, which no signature covers. The default whale tail in a light theme is what the package installed,
+ * the program's own icon and the package's desktop entry. Development runs leave the installed app alone, and Safe
+ * Mode leaves the saved choice in place. It runs after the current event, so reading shortcuts never holds up a window.
+ * @param icon - The saved choice.
+ * @param dark - Whether the system theme is dark.
+ */
+function applyInstalledAppIcon(icon: DesktopAppIcon, dark: boolean): void {
+  if (!app.isPackaged || runtime.safeMode || (process.platform !== 'win32' && process.platform !== 'linux')) return
+  const platform = process.platform
+  const packaged = icon === 'default' && !dark
+  const label = icon === 'classic' ? 'classic' : dark ? 'dark' : 'default'
+  setImmediate(() => {
+    if (quitting) return
+    try {
+      const result = platform === 'win32'
+        ? syncWindowsShortcuts({ icon: packaged ? process.execPath : appWindowIcon(root, platform, icon, dark)!,
+          ours: [appWindowIcon(root, platform, 'default', true)!, appWindowIcon(root, platform, 'classic')!], execPath: process.execPath, name: 'DSH Desktop Beta',
+          directories: windowsShortcutDirectories({ desktop: app.getPath('desktop'), appData: app.getPath('appData') }, process.env), shell })
+        : manifest.desktopName === undefined ? { changed: [], failed: [] }
+          : syncLinuxDesktopEntry({ image: packaged ? undefined : appWindowIcon(root, platform, icon, dark), label, execPath: process.execPath,
+            desktopId: manifest.desktopName, home: app.getPath('home'), env: process.env })
+      for (const path of result.changed) runtime.diagnostics.append(`App icon ${label}: updated ${path}`)
+      for (const path of result.failed) runtime.diagnostics.append(`App icon ${label}: could not update ${path}`, 'warn')
+    } catch (error) { runtime.diagnostics.append(`App icon ${label}: ${String(error)}`, 'warn') }
+  })
+}
+
+/**
+ * The complete Desktop state.
+ * @param withLogs - Include the masked recent log, which only the recovery assistant in the shell window shows;
+ *   the main window's settings poll this state every two seconds and would otherwise pay for a 128 KiB snapshot.
+ */
+function state(withLogs = false): DesktopState {
   // A broken in-app choice is still a choice that "Restore default" can remove.
   const usingDefaultDirectory = dataSource !== 'desktop' && !dataLocation.error
   let recovery: DesktopState['recovery']
@@ -301,7 +356,7 @@ function state(): DesktopState {
     recovery = { bundles: [], checkpoints: [], profileDirectory: join(home, 'profiles', runtime.selected),
       usingDefaultDirectory, error: String(error), diagnosticsFile, notice: recoveryNotice }
   }
-  return { ...runtime.state(), recovery, dataDirectory: { source: dataSource, environmentHome: environmentHome === undefined ? null : resolve(environmentHome) },
+  return { ...runtime.state(), logs: withLogs ? runtime.diagnostics.snapshot() : '', recovery, dataDirectory: { source: dataSource, environmentHome: environmentHome === undefined ? null : resolve(environmentHome) },
     onboarding, ...(onboarding ? { onboardingComputerUse } : {}), platform: process.platform, version,
     ...(['darwin', 'win32', 'linux'].includes(process.platform) ? { updates: updates.snapshot() } : {}),
     trayAvailable: native.available, notificationsAvailable: Notification.isSupported() }
@@ -390,7 +445,7 @@ function createWindow(preload: string, primary = false): BrowserWindow {
   const window = new BrowserWindow({ width: MAIN_WINDOW_WIDTH, height: MAIN_WINDOW_HEIGHT, minWidth: MAIN_WINDOW_MIN_WIDTH, minHeight: MAIN_WINDOW_MIN_HEIGHT,
     ...(restored?.bounds ?? {}),
     show: false, title: 'DSH Desktop Beta',
-    ...(process.platform !== 'darwin' ? { icon: unpackedPath(join(root, 'build', process.platform === 'win32' ? 'app-icon.ico' : 'app-icon.png')) } : {}),
+    ...(process.platform !== 'darwin' ? { icon: appWindowIcon(root, process.platform, runtime.preferences.appIcon, systemDark()) } : {}),
     ...(!primary ? auxiliaryWindowChromeOptions() : {}),
     ...(process.platform === 'linux' ? { autoHideMenuBar: true } : {}),
     ...(process.platform === 'win32' && primary ? {
@@ -420,7 +475,10 @@ function createWindow(preload: string, primary = false): BrowserWindow {
     // Electron puts the message, its level and its source on the event; never assume the text exists.
     const { message, level, sourceId, lineNumber } = event
     if (typeof message !== 'string') return
-    const failure = level === 'error' || message.includes('[next-ui-error]') || message.includes('slot entry crashed') || message.includes('slot factory occurrence crashed')
+    // The Next client reports slot crashes and uncaught errors with their plugin and stack; the main frame's
+    // console copies would only repeat those records.
+    if (window === mainWindow && clientReports?.document === rendererDocumentId && event.frame?.parent === null && CLIENT_REPORTED.test(message)) return
+    const failure = level === 'error'
     const bootWarning = message.startsWith('web boot: warning')
     const important = failure || bootWarning
     if (!important && !runtime.preferences.developerLogging) return
@@ -591,7 +649,9 @@ function resetRendererRecovery(owner: BrowserWindow): void {
     exhausted: detail => runtime.report(new Error(`Renderer recovery exhausted: ${detail}`), rendererHealthy ? 'renderer-runtime' : 'renderer-startup'),
     healthy: () => { rendererHealthy = true },
     record: (event, fields) => {
-      runtime.diagnostics.record({ source: 'renderer', event, fields })
+      // A scheduled or exhausted recovery means the page failed; the report it leads to records the failure itself.
+      const level = event === 'renderer.recovery.scheduled' || event === 'renderer.recovery.exhausted' ? 'warn' : 'info'
+      runtime.diagnostics.record({ source: 'renderer', event, level, fields })
       // A freshly mounted interface is the sample worth keeping until the next periodic one.
       if (event === 'renderer.ready') void rendererEvidence.refresh()
     },
@@ -688,14 +748,14 @@ function confirmLanAccess(): Promise<boolean> {
     t('同一网络中的设备可以连接。请仅向可信设备分享登录链接，并在设备上核对和信任 CA 证书。', 'Devices on your local network can connect. Share login links only with trusted devices, and verify and trust the CA certificate on each device.'),
   )
 }
-/** Linux packages are not installed in the app: open the release page, which carries every package format. */
+/** Linux packages and portable Windows copies are not installed in the app: open the release page, which carries every package format. */
 function openUpdateDownload(version: string | undefined): void {
   void shell.openExternal(releaseNotesUrl(version)).catch(error => runtime.diagnostics.append(String(error), 'warn'))
 }
 async function promptAvailableUpdate(): Promise<void> {
   if (quitting || runtime.busy) return
   const snapshot = updates.snapshot()
-  const manual = process.platform === 'linux'
+  const manual = manualUpdate(snapshot, process.platform)
   if (snapshot.phase !== 'available' || !snapshot.installable && !manual) return
   const owner = raiseDialogOwner()
   const options = {
@@ -705,7 +765,7 @@ async function promptAvailableUpdate(): Promise<void> {
     buttons: [manual ? t('前往下载', 'Open download page') : t('下载更新', 'Download update'), t('稍后', 'Later')],
     defaultId: 0,
     cancelId: 1,
-    detail: manual ? manualUpdateHint(windowsLanguage) : t('下载完成后可一键安装并重启。', 'When the download finishes, choose Install and restart.'),
+    detail: manual ? manualUpdateHint(windowsLanguage, snapshot.portable) : t('下载完成后可一键安装并重启。', 'When the download finishes, choose Install and restart.'),
   }
   const choice = await (owner === undefined ? dialog.showMessageBox(options) : dialog.showMessageBox(owner, options))
   if (choice.response !== 0 || quitting) return
@@ -741,6 +801,8 @@ async function loggedCommand(input: Record<string, unknown>, type: string, sourc
 
 async function performCommand(input: Record<string, unknown>, type: string, source: 'app' | 'shell' | 'native'): Promise<boolean | void> {
   if (type === 'confirm-lan') return confirmLanAccess()
+  // Setup offers the choice before the Host starts; the change notification shows the icon at once.
+  if (type === 'app-icon') { runtime.saveAppIcon(input.appIcon); return }
   if (type === 'controls') {
     if (input.page !== undefined && (typeof input.page !== 'string' || !['general', 'profiles', 'create-profile', 'tools', 'recovery', 'permissions'].includes(input.page))) throw new Error('Invalid controls page')
     openControls(input.page as Parameters<typeof openControls>[0]); return
@@ -753,7 +815,7 @@ async function performCommand(input: Record<string, unknown>, type: string, sour
       void updates.check().then(async () => {
         if (source !== 'native' || quitting) return
         const snapshot = updates.snapshot()
-        if (snapshot.phase === 'available' && (snapshot.installable || process.platform === 'linux')) await promptAvailableUpdate()
+        if (snapshot.phase === 'available' && (snapshot.installable || manualUpdate(snapshot, process.platform))) await promptAvailableUpdate()
         else {
           const owner = raiseDialogOwner()
           const options = { type: 'info' as const, title: 'DSH Desktop Beta', message: updateLabel(snapshot, windowsLanguage) }
@@ -761,7 +823,8 @@ async function performCommand(input: Record<string, unknown>, type: string, sour
         }
       }).catch(error => runtime.diagnostics.append(String(error), 'warn'))
     } else if (type === 'download-update') {
-      if (process.platform === 'linux') openUpdateDownload(updates.snapshot().version)
+      const snapshot = updates.snapshot()
+      if (manualUpdate(snapshot, process.platform)) openUpdateDownload(snapshot.version)
       else void updates.download()
     } else {
       if (updates.snapshot().phase !== 'ready') return
@@ -839,7 +902,7 @@ async function performCommand(input: Record<string, unknown>, type: string, sour
     }
     if (type === 'open-home') { await openPath(home); return }
     if (type === 'open-profile') { await openPath(runtime.profiles.directory(runtime.selected)); return }
-    if (type === 'open-logs') { runtime.diagnostics.flush(); await openPath(dirname(runtime.diagnostics.file)); return }
+    if (type === 'open-logs') { runtime.diagnostics.flush(true); await openPath(dirname(runtime.diagnostics.file)); return }
     if (type === 'open-backups') { privateDirectory(runtime.recovery.directory); await openPath(runtime.recovery.directory); return }
     if (type === 'change-data-directory' || type === 'backup-data-directory') {
       if (runtime.safeMode || runtime.recoveryMode) throw new Error(t('安全模式和恢复模式下请使用恢复助手。', 'In Safe Mode or recovery mode, use the recovery assistant.'))
@@ -1030,6 +1093,14 @@ async function recoveryAction(input: Record<string, unknown>): Promise<void> {
     recoveryNotice = { tone: 'success', title: hostStartupLimitTitle(zh),
       body: t(`已改为${limit === 'none' ? '' : ' '}${hostStartupTimeoutLabel(limit, zh)}。请点击“${restart}”使其生效。`,
         `${limit === 'none' ? 'The startup limit is removed' : `The startup limit is now ${String(limit)} seconds`}. Choose “${restart}” to apply it.`) }
+    return
+  }
+  if (action === 'automatic-port') {
+    // Safe Mode's settings are fixed and always let the Host choose its port.
+    runtime.writePreferences({ ...runtime.preferences, port: 0 })
+    runtime.diagnostics.record({ source: 'desktop', event: 'host.port.automatic' })
+    recoveryNotice = { tone: 'success', title: t('已改用自动端口', 'Automatic port set'),
+      body: t('插件服务下次启动时会选一个空闲端口。请点击“退出并重启”使其生效。', 'The plugin service picks a free port the next time it starts. Choose “Quit and restart” to apply it.') }
     return
   }
   const directory = runtime.profiles.directory(runtime.selected)
@@ -1279,6 +1350,8 @@ async function main(): Promise<void> {
     })
   app.once('will-quit', () => { desktopShortcuts?.dispose() })
   if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(join(root, 'build', 'app-icon-mac.png'))
+  // The sign-in window and page popups take the chosen frame icon too.
+  app.on('browser-window-created', (_event, window) => native.decorateWindow(window))
   // Recovery can open without a Host; Chromium's app locale may differ from the OS language.
   windowsLanguage = preferredDesktopLocale([...app.getPreferredSystemLanguages(), app.getLocale()])
   // Before any Profile is read or set up in a directory this launch may give up.
@@ -1314,13 +1387,32 @@ async function main(): Promise<void> {
     if (documentId !== rendererDocumentId || !documentId) return
     rendererRecovery?.report(status)
   })
+  // Sent without an answer, so a rejected sender or report is dropped here rather than thrown.
+  ipcMain.on(IPC.rendererDiagnostic, (event, documentId: unknown, value: unknown) => {
+    try { assertSender(event, mainWindow, APP_URL) } catch { return }
+    if (!documentId || documentId !== rendererDocumentId) return
+    const report = parseClientDiagnostic(value)
+    if (report === undefined) return
+    if (report.kind === 'ready') {
+      // A client plugin reloaded in place announces itself again; what this document recorded stays recorded.
+      if (clientReports?.document !== rendererDocumentId) clientReports = { document: rendererDocumentId, sn: -1 }
+      return
+    }
+    if (report.kind === 'log') {
+      // The reloaded plugin replays the logger's buffer; this document's messages are recorded once.
+      if (clientReports?.document !== rendererDocumentId || report.sn <= clientReports.sn) return
+      clientReports.sn = report.sn
+    }
+    const record = clientDiagnosticRecord(report)
+    if (record !== undefined) runtime.diagnostics.record(record)
+  })
   ipcMain.handle(IPC.failed, (event, message: unknown, documentId: unknown) => {
     assertSender(event, mainWindow, APP_URL)
     if (typeof message !== 'string') throw new Error('Invalid boot error')
     if (documentId !== undefined && documentId !== rendererDocumentId) return
     failRenderer(mainWindow!, new Error(message.slice(0, 4096)))
   })
-  ipcMain.handle(IPC.state, event => { assertDesktopSender(event); return state() })
+  ipcMain.handle(IPC.state, event => { assertDesktopSender(event); return state(event.sender !== mainWindow?.webContents) })
   ipcMain.handle('dsh-desktop:setup-onboarding', async (event, request: unknown) => {
     assertSender(event, mainWindow, APP_URL)
     if (!request || typeof request !== 'object' || Array.isArray(request)) throw new Error('Invalid setup request')
@@ -1465,6 +1557,7 @@ async function main(): Promise<void> {
     for (const window of [mainWindow, shellWindow]) {
       if (window && !window.isDestroyed()) applyWindowMaterial(window, runtime.preferences)
     }
+    native.appearanceChanged()
   })
   runtime.safeMode = safeModeRequested
   runtime.recoveryMode = process.argv.includes(RECOVERY_ARGUMENT)
@@ -1633,7 +1726,8 @@ if (ownsInstance) {
       reportSandboxLaunchFailure(failure)
     }
   })
-  app.once('will-quit', () => runtime.diagnostics.flush())
+  // Every way out leaves a current readable copy, not one up to five seconds old.
+  app.once('will-quit', () => runtime.diagnostics.flush(true))
   const { elevation, kept, error, win32Code } = startupElevationState
   runtime.diagnostics.begin({ version, platform: process.platform, electron: process.versions.electron ?? '', node: process.version, safeMode: safeModeRequested,
     ...(dshVersion === undefined ? {} : { dsh: dshVersion }),

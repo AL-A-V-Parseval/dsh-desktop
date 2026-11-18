@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-11-18T00:00:00Z",
+  "sources": [
+    "https://github.com/earendil-works/pi/blob/a92283056d915c758799fcd904948ff0cb42628c/packages/ai/scripts/generate-models.ts#L2964-L2989",
+    "https://github.com/earendil-works/pi/blob/a92283056d915c758799fcd904948ff0cb42628c/packages/ai/scripts/generate-models.ts#L3210-L3237",
+    "https://learn.chatgpt.com/docs/whats-new/gpt-62-astra-sol",
+    "https://learn.chatgpt.com/docs/models",
+    "https://models.dev/models/openai/gpt-6.2-astra",
+    "https://models.dev/models/openai/gpt-6.2-sol"
+  ],
+  "note": "Keep Terra and add the November 17 Astra/Sol IDs on each supported OpenAI route. API uses the published context limits; Codex uses its documented default windows. Codex cost inherits the API-equivalent token rates, not subscription billing. Do not enable new speed tiers or change the wire protocol.",
+  "models": [
+    {
+      "provider": "openai", "baseModelId": "gpt-6.1-sol",
+      "changes": {"id": "gpt-6.1-terra", "name": "GPT-6.1 Terra", "contextWindow": 272000, "maxTokens": 128000,
+        "cost": {"input": 1, "output": 5, "cacheRead": 0.05, "cacheWrite": 1.25, "tiers": [{"inputTokensAbove": 272000, "input": 2, "output": 7.5, "cacheRead": 0.1, "cacheWrite": 2.5}]},
+        "thinkingLevelMap": {"off": "none", "minimal": null, "low": "low", "medium": "medium", "high": "high", "xhigh": "xhigh", "max": "max"}}
+    },
+    {
+      "provider": "openai-codex", "baseModelId": "gpt-6.1-sol",
+      "changes": {"id": "gpt-6.1-terra", "name": "GPT-6.1 Terra", "contextWindow": 500000, "maxTokens": 128000,
+        "cost": {"input": 1, "output": 5, "cacheRead": 0.05, "cacheWrite": 1.25, "tiers": [{"inputTokensAbove": 272000, "input": 2, "output": 7.5, "cacheRead": 0.1, "cacheWrite": 2.5}]},
+        "thinkingLevelMap": {"off": "none", "minimal": "low", "low": "low", "medium": "medium", "high": "high", "xhigh": "xhigh", "max": "max"}}
+    },
+    {
+      "provider": "openai", "baseModelId": "gpt-6-astra",
+      "changes": {"id": "gpt-6.2-astra", "name": "GPT-6.2 Astra", "contextWindow": 1050000, "maxTokens": 128000,
+        "cost": {"input": 8, "output": 40, "cacheRead": 0.4, "cacheWrite": 10, "tiers": [{"inputTokensAbove": 272000, "input": 16, "output": 60, "cacheRead": 0.8, "cacheWrite": 20}]}}
+    },
+    {
+      "provider": "openai", "baseModelId": "gpt-6.1-sol",
+      "changes": {"id": "gpt-6.2-sol", "name": "GPT-6.2 Sol", "contextWindow": 1050000, "maxTokens": 128000,
+        "cost": {"input": 2, "output": 10, "cacheRead": 0.1, "cacheWrite": 2.5, "tiers": [{"inputTokensAbove": 272000, "input": 4, "output": 15, "cacheRead": 0.2, "cacheWrite": 5}]}}
+    },
+    {
+      "provider": "openai-codex", "baseModelId": "gpt-6-astra",
+      "changes": {"id": "gpt-6.2-astra", "name": "GPT-6.2 Astra", "contextWindow": 272000, "maxTokens": 128000,
+        "cost": {"input": 8, "output": 40, "cacheRead": 0.4, "cacheWrite": 10, "tiers": [{"inputTokensAbove": 272000, "input": 16, "output": 60, "cacheRead": 0.8, "cacheWrite": 20}]}}
+    },
+    {
+      "provider": "openai-codex", "baseModelId": "gpt-6.1-sol",
+      "changes": {"id": "gpt-6.2-sol", "name": "GPT-6.2 Sol", "contextWindow": 500000, "maxTokens": 128000,
+        "cost": {"input": 2, "output": 10, "cacheRead": 0.1, "cacheWrite": 2.5, "tiers": [{"inputTokensAbove": 272000, "input": 4, "output": 15, "cacheRead": 0.2, "cacheWrite": 5}]}}
+    }
+  ]
+}

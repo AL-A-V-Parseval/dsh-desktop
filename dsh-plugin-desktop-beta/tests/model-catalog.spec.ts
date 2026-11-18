@@ -26,6 +26,16 @@ it('ships the refreshed public catalog without replacing the protocol/OAuth runt
     expect(terra?.contextWindow).toBe(provider === 'openai-codex' ? 500000 : 272000)
     expect(terra?.maxTokens).toBe(128000)
     expect(terra?.thinkingLevelMap?.off).toBe('none')
+    for (const [id, codexContext, inputCost] of [['gpt-6.2-astra', 272000, 8], ['gpt-6.2-sol', 500000, 2]] as const) {
+      const models = getBuiltinModels(provider).filter(model => model.id === id)
+      expect(models, `${provider}/${id}`).toHaveLength(1)
+      expect(models[0]).toMatchObject({
+        api: provider === 'openai' ? 'openai-responses' : 'openai-codex-responses',
+        contextWindow: provider === 'openai' ? 1050000 : codexContext,
+        maxTokens: 128000, cost: { input: inputCost }, reasoning: true,
+        input: ['text', 'image'], thinkingLevelMap: { low: 'low', high: 'high', max: 'max' },
+      })
+    }
   }
   const manifest = JSON.parse(readFileSync(join(root, 'providers/data/.manifest.json'), 'utf8'))
   for (const [file, digest] of Object.entries(manifest.files)) {
@@ -48,5 +58,5 @@ it('ships the refreshed public catalog without replacing the protocol/OAuth runt
       expect(installed, file).not.toContain(before)
     }
   }
-  expect(createHash('sha256').update(readFileSync(new URL('../../pi-model-catalog-additions.json', import.meta.url))).digest('hex')).toBe(receipt.additionsSha256)
+  expect(createHash('sha256').update(readFileSync(new URL(`../../${receipt.additionsFile}`, import.meta.url))).digest('hex')).toBe(receipt.additionsSha256)
 })

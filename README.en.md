@@ -31,8 +31,8 @@ DSH Desktop integrates the official Web UI, Host service, and plugin system of [
 
 This fork is **Linux-focused**: it maintains Linux releases and compatibility fixes while following upstream's cross-platform improvements, retaining this fork's Stable release and data-compatibility policy.
 
-- Merged upstream snapshot: `3bee0528fb`; source version `2.0.23-next-linux.2` passed actual packaged rendering with the Office ASAR fix
-- Source runtimes: Linux Stable workspace `dsh-desktop-next/` and Beta both use `0.2.2-rc.3`; legacy workspace retains `0.2.1-rc.3`. Pins live in [`upstream.json`](upstream.json); Linux release boundaries are defined by [`linux-release-policy.json`](linux-release-policy.json)
+- Merged upstream snapshot: `e66243ece4`; source version `2.0.24-next-linux.1` has not been packaged or released
+- Source runtimes: Linux Stable workspace `dsh-desktop-next/` and Beta both use `0.2.2-rc.4`; legacy workspace retains `0.2.1-rc.3`. Pins live in [`upstream.json`](upstream.json); Linux release boundaries are defined by [`linux-release-policy.json`](linux-release-policy.json)
 - Stable `v2.0.23-next-linux.2` uses DSH `0.2.2-rc.3`; subsequent source merges do not replace its immutable tag or installers
 - Target platform: **Linux x64**
 - Artifacts: an AppImage, a portable archive (tar.gz) and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships alongside them, and the `.deb` also carries an internal `debsigs` signature
@@ -57,7 +57,7 @@ The new framework uses ASAR with native/Office resources unpacked where needed. 
 
 ### 5. Model catalog, OAuth and plugin markets
 
-Provider sign-in and custom models are preserved. The bundled catalog includes `gpt-6.1-terra` on OpenAI API and OpenAI Codex OAuth. Catalog updates do not replace protocol/OAuth implementations or alter credentials/default models. Sources and reproduction are documented in [`docs/model-catalog-refresh.md`](docs/model-catalog-refresh.md); catalog presence does not guarantee account entitlement. Plugin installation, toggling, removal and community-plugin updates use the official plugin manager, with Market and AA integration retained.
+Provider sign-in and custom models are preserved. The source catalog adds GPT‑6.2 Astra and Sol on OpenAI API and OpenAI Codex OAuth and retains `gpt-6.1-terra`. Catalog updates do not replace protocol/OAuth implementations or alter credentials or default models. See [`docs/model-catalog-refresh.md`](docs/model-catalog-refresh.md) for sources and reproduction. Actual access depends on account entitlement. Plugin installation, toggling, removal and community-plugin updates use the official plugin manager, with Market and AA integration retained.
 
 See `.yarn/patches/`, `patches/`, and the commit history for details.
 

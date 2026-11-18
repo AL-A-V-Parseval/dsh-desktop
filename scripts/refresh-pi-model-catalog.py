@@ -46,7 +46,8 @@ def main():
         if hashlib.sha256(new['dist/providers/data/' + filename]).hexdigest() != digest:
             raise ValueError('Catalog manifest hash mismatch: ' + filename)
     catalog_generated_at = manifest['generatedAt']
-    additions_path = ROOT / 'pi-model-catalog-additions.json'
+    additions_path = ROOT / ('pi-model-catalog-additions-1.3.0.json' if runtime_version == '1.3.0'
+                             else 'pi-model-catalog-additions.json')
     additions = json.loads(additions_path.read_text()) if additions_path.exists() else None
     if additions is not None:
         for entry in additions['models']:
@@ -95,6 +96,7 @@ def main():
     receipt = {'package': metadata['name'], 'runtimeVersion': runtime_version, 'catalogVersion': metadata['version'],
                'catalogGeneratedAt': manifest['generatedAt'], 'publishedCatalogGeneratedAt': catalog_generated_at, 'integrity': integrity,
                'additionsSources': additions['sources'] if additions else [],
+               'additionsFile': additions_path.name if additions else None,
                'additionsSha256': hashlib.sha256(additions_path.read_bytes()).hexdigest() if additions else None,
                'source': metadata['dist']['tarball'], 'beforeModels': len(before), 'afterModels': len(after),
                'changedFiles': changed, 'patchSha256': hashlib.sha256(output.encode()).hexdigest()}

@@ -211,7 +211,7 @@ DSH Desktop Beta 将 UTF-8 日志写入独立的 Electron 用户数据目录：W
 
 故障打开恢复助手时，Beta 会把这次故障保存到数据目录（默认 `~/.dsh-beta`）下的 `logs/dsh-plugin-desktop-beta-failure-<UTC 时间>-<阶段>.log`，“快速恢复”页的 **诊断报告** 可在文件夹中定位该文件。与 DSH 0.2.2 的 Desktop 一样，Beta 还会为这些报告保留近期插件操作：经官方插件管理器进行的安装、卸载、启用和停用（插件页、插件市场和社区市场都经由它），以及 dsh-market 通过桌面端 `desktopPnpm.runPlugin` 执行的插件命令。每条记录只包含操作、包名或插件条目、请求的精确版本、结果或退出码，以及观察到该操作的 Host 运行；其他包说明符可能包含路径或凭据，不会记录。记录保存在 `logs/plugin-operations/`，分两段，每段不超过 256 KiB。报告保存后，Worker 会在 500 毫秒内追加最多 100 条近期记录（不超过 64 KiB）；Host 故障的报告还会写明对应的 `host run`。这些记录只是上下文，不能证明故障原因：通过命令行或手动改文件做的修改不会记录，缺少记录也不代表没有改动。
 
-插件服务（Host）需在启动时限内就绪，否则停止启动并打开恢复助手。默认 60 秒；“桌面设置 → 桌面工具”和恢复助手“快速恢复”页的“插件服务（Host）启动时限”卡片可选 60、120、180、300、600 秒或“不限时”，下次启动插件服务时生效，安全模式固定使用 60 秒。不限时会一直等待插件服务就绪；插件服务退出或报错时仍会打开恢复助手，托盘和应用菜单也始终提供恢复助手、安全模式和退出。时限超过 60 秒（包括不限时）时，启动满 1 分钟仍未就绪会发一次系统通知，列出仍在加载的插件并说明恢复助手的入口。超时打开恢复助手时，故障报告紧接在故障之后列出仍在加载的插件条目（条目 id、模块、阶段和已等待时长），日志以 `host.start.pending` 记录同一份列表；列表来自 `host.cordis.patch.yml` 中的 `desktop-next-startup-entries` 插件行，它在启动期间读取 Loader 中尚未完成的条目。“快速恢复”页的时限卡片也会说明这次超时和仍在加载的插件。该设置保存在数据目录的 `desktop-preferences-extra.json`，而不是 `desktop-preferences.json`：已发布的版本遇到后者中不认识的键会进入恢复，却不读取前者，因此降级后仍能启动。前者损坏或值无效时按默认值处理并记入日志。
+插件服务（Host）需在启动时限内就绪，否则停止启动并打开恢复助手。默认 60 秒；“桌面设置 → 诊断与恢复”和恢复助手“快速恢复”页的“插件服务（Host）启动时限”卡片可选 60、120、180、300、600 秒或“不限时”，下次启动插件服务时生效，安全模式固定使用 60 秒。不限时会一直等待插件服务就绪；插件服务退出或报错时仍会打开恢复助手，托盘和应用菜单也始终提供恢复助手、安全模式和退出。时限超过 60 秒（包括不限时）时，启动满 1 分钟仍未就绪会发一次系统通知，列出仍在加载的插件并说明恢复助手的入口。超时打开恢复助手时，故障报告紧接在故障之后列出仍在加载的插件条目（条目 id、模块、阶段和已等待时长），日志以 `host.start.pending` 记录同一份列表；列表来自 `host.cordis.patch.yml` 中的 `desktop-next-startup-entries` 插件行，它在启动期间读取 Loader 中尚未完成的条目。“快速恢复”页的时限卡片也会说明这次超时和仍在加载的插件。该设置保存在数据目录的 `desktop-preferences-extra.json`，而不是 `desktop-preferences.json`：已发布的版本遇到后者中不认识的键会进入恢复，却不读取前者，因此降级后仍能启动。前者损坏或值无效时按默认值处理并记入日志。
 
 ## 原生生命周期
 
@@ -230,6 +230,10 @@ Stable 与 Beta 在 Windows、macOS 和 Linux 上均关闭 ASAR。打包后的 E
 在 Icon Composer 保存工程后，在安装了 Xcode 27 和 Icon Composer 的 Mac 上，从仓库根目录运行 `corepack yarn icons:export --channel beta`。省略 `--channel` 可一起导出 Stable、Beta 和 Next。加上 `--linux` 则只从已提交的 PNG 重新生成 Beta 和 Next 的 Linux 图标集，无需 Xcode。请同时提交工程、所有导出资源和 `build/app-icon.resources.json`；`corepack yarn icons:check` 可在任何系统上检查资源是否过期或缺失，无需 Xcode。macOS 原生打包要求 Xcode 26 或更新版本；若 `xcode-select` 指向 Command Line Tools，请为打包命令设置 `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`，导出脚本则会自动查找完整 Xcode 安装。
 
 `icons:export` 从同一鲸尾图层裁出 `assets/` 中的托盘图：`tray-iconTemplate.png` 及其 `@2x` 图是由 macOS 菜单栏自动着色的模板图；`tray-icon-blue.png` 及其 1.25x、1.5x、2x 图保留 `#3563BF` 描边色，供 Windows 和 Linux 使用。资源记录同样覆盖这些托盘图，`icons:check` 也会拒绝过期的托盘图。
+
+`build/classic/` 保留 Beta 换用鲸尾之前的 DeepSeek 鲸鱼图标。用户可以在桌面设置或设置向导第一页的 **应用图标** 中切换回它。其中的 `app-icon.icon` 是原先的工程，原样恢复；`icons:export` 为它生成除 Linux 图标集以外同样的导出文件，记录在 `build/classic/app-icon.resources.json` 中，并把 Stable 的托盘图原样复制到 `assets/classic/`。对默认的鲸尾图标，它还导出 Icon Composer 的深色（Dark）版本：`build/app-icon-dark.png` 和 `build/app-icon-dark.ico`；经典工程本身就是系统深色背景，深色版本与原图完全相同，因此不单独导出。两套图标各有一张 128 像素的 `app-icon-preview.png`，默认图标另有 `app-icon-preview-dark.png`，桌面设置和设置向导按页面的深浅色主题显示它们；`--linux` 也会重新生成这些缩略图。
+
+在 macOS 上，这一选项更改运行中的应用在程序坞和菜单栏中的图标；已签名的应用包在访达、通知以及应用未运行时的程序坞里仍显示默认图标。Windows 和 Linux 的安装包没有签名，应用在这两个平台改得更彻底。在 Windows 上，应用把这次安装的快捷方式指向所选的 ICO，范围包括两处桌面、两处开始菜单以及任务栏和开始菜单的固定项：只处理以应用名称开头、启动本程序、且仍显示应用自身图标的 `.lnk` 文件，并且每次启动都重新应用一次，因为安装程序会重建快捷方式。为所有用户安装的快捷方式需要管理员权限，保持默认，程序文件本身也是如此。在 Linux 上，应用把安装包的桌面入口复制到 `~/.local/share/applications`，`Icon` 设为所选图片，`TryExec` 设为本程序（卸载安装包后菜单会忽略这份副本），并加上 `X-DSH-Desktop-App-Icon` 标记；选回默认图标时删除副本，没有标记的副本属于用户自己，保持不动；AppImage 只更改窗口和托盘。系统使用深色主题时，窗口、快捷方式和桌面入口显示深色版本，与 macOS 处理分层图标的方式一致：Windows 以任务栏和开始菜单的主题为准，Linux 以应用所跟随的主题为准。托盘图保持不变。安全模式显示默认图标，也不改动快捷方式和桌面入口。
 
 ### WSL Linux 无界面检查
 

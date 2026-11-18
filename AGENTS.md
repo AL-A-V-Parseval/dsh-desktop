@@ -33,6 +33,7 @@ This repository owns the desktop product around an unmodified DeepSeek Harness c
 - `dsh-desktop-next/` owns the promoted Linux Stable shell, Profiles and recovery, and AA/Community Market adapters; shared code mirrors Beta through the declared variant transforms. Keep its upstream reference and published runtime versions aligned; do not fork the official main frontend.
 - `dsh-community-fabric/` owns the community interoperability RFC. Until schemas and a reviewed reference adapter exist, it remains a private documentation scaffold and must not declare loadable DSH or package entry points.
 - `dsh-community-market/` owns the loadable Community Market integration and its compatibility patch.
+- `dsh-tokens-anywhere/` owns the Anywhere account plugin, `@agents-anywhere/dsh-tokens-anywhere`: Tokens Anywhere sign-in, its models and usage. No Desktop variant loads it yet; the Next and Beta Host smokes assert that it is not mounted. Keep its `@deepseek-ai/dsh*` peers on Next's runtime version.
 - The outer repository and all owned packages use the root Yarn release with `nodeLinker: node-modules`.
 - The upstream submodule keeps its own pnpm workspace. Run upstream commands through the root `upstream:*` scripts, whose Yarn portable-shell commands enter the submodule before invoking Corepack.
 - Compatibility mode must run the upstream default client without overrides. Advanced presentation belongs to desktop-owned client plugins and may replace documented slots or services through profile composition.

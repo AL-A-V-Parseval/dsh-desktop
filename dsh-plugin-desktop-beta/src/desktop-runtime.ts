@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path'
 import type { PlatformSession } from '@deepseek-ai/dsh-deepseek-account'
 import { DesktopBackendController } from './backend-controller.ts'
 import { DesktopHostExitError, DesktopHostFatalError, DesktopHostProcess, type DesktopPlatformLoginRequest } from './host-process.ts'
+import { isDesktopAppIcon } from './app-icon.ts'
 import { DesktopPreferenceStore, parsePreferences } from './desktop-preferences.ts'
 import { DEFAULT_FEATURES, NextProfiles } from './profiles.ts'
 import { DEFAULT_PREFERENCES, DEFAULT_PROFILE, SAFE_MODE_PREFERENCES, type DesktopBrowserLinks, type DesktopFailureReport, type DesktopPreferences, type DesktopState, type DesktopNotification } from './desktop-contract.ts'
@@ -18,6 +19,7 @@ import { collectRendererDiagnostics, rendererDiagnosticsFields, RENDERER_FAILURE
 import { DesktopMemoryMonitor, type DesktopMemoryProbe } from './memory-monitor.ts'
 import { NextRecovery } from './recovery.ts'
 import { maskSecrets } from './mask-secrets.ts'
+import { portConflict } from './port-conflict.ts'
 import { privateDirectory } from './private-files.ts'
 import { authenticateWebHost } from './web-document.ts'
 import { DesktopLanHttpsRuntime } from './lan-https-runtime.ts'
@@ -135,6 +137,8 @@ export class NextDesktopRuntime {
     // Safe Mode and an unreadable preference file still show recovery the limit saved apart from it.
     this.savedStartupTimeout = read ? this.preferences.hostStartupTimeout
       : new DesktopPreferenceStore(this.options.home, this.preferenceWarning).readExtra().hostStartupTimeout
+    // The icon is saved apart too: an unreadable preference file must not turn the shortcuts that show it back.
+    if (!this.safeMode && !read) this.preferences = { ...this.preferences, appIcon: this.settings.readExtra().appIcon }
     this.diagnostics.level = this.preferences.logLevel
     this.diagnostics.developer = this.preferences.developerLogging
   }
@@ -168,6 +172,8 @@ export class NextDesktopRuntime {
     this.diagnostics.record({ source: 'desktop', event: 'runtime.failed', level: 'error', error, fields: { stage } })
     // A pending memory snapshot lands before recovery mode stops the Host and closes the main window.
     this.memory.settle()
+    // Repeat counts not yet due belong in the report's log too.
+    this.diagnostics.flush(true)
     this.saveFailureReport(error, stage)
     this.options.onFailure()
     this.options.onChange()
@@ -257,6 +263,19 @@ export class NextDesktopRuntime {
   }
 
   /**
+   * Save the app icon on its own, so setup can change it before any other preference is chosen. Only the extra
+   * preference file changes; the change notification lets the native shell show the icon at once.
+   * @param value - `default` or `classic`; anything else is refused, and so is any choice in Safe Mode.
+   */
+  saveAppIcon(value: unknown): void {
+    if (!isDesktopAppIcon(value)) throw new Error('Invalid app icon')
+    if (this.safeMode) throw new Error('Desktop preferences are fixed in Safe Mode')
+    this.settings.writeExtra({ appIcon: value })
+    this.preferences = { ...this.preferences, appIcon: value }
+    this.options.onChange()
+  }
+
+  /**
    * Boot rows for a document that is loading now.
    * @returns The Host's current Web boot table, or the table captured at startup when the running
    * Host cannot answer. dsh 0.1.7 addresses boot bundles by revision and republishes the table
@@ -323,7 +342,8 @@ export class NextDesktopRuntime {
     }
   }
 
-  state(): Pick<DesktopState, 'selected' | 'profiles' | 'unavailableProfiles' | 'features' | 'preferences' | 'phase' | 'busy' | 'failure' | 'failureStage' | 'failureExit' | 'failureTimeout' | 'failureReport' | 'failureContext' | 'actionFailure' | 'safeMode' | 'hostStartupTimeout' | 'home' | 'browserUrl' | 'lan' | 'checkpoint' | 'logs'> {
+  /** The Desktop state without `logs`: only the recovery assistant shows them, so only its window pays for a snapshot. */
+  state(): Pick<DesktopState, 'selected' | 'profiles' | 'unavailableProfiles' | 'features' | 'preferences' | 'phase' | 'busy' | 'failure' | 'failureStage' | 'failureExit' | 'failureTimeout' | 'portConflict' | 'failureReport' | 'failureContext' | 'actionFailure' | 'safeMode' | 'hostStartupTimeout' | 'home' | 'browserUrl' | 'lan' | 'checkpoint'> {
     let features = { ...DEFAULT_FEATURES }
     let profiles: string[] = []
     let checkpoint: DesktopState['checkpoint'] = null
@@ -337,14 +357,17 @@ export class NextDesktopRuntime {
     try { profiles = this.profiles.list() } catch (error) { unreadable(error) }
     if (!this.safeMode) try { features = this.profiles.features(this.selected) } catch (error) { unreadable(error) }
     try { const saved = this.recovery.latest(this.selected); if (saved) checkpoint = { created: saved.created } } catch { /* Recovery remains usable without backups. */ }
+    // The Host's own diagnostic in the frozen context names a port another program holds.
+    const conflict = failureStage === 'host-boot' || failureStage === 'host-runtime' ? portConflict(this.failureContext ?? failure, this.preferences.port) : undefined
     return { selected: this.selected, profiles, unavailableProfiles: profiles.filter(name => !this.profiles.selectable(name)), features, preferences: { ...this.preferences }, phase: this.recoveryMode ? 'recovery' : !this.auth && failure ? 'error' : this.backend.state.phase,
       busy: this.busy, failure, ...(failureStage === undefined ? {} : { failureStage }), ...(this.failureExit === undefined ? {} : { failureExit: this.failureExit }),
       ...(this.failureTimeout === undefined ? {} : { failureTimeout: this.failureTimeout }),
+      ...(conflict === undefined ? {} : { portConflict: conflict }),
       ...(this.failureContext === undefined ? {} : { failureContext: this.failureContext }),
       ...(this.failureReport === undefined ? {} : { failureReport: this.failureReport }), ...(this.actionFailure ? { actionFailure: this.actionFailure } : {}),
       safeMode: this.safeMode, hostStartupTimeout: this.savedStartupTimeout, home: this.options.home,
       browserUrl: this.auth && this.preferences.browserAccess && !this.safeMode ? new URL(this.auth.url).origin : null,
-      lan: this.lan?.snapshot() ?? null, checkpoint, logs: this.diagnostics.snapshot() }
+      lan: this.lan?.snapshot() ?? null, checkpoint }
   }
 
   browserLinks(): DesktopBrowserLinks {
@@ -401,6 +424,9 @@ export class NextDesktopRuntime {
       time: new Date(), stage, failure: this.failure,
       facts: [['run', this.diagnostics.runId], ...(hostRun === undefined ? [] : [['host run', hostRun] as const]), ...launch, ['arch', process.arch], ['profile', this.selected]],
       hostDiagnostic: error instanceof DesktopHostFatalError ? error.diagnostic : undefined,
+      // A Host that failed loud printed why; its whole retained stderr follows the readable log.
+      hostCrash: error instanceof DesktopHostExitError ? error.crash : undefined,
+      hostStderr: error instanceof DesktopHostExitError || error instanceof DesktopHostFatalError ? error.stderr : undefined,
       // The Host's own diagnostic, or its exit code and stderr tail, describe a Host failure; a shell error adds its stack.
       error: error instanceof Error && !(error instanceof DesktopHostFatalError) && !(error instanceof DesktopHostExitError)
         && !(error instanceof DesktopHostStartupTimeoutError) ? error : undefined,
