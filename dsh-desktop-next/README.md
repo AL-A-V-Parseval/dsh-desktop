@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-A separate shell based on DeepSeek Harness **0.2.2-rc.4**. This workspace is the Linux fork's **Stable** mainline (`2.0.24-next-linux.1`); Next names and data anchors remain for compatibility. Published installers are listed in the [root README](../README.en.md). Next and Beta now follow the same DSH runtime, while retaining separate product versions. The main window loads the official published `@deepseek-ai/dsh-web-frontend`, sharing the official Web application, plugin manager, and basic Desktop presentation. Next adds the system tray, desktop preferences and tools, Profiles, recovery, Agents Anywhere remote control, Community Market, and dshmarket.
+A separate shell based on DeepSeek Harness **0.2.2-rc.4**. This workspace is the Linux fork's **Stable** mainline (source version `2.0.23-next-linux.3`); Next names and data anchors remain for compatibility. Published installers are listed in the [root README](../README.en.md). Next and Beta now follow the same DSH runtime, while retaining separate product versions. The main window loads the official published `@deepseek-ai/dsh-web-frontend`, sharing the official Web application, plugin manager, and basic Desktop presentation. Next adds the system tray, desktop preferences and tools, Profiles, recovery, Agents Anywhere remote control, Community Market, and dshmarket.
 
 ## Development and verification
 

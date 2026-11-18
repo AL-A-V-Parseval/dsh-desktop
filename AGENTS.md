@@ -6,6 +6,7 @@ This repository owns the desktop product around an unmodified DeepSeek Harness c
 
 - For Linux release, install, and default-launch work, use `linux-release-policy.json`: the former Next workspace is now the Stable mainline; the legacy workspace is retained for upstream merges and regression checks, not new releases.
 - Preserve Next package names, runtime identifiers, and data-directory anchors for compatibility. Release stability is GitHub metadata, not a reason to rename internal paths or rewrite signed assets.
+- Keep the fork's `X.Y.Z` release base at `2.0.23` until upstream officially publishes a newer Desktop version. A version bump on upstream's branch alone does not qualify. For fork-only releases on the same base, increment the `-linux.N` suffix.
 
 ## Prerequisites and setup
 

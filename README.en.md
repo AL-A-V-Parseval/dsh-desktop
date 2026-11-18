@@ -31,7 +31,7 @@ DSH Desktop integrates the official Web UI, Host service, and plugin system of [
 
 This fork is **Linux-focused**: it maintains Linux releases and compatibility fixes while following upstream's cross-platform improvements, retaining this fork's Stable release and data-compatibility policy.
 
-- Merged upstream snapshot: `e66243ece4`; source version `2.0.24-next-linux.1`
+- Merged upstream snapshot: `e66243ece4`; source version `2.0.23-next-linux.3` (unreleased, retains the merged features and fixes)
 - Source runtimes: Linux Stable workspace `dsh-desktop-next/` and Beta both use `0.2.2-rc.4`; legacy workspace retains `0.2.1-rc.3`. Pins live in [`upstream.json`](upstream.json); Linux release boundaries are defined by [`linux-release-policy.json`](linux-release-policy.json)
 - Stable `v2.0.24-next-linux.1` uses DSH `0.2.2-rc.4`; subsequent source merges do not replace its immutable tag or installers
 - Target platform: **Linux x64**

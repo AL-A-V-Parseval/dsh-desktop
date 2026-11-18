@@ -31,7 +31,7 @@ DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harne
 
 本 fork **聚焦 Linux**：维护 Linux 发行与兼容修复，同时跟随上游的跨平台改进，保留本 fork 的 Stable 发布和数据兼容策略。
 
-- 上游合并快照：`e66243ece4`；源码版本为 `2.0.24-next-linux.1`
+- 上游合并快照：`e66243ece4`；源码版本为 `2.0.23-next-linux.3`（未发布，已合并的功能与修复保留）
 - 源码运行时：Linux Stable 工作区 `dsh-desktop-next/` 与 Beta 均使用 `0.2.2-rc.4`；旧工作区保留 `0.2.1-rc.3`。各源码 pin 见 [`upstream.json`](upstream.json)，Linux 发布边界见 [`linux-release-policy.json`](linux-release-policy.json)
 - Stable `v2.0.24-next-linux.1` 使用 DSH `0.2.2-rc.4`；后续源码合并不替换其不可变 tag 或安装包
 - 目标平台：**Linux x64**
