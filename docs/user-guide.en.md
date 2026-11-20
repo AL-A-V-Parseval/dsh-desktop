@@ -2,7 +2,7 @@
 
 [中文](user-guide.md)
 
-This guide covers this fork's Linux Stable. The current published version is `v2.0.23-next-linux.3`, using DSH `0.2.2-rc.4`. `dsh-desktop-next`, `DSH NEXT` and `next` in the version are compatibility identifiers, not prerelease labels. Source may contain fixes not yet included in installers.
+This guide covers this fork's Linux Stable. The current published version is `v2.0.24-next-linux.2`, using DSH `0.2.2-rc.5`. `dsh-desktop-next`, `DSH NEXT` and `next` in the version are compatibility identifiers, not prerelease labels. Source may contain fixes not yet included in installers.
 
 ## Installation and launch
 
