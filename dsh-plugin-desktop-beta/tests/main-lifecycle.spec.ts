@@ -460,6 +460,42 @@ it.each(['close', 'quit', 'host-failure'] as const)('cancels pending renderer re
   } finally { vi.useRealTimers(); vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
 })
 
+it('starts the Host with the tray only when a launcher asks for the background, and opens the window on activation', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'next-background-start-'))
+  vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
+  const argv = [...process.argv]
+  process.argv.push('--next-background')
+  try {
+    await import('../src/main.ts')
+    await vi.waitFor(() => expect(fixture.start).toHaveBeenCalledOnce())
+    expect(fixture.trays).toHaveLength(1)
+    expect(fixture.windows).toHaveLength(0)
+    const { app } = await import('electron')
+    app.emit('activate')
+    expect(fixture.windows).toHaveLength(1)
+  } finally { process.argv.splice(0, process.argv.length, ...argv); vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
+})
+
+it('opens the window of a background start when no tray can reach the app', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'next-background-no-tray-'))
+  vi.stubEnv('DSH_DESKTOP_NEXT_HOME', home)
+  const argv = [...process.argv]
+  process.argv.push('--next-background')
+  const { nativeImage } = await import('electron')
+  const original = nativeImage.createFromPath
+  const createFromPath = vi.spyOn(nativeImage, 'createFromPath').mockImplementation(path =>
+    (/tray-icon/u.test(path) ? { path, isEmpty: () => true, setTemplateImage() {} } : original(path)) as ReturnType<typeof original>)
+  try {
+    await import('../src/main.ts')
+    await vi.waitFor(() => expect(fixture.windows).toHaveLength(1))
+    expect(fixture.start).toHaveBeenCalledOnce()
+    expect(fixture.trays).toHaveLength(0)
+  } finally {
+    createFromPath.mockRestore()
+    process.argv.splice(0, process.argv.length, ...argv); vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true })
+  }
+})
+
 it('starts Safe Mode with fresh desktop and Chromium state while preserving normal state and its instance lock', async () => {
   const home = mkdtempSync(join(tmpdir(), 'next-safe-desktop-state-'))
   const normalState = join(home, 'electron-user-data')
@@ -768,6 +804,7 @@ it('explains the first Windows GPU launch failure in a native dialog, records it
     }))
     const gpu = { type: 'GPU', reason: 'launch-failed', exitCode: 18 }
     // Other platforms and other children keep Chromium's own handling.
+    Object.defineProperty(process, 'platform', { ...platform, value: 'darwin' })
     app.emit('child-process-gone', {}, gpu)
     Object.defineProperty(process, 'platform', { ...platform, value: 'win32' })
     app.emit('child-process-gone', {}, { type: 'Utility', reason: 'launch-failed', exitCode: 18, serviceName: 'audio.mojom.AudioService' })

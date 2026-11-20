@@ -6,7 +6,7 @@ This repository owns the desktop product around an unmodified DeepSeek Harness c
 
 - For Linux release, install, and default-launch work, use `linux-release-policy.json`: the former Next workspace is now the Stable mainline; the legacy workspace is retained for upstream merges and regression checks, not new releases.
 - Preserve Next package names, runtime identifiers, and data-directory anchors for compatibility. Release stability is GitHub metadata, not a reason to rename internal paths or rewrite signed assets.
-- Keep the fork's `X.Y.Z` release base at `2.0.23` until upstream officially publishes a newer Desktop version. A version bump on upstream's branch alone does not qualify. For fork-only releases on the same base, increment the `-linux.N` suffix.
+- Release numbering: keep the current `X.Y.Z` base until upstream officially publishes a newer Desktop release; a branch-only bump does not qualify. Increment `-linux.N` for fork-only releases; do not reuse published numbers.
 
 ## Prerequisites and setup
 
@@ -35,6 +35,7 @@ This repository owns the desktop product around an unmodified DeepSeek Harness c
 - `dsh-community-fabric/` owns the community interoperability RFC. Until schemas and a reviewed reference adapter exist, it remains a private documentation scaffold and must not declare loadable DSH or package entry points.
 - `dsh-community-market/` owns the loadable Community Market integration and its compatibility patch.
 - `dsh-tokens-anywhere/` owns the Anywhere account plugin, `@agents-anywhere/dsh-tokens-anywhere`: Tokens Anywhere sign-in, its models and usage. No Desktop variant loads it yet; the Next and Beta Host smokes assert that it is not mounted. Keep its `@deepseek-ai/dsh*` peers on Next's runtime version.
+- `dsh-acp-bridge/` owns the Agent Client Protocol (ACP) bridge plugin published as `@agents-anywhere/dsh-acp-bridge`. It loads into a running DSH of the 0.2.2 runtime family, serves ACP to local editors such as Zed through a private MeshCall endpoint and a generated stdio launcher, and drives sessions only through the official Session Controller. It is not part of the Desktop variant mirror; its headless check runs a real in-process DSH Host with a scripted model. Its local RPC is a public interface, contract version 1, with a client in `@agents-anywhere/dsh-acp-bridge/client` that the launcher is built on: within a contract version changes only add fields or methods, and anything else takes the next contract version and a major release (`src/contract.ts`, `tests/unit/contract.test.ts`).
 - The outer repository and all owned packages use the root Yarn release with `nodeLinker: node-modules`.
 - The upstream submodule keeps its own pnpm workspace. Run upstream commands through the root `upstream:*` scripts, whose Yarn portable-shell commands enter the submodule before invoking Corepack.
 - Compatibility mode must run the upstream default client without overrides. Advanced presentation belongs to desktop-owned client plugins and may replace documented slots or services through profile composition.

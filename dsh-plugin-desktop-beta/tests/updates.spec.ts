@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { createElement } from 'react'
@@ -34,6 +35,22 @@ async function fixture(overrides: Partial<NextUpdateOptions> = {}) {
   return { updates, options, request, artifactRequest }
 }
 
+it('routes an ARM64 update through the release service and keeps its digest through installer preparation', async () => {
+  const bytes = Buffer.alloc(512)
+  bytes.write('MZ'); bytes.writeUInt32LE(128, 60); bytes.write('PE\0\0', 128)
+  const digest = createHash('sha256').update(bytes).digest('hex')
+  const artifactRequest = vi.fn<UpdateArtifactRequest>(async url => ({ response: new Response(bytes), finalUrl: url }))
+  const prepare = vi.fn(async (path: string) => { expect(await readFile(path)).toEqual(bytes); expect(path).toContain('-arm64-Setup.exe') })
+  const request = vi.fn<UpdateRequest>(async () => Response.json({ version: '2.0.20-beta.2', channel: 'beta', sha256: { windows: 'a'.repeat(64), windowsArm64: digest } }))
+  const { updates } = await fixture({ platform: 'win32', arch: 'arm64', artifactRequest, prepare, request })
+  await updates.download()
+  expect(updates.snapshot().phase).toBe('ready')
+  expect(prepare).toHaveBeenCalledOnce()
+  expect(new Headers(request.mock.calls[0]![1].headers).get('X-DSH-Desktop-Arch')).toBe('arm64')
+  expect(new Headers(artifactRequest.mock.calls[0]![1].headers).get('X-DSH-Desktop-Arch')).toBe('arm64')
+  expect(artifactRequest.mock.calls[0]?.[0]).toBe('https://www.dshdesktop.cn/api/downloads/windows')
+})
+
 it('checks without downloading; download completion waits for an explicit installation', async () => {
   const { updates, options, request } = await fixture()
   await updates.check()
@@ -66,10 +83,10 @@ it('names the CPU of this Mac on the version check and on the first download req
   expect(new Headers(downloadInit.headers).get('X-DSH-Desktop-Arch')).toBe('arm64')
   expect(new Headers(downloadInit.headers).get('X-DSH-Desktop-Target-Version')).toBe('2.0.20-beta.2')
 })
-it('leaves requests without a CPU header where the platform names none', async () => {
-  const { updates, request, artifactRequest } = await fixture({ platform: 'win32' })
+it.each(['x64', 'arm64'] as const)('names the Windows %s CPU on the version check', async arch => {
+  const { updates, request, artifactRequest } = await fixture({ platform: 'win32', arch })
   await updates.check()
-  expect(new Headers(request.mock.calls[0]![1].headers).has('X-DSH-Desktop-Arch')).toBe(false)
+  expect(new Headers(request.mock.calls[0]![1].headers).get('X-DSH-Desktop-Arch')).toBe(arch)
   expect(artifactRequest).not.toHaveBeenCalled()
 })
 it('allows checks in development, but never downloads or replaces the development application', async () => {
@@ -156,6 +173,39 @@ it('rejects prerelease metadata rather than treating it as a fork Stable update'
   const { updates } = await fixture({ version, platform: 'linux', request: async () => Response.json({ tag_name: `v${version}`, draft: false, prerelease: true }) })
   await updates.check()
   expect(updates.snapshot()).toMatchObject({ phase: 'error', error: 'service' })
+})
+it('names the cause of a failed download, and forgets it once a retry gets past it', async () => {
+  const dropped = vi.fn<UpdateArtifactRequest>(async url => ({ finalUrl: url, response: new Response(new ReadableStream({
+    pull(controller) { controller.error(new Error('net::ERR_CONNECTION_RESET')) },
+  })) }))
+  const { updates, artifactRequest } = await fixture()
+  artifactRequest.mockImplementationOnce(dropped)
+  await updates.download()
+  expect(updates.snapshot()).toMatchObject({ phase: 'error', error: 'download', downloadFailure: 'network' })
+  expect(updateLabel(updates.snapshot(), 'zh-CN')).toBe('下载更新失败，请检查网络连接后重试。')
+  expect(updateLabel(updates.snapshot(), 'en')).toBe('Could not download the update. Check your connection and try again.')
+  expect(updateAction(updates.snapshot())).toBe('download-update')
+  await updates.download()
+  expect(updates.snapshot().phase).toBe('ready')
+  expect(updates.snapshot().downloadFailure).toBeUndefined()
+})
+// A Windows folder ignores the mode, and root ignores it everywhere.
+it.skipIf(process.getuid?.() === 0 || process.platform === 'win32')('reports a download folder it cannot write as a permission problem', async () => {
+  const downloads = await mkdtemp(join(tmpdir(), 'next-update-read-only-')); roots.push(downloads)
+  await chmod(downloads, 0o500)
+  try {
+    const { updates } = await fixture({ downloads })
+    await updates.download()
+    expect(updates.snapshot()).toMatchObject({ phase: 'error', error: 'download', downloadFailure: 'permission' })
+    expect(updateLabel(updates.snapshot(), 'en')).toBe('Cannot write the update files. Check the folder permissions and retry.')
+  } finally {
+    await chmod(downloads, 0o700)
+  }
+})
+it('keeps the generic retry advice for download failures without a known cause', () => {
+  expect(updateLabel({ phase: 'error', error: 'download', installable: true }, 'zh-CN')).toBe('更新未完成，请重试。')
+  expect(updateLabel({ phase: 'error', error: 'download', downloadFailure: 'space', installable: true }, 'zh-CN')).toBe('磁盘空间不足，无法下载更新。请释放空间后重试。')
+  expect(updateLabel({ phase: 'error', error: 'download', downloadFailure: 'busy', installable: true }, 'en')).toBe('An update file is in use. Close the program using it, then retry.')
 })
 it('stops polling and aborts an active request on shutdown', async () => {
   const request = vi.fn<UpdateRequest>(async (_url, init) => new Promise((_resolve, reject) => init.signal!.addEventListener('abort', () => reject(new Error('aborted')), { once: true })))

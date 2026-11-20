@@ -56,7 +56,7 @@ export type UpdateArtifactRequest = (url: string, init: RequestInit) => Promise<
 
 /** Inputs for one user-confirmed installer download. */
 export interface DownloadDesktopUpdateOptions {
-  /** Host platform selecting the fixed endpoint and installer validation. */
+  /** Host platform selecting the installer format and validation. */
   readonly platform: DesktopDownloadPlatform
   /** Stable release version used to validate the selected installer. */
   readonly version: string
@@ -215,12 +215,14 @@ export function desktopUpdateFilename(
   platform: DesktopDownloadPlatform,
   version: string,
   channel: DesktopReleaseChannel = 'stable',
+  arch: 'x64' | 'arm64' = 'x64',
 ): string {
   validatedPlatform(platform)
   validatedVersion(version, channel)
   const extension = platform === 'darwin' ? 'dmg' : 'exe'
   const platformName = platform === 'darwin' ? 'mac' : 'windows'
   const product = parseCanonicalChannelVersion(version, 'next') !== null ? 'DSH-NEXT' : channel === 'beta' ? 'DSH-Desktop-Beta' : 'DSH-Desktop'
+  if (platform === 'win32' && arch === 'arm64') return `${product}-${version}-arm64-Setup.exe`
   return `${product}-${version}-${platformName}.${extension}`
 }
 

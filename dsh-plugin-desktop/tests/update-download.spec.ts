@@ -531,3 +531,21 @@ it('downloads Next with a pinned release, a distinct filename and byte progress'
   expect(headers.get(DESKTOP_RELEASE_CHANNEL_HEADER)).toBe('next');
   expect(headers.get(DESKTOP_TARGET_VERSION_HEADER)).toBe('2.0.14-next');
 });
+
+
+it.each([
+  ['beta', '2.0.22-beta.1', 'DSH-Desktop-Beta'],
+  ['next', '2.0.22-next', 'DSH-NEXT'],
+] as const)('downloads the %s ARM64 installer through the release service', async (channel, version, product) => {
+  const root = await temporaryDirectory()
+  const filename = `${product}-${version}-arm64-Setup.exe`
+  expect(desktopUpdateFilename('win32', version, channel, 'arm64')).toBe(filename)
+  const body = windowsArtifact()
+  const request = vi.fn<UpdateArtifactRequest>(async () => chunkedResponse([body], {},
+    `https://modelscope.cn/models/t4wefan/deepseek-harness-desktop/resolve/master/${filename}`))
+  const path = await downloadDesktopUpdate({ platform: 'win32', channel, version,
+    destinationPath: join(root, filename), request, expectedSha256: createHash('sha256').update(body).digest('hex') })
+  expect(request.mock.calls[0]?.[0]).toBe(DESKTOP_DOWNLOAD_URLS.win32)
+  expect(new Headers(request.mock.calls[0]?.[1]?.headers).get(DESKTOP_TARGET_VERSION_HEADER)).toBe(version)
+  expect(await readFile(path)).toEqual(Buffer.from(body))
+})
