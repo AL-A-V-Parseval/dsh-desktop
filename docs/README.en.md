@@ -35,7 +35,7 @@ This fork's Linux Stable uses `dsh-desktop-next/`. Published installers are on t
 | [Desktop service reference](../dsh-plugin-desktop/docs/plugin-services.md) | Stable `desktopProfiles` and `desktopPnpm` contracts with TypeScript examples |
 | [Current workspace reference](../dsh-desktop-next/README.md) | New Stable build, runtime, recovery and platform limits |
 | [Model catalog maintenance](model-catalog-refresh.md) | Per-channel SDKs, catalog sources, Terra backports and reproducible verification |
-| [Current release notes](release-2.0.24-next-linux.2.md) | Published Stable features, guidance for switching versions, and validation coverage |
+| [Current release notes](release-2.0.24-next-linux.3.md) | Published Stable features, guidance for switching versions, and validation coverage |
 | [Latest sync record](upstream-sync-2026-11-09.md) | Source-only fixes beyond published installers and validation boundaries |
 
 ## How the README files are organized

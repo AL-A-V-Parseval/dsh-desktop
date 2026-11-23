@@ -6,7 +6,7 @@ This page covers this Linux fork's Stable mainline. Consult [this fork's latest 
 
 ## What is DSH Desktop?
 
-This fork is an open-source DeepSeek Harness desktop client for Linux x64. It hosts the official Web UI, Host and plugin system with a tray, Desktop settings, a bundled CLI, Profiles and recovery. Current Stable is `v2.0.24-next-linux.2`, using DSH `0.2.2-rc.5`; upstream separately ships Windows/macOS products.
+This fork is an open-source DeepSeek Harness desktop client for Linux x64. It hosts the official Web UI, Host and plugin system with a tray, Desktop settings, a bundled CLI, Profiles and recovery. Current Stable is `v2.0.24-next-linux.3`, using DSH `0.2.3-alpha.2`; upstream separately ships Windows/macOS products.
 
 ## Is this an official DeepSeek product?
 

@@ -206,7 +206,7 @@ Next contributes an application-owned profile layer at runtime; its recompositio
 
 ## Current limits
 
-This workspace is this fork's Linux Stable mainline. Published `v2.0.24-next-linux.2` uses DSH `0.2.2-rc.5`; later source changes do not replace its immutable assets. Linux releases are x64 AppImage, deb and portable archives. ARM64 and native Windows/macOS packages are not qualified by this fork's current release checks. Enhanced/extended window modes from the legacy shell are not current features. Linux has a bundled `<app> dsh …` CLI, not a tray terminal launcher. Headless checks do not replace native platform or visual acceptance.
+This workspace is this fork's Linux Stable mainline. Published `v2.0.24-next-linux.3` uses DSH `0.2.3-alpha.2`; later source changes do not replace its immutable assets. Linux releases are x64 AppImage, deb and portable archives. ARM64 and native Windows/macOS packages are not qualified by this fork's current release checks. Enhanced/extended window modes from the legacy shell are not current features. Linux has a bundled `<app> dsh …` CLI, not a tray terminal launcher. Headless checks do not replace native platform or visual acceptance.
 
 ## Bundled runtime payload
 

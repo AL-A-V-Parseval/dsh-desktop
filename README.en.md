@@ -25,7 +25,7 @@
 
 > **Linux release policy change (2026-10-27):** Starting with [`v2.0.20-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.20-next-linux.1), the former Next framework is this fork's **Stable / latest** mainline. The legacy framework receives no further releases; its last release is `v2.0.18-linux.1`. The `next` version suffix, `DSH NEXT` display name and internal identifiers are retained for installation, data-directory and upstream-merge compatibility; **they no longer identify a prerelease channel in this fork**. Signed packages and tags remain unchanged. Source-directory names are independent of release stability; see [`linux-release-policy.json`](linux-release-policy.json). Root `dev`, `start`, `package:dir` and `dist:linux` commands now use the new framework.
 >
-> The current published Stable release is [`v2.0.24-next-linux.2`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.24-next-linux.2). Assets use `DSH-NEXT-<version>` and the portable executable is `dsh-desktop-next`. Data defaults to `~/.dsh`; an already selected directory takes precedence. Back up data before switching versions. See the [release notes](docs/release-2.0.24-next-linux.2.md) for changes and validation.
+> The current published Stable release is [`v2.0.24-next-linux.3`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.24-next-linux.3). Assets use `DSH-NEXT-<version>` and the portable executable is `dsh-desktop-next`. Data defaults to `~/.dsh`; an already selected directory takes precedence. Back up data before switching versions. See the [release notes](docs/release-2.0.24-next-linux.3.md) for changes and validation.
 
 DSH Desktop integrates the official Web UI, Host service, and plugin system of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) into a native desktop application. Runtime versions are pinned; desktop compatibility changes use version-scoped patches and plugin composition without editing the upstream source submodule.
 
@@ -74,7 +74,7 @@ Linux uses this fork's Stable update notices, manual downloads/installations, hi
 
 ## Download and run
 
-Download a Linux x64 **AppImage**, **portable archive (tar.gz)** or **Debian package** from the [latest Stable release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest). Replace `<version>` with the actual release version, for example `2.0.24-next-linux.2`.
+Download a Linux x64 **AppImage**, **portable archive (tar.gz)** or **Debian package** from the [latest Stable release](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest). Replace `<version>` with the actual release version, for example `2.0.24-next-linux.3`.
 
 ### AppImage (no installation)
 

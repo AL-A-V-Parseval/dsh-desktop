@@ -206,7 +206,7 @@ Next 是正式的 Profile bundle，因此上游插件管理器重新组合配置
 
 ## 当前边界
 
-本工作区是本 fork 的 Linux Stable 主线。已发布 `v2.0.24-next-linux.2` 使用 DSH `0.2.2-rc.5`，后续源码改动不替换其不可变资产。Linux 发布 x64 AppImage、deb 和便携归档；ARM64 与 Windows/macOS 原生安装包不在本 fork 当前发行验证范围内。旧架构的增强／扩展窗口模式不是当前功能。Linux 提供 `<应用程序> dsh …` 内置 CLI，不提供托盘终端入口。无图形检查不能替代原生平台或视觉验收。
+本工作区是本 fork 的 Linux Stable 主线。已发布 `v2.0.24-next-linux.3` 使用 DSH `0.2.3-alpha.2`，后续源码改动不替换其不可变资产。Linux 发布 x64 AppImage、deb 和便携归档；ARM64 与 Windows/macOS 原生安装包不在本 fork 当前发行验证范围内。旧架构的增强／扩展窗口模式不是当前功能。Linux 提供 `<应用程序> dsh …` 内置 CLI，不提供托盘终端入口。无图形检查不能替代原生平台或视觉验收。
 
 ## 内置运行时载荷
 

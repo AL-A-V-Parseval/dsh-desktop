@@ -25,7 +25,7 @@
 
 > **Linux 发版主线调整（2026-10-27）：** 自 [`v2.0.20-next-linux.1`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.20-next-linux.1) 起，原 Next 新架构成为本 fork 的 **Stable / latest**，旧架构停止发版（最后一版为 `v2.0.18-linux.1`）。为兼容已有安装、数据目录及后续上游合并，保留版本中的 `next`、`DSH NEXT` 显示名称和内部标识，**它们不再表示本 fork 的预发布通道**。已签名的安装包及 tag 不变；源码目录名与发布稳定性分开管理，规则见 [`linux-release-policy.json`](linux-release-policy.json)。根目录的 `dev`、`start`、`package:dir`、`dist:linux` 默认使用新架构。
 >
-> 当前正式版为 [`v2.0.24-next-linux.2`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.24-next-linux.2)。文件名前缀为 `DSH-NEXT-<version>`，便携程序为 `dsh-desktop-next`；默认数据目录为 `~/.dsh`，已选择的数据目录优先。切换版本前请备份数据，更新内容与验证见[发行说明](docs/release-2.0.24-next-linux.2.md)。
+> 当前正式版为 [`v2.0.24-next-linux.3`](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/tag/v2.0.24-next-linux.3)。文件名前缀为 `DSH-NEXT-<version>`，便携程序为 `dsh-desktop-next`；默认数据目录为 `~/.dsh`，已选择的数据目录优先。切换版本前请备份数据，更新内容与验证见[发行说明](docs/release-2.0.24-next-linux.3.md)。
 
 DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的官方 Web UI、Host 服务和插件系统集成进原生桌面应用。运行时固定为明确版本；桌面兼容修改通过版本限定补丁和插件组合实现，不修改上游源码子模块。
 
@@ -74,7 +74,7 @@ Linux 使用本 fork 的 Stable 更新提示、手动下载安装、hicolor 图�
 
 ## 下载与运行
 
-从 [最新正式版](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest) 获取 Linux x64 的 **AppImage**、**便携包（tar.gz）** 或 **Debian 包**。将 `<version>` 替换为 Release 页面上的实际版本，例如 `2.0.24-next-linux.2`。
+从 [最新正式版](https://github.com/AL-A-V-Parseval/dsh-desktop/releases/latest) 获取 Linux x64 的 **AppImage**、**便携包（tar.gz）** 或 **Debian 包**。将 `<version>` 替换为 Release 页面上的实际版本，例如 `2.0.24-next-linux.3`。
 
 ### AppImage（免安装）
 
