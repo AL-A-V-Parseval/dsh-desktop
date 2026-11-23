@@ -1,7 +1,7 @@
 /** Exercise the installed Office adapter under real Electron ASAR filesystem semantics. */
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -22,11 +22,13 @@ test('Office discovery treats a missing ASAR native package as absent, but rejec
     const fixture = join(home, 'fixture')
     const modules = join(fixture, 'node_modules')
     const entry = join(modules, '@deepseek-ai/libreoffice-kit')
+    const officeKit = join(modules, '@deepseek-ai/dsh-office-kit')
     const wasm = join(modules, '@deepseek-ai/libreoffice-kit-wasm')
     mkdirSync(join(entry, 'lib'), { recursive: true })
     mkdirSync(wasm, { recursive: true })
     writeFileSync(join(entry, 'package.json'), readFileSync(join(kit, 'package.json')))
     writeFileSync(join(entry, 'lib/index.js'), readFileSync(join(kit, 'lib/index.js')))
+    cpSync(join(workspace, 'node_modules/@deepseek-ai/dsh-office-kit'), officeKit, { recursive: true, dereference: true })
     writeFileSync(join(wasm, 'package.json'), JSON.stringify({ name: '@deepseek-ai/libreoffice-kit-wasm', version: '0.2.3' }))
     writeFileSync(join(wasm, 'prebuilds.json'), JSON.stringify({ schemaVersion: 1, version: '0.2.3',
       platform: 'wasm', status: 'built', engine: { kind: 'wasm', programDirectory: '/instdir/program',
@@ -38,9 +40,14 @@ test('Office discovery treats a missing ASAR native package as absent, but rejec
     writeFileSync(runner, `
       import assert from 'node:assert/strict';
       import {pathToFileURL} from 'node:url';
-      const {discoverRuntime}=await import(pathToFileURL(process.argv[2]+'/node_modules/@deepseek-ai/libreoffice-kit/lib/index.js'));
-      if(process.argv[3]==='broken') await assert.rejects(discoverRuntime(), /Installed LibreOfficeKit package is incomplete/);
-      else assert.equal((await discoverRuntime()).backend,'wasm');
+      const root = process.argv[2]+'/node_modules/@deepseek-ai/';
+      const {discoverRuntime}=await import(pathToFileURL(root+'libreoffice-kit/lib/index.js'));
+      const {OfficeKit}=await import(pathToFileURL(root+'dsh-office-kit/lib/index.js'));
+      const {resolveEnginePackage}=await OfficeKit.prototype.importKit();
+      for (const options of [undefined, {resolveEnginePackage}]) {
+        if(process.argv[3]==='broken') await assert.rejects(discoverRuntime(options), /Installed LibreOfficeKit package is incomplete/);
+        else assert.equal((await discoverRuntime(options)).backend,'wasm');
+      }
     `)
     const archive = join(home, 'app.asar')
     await createPackage(fixture, archive)

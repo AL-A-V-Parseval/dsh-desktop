@@ -62,7 +62,7 @@ desktop Client module 会校验模式与平台 marker，在兼容模式下只注
 
 Cordis row 会在 profile 激活期间登记原生窗口参数。Launcher 只在 `app-boot` 完成并审计整个 profile 后创建窗口，因此首个 renderer manifest 会包含所有已激活的官方、desktop 与第三方 client plugin，同时插件自身不会在 Loader entry 内等待整棵 Loader tree。
 
-在 Windows 上，Launcher 会固定使用 browse 目录选择 backend，并保留完整的应用内目录面板。桌面构建通过补丁在该面板中加入一个小型系统文件夹图标；图标经同源路由调用 Electron 的 `dialog.showOpenDialog`，选中的路径继续进入面板原有的 workspace 接纳流程，取消后面板保持打开。普通浏览器与远程启动不会获得这个桌面桥接。macOS 与 Linux 仍使用上游自适应 chooser。
+在主窗口添加工作区时，macOS 与 Windows 会打开系统文件夹对话框（Finder、资源管理器），与上游桌面端一致。桌面端把采样到的局域网地址作为可信来源交给 Host，上游的自适应目录选择器据此挂载应用内目录浏览面板，因此客户端 bundle 在主窗口里用基于 preload 桥接的无界面驱动遮蔽该占位。Linux 上的主窗口保留 Host 挂载的面板：Electron 在 Linux 上经桌面环境的文件选择 portal 打开系统对话框，portal 缺失或出错时只会返回“已取消”，添加工作区会毫无反应（#1719）。通过本机或局域网访问的普通浏览器仍使用 Host 挂载的面板。
 
 本次 alpha runtime 迁移不再携带 Desktop 自有的工作区文件夹拖放行为或聊天附件拖放隔离补丁。在按 alpha Client UI 重新评估这些交互前，请使用普通工作区选择流程。
 
@@ -142,11 +142,17 @@ dsh plugin update
 
 显式 `--profile <name>` 始终具有更高优先级，可用于在切换前准备其他 profile。
 
-**OAR 子智能体。** **插件**页在 Computer Use（Next）下方列出 OAR 子智能体。它的开关默认关闭，打开后启用官方 `@deepseek-ai/dsh-experimental-subagent-oar` 提供方。Beta 将它作为可选组合包随安装提供，组合方式与提供方 README 的示例一致，只有 Claude Code 的权限模式不同：Codex 以 `-c sandbox_mode="workspace-write"` 启动，Claude Code 以 `--permission-mode acceptEdits --permission-prompts none` 启动，两者都能修改任务目录里的文件。其他需要确认的操作（例如大多数 shell 命令），Claude Code 一律拒绝，除非它自己的设置已预先放行（`permissions.allow`）；示例中的 `dontAsk` 会让它只能读。模型通过 `subagent_oar` 工具把一个独立文本任务交给其中之一。每个任务都使用本机已安装的 Codex 或 Claude Code 命令行，以及该命令行自己的登录和设置，因此请先安装并登录。这些进程在 DSH 的命令沙箱之外运行，它们自身的审批请求也不会转到 DSH 界面。点卡片标题会打开官方插件页，列出该组合包的三行。在这个页面上，每个提供方行的「配置」入口会打开它的启动选项：Claude Code 可选只读、可改文件（默认）、自动审核或完全放行；Codex 可选只读、可写工作区（默认）或不限制。保存后，官方配置编辑器把选择记录到当前 Profile 的补丁里并重启这一行，之后委派的任务按新设置启动；重新选回默认会删除这条覆盖。这一行必须在运行才能修改。该版本以普通包发布这个提供方；`patches/dsh-experimental-subagent-oar@<version>.patch` 在安装时为已安装的包加上组合包声明。
+**Beta 插件。** **插件**页在 Computer Use（Next）下方有一个「Beta 插件」分组，样式与官方「实验性插件」分组相同。点「更多」进入的页面就是官方实验性插件页，另加一句说明：这些插件由官方提供，可按需下载、配置和开启，目前可能还不完善。分组列出上游随包提供或在 npm 发布、却没有列出的插件：OAR 子智能体，以及 Linear、Notion、腾讯文档、飞书、企业微信、腾讯会议和钉钉连接器。OAR 子智能体随 Beta 安装提供，默认关闭。连接器显示为「未安装」，打开开关即安装与当前 DSH 版本一致的版本，与官方 Codex、Claude Code 子智能体相同。在当前 Profile 中开启的成员也会显示在主列表的这个分组下。官方发布版只把这些连接器发到 npm，没有为它们建目录条目，因此 `patches/dsh-official-bundles@<version>.patch` 在安装时把它们连同各自的标题、描述和图标加入官方按需安装目录。这个分组通过 `plugins.group` 插槽注册，该插槽由 `patches/dsh-client-ui-plugin-manager@<version>.patch` 加入；两个补丁都由 `scripts/upstream-family/client-seams.mjs` 生成。
 
-**官方 Computer Use。** dsh 0.2.2 新增官方 Computer Use bundle `@deepseek-ai/dsh-cua-bundle`（仅 macOS）。从 0.2.2-alpha.3 起，官方发布版不再随包提供它，而是由插件管理器从官方目录提供，并按需安装到当前 Profile；Beta 同样不随安装包提供。官方目录默认隐藏这个 bundle，因此 `patches/dsh-official-bundles@<version>.patch` 让它显示出来。于是在 macOS 上，**插件**页会像官方的 Codex、Claude Code 子智能体一样把它标为「未安装」；打开开关即可下载并安装，连同官方发布流程构建、签名并公证的 helper 应用一起装好。其他平台仍不显示它。`computer-use` 注册服务条目和 provider 条目共用 `computerUse: computer-use-next` 隔离域，因此官方 bundle 可以同时挂载自己的注册服务。官方 provider 服务 PTC 会话。在它服务的会话中，Computer Use（Next）不加载工具和提示词，也不提供 `/computer-use` 命令；官方 provider 不再服务该会话后（例如会话切换到其他模式，或关闭官方 bundle），命令随即恢复，无需重启。其他会话、Windows 和 Linux、官方 helper 无法启动的 macOS 14 以下版本，以及没有加载官方 provider 的会话，继续使用 Computer Use（Next），它支持 macOS、Windows 和 Linux。Computer Use（Next）的插件页提供 macOS Computer Use 一行，带有官方 bundle 的开关；当前 Profile 还没有安装时，打开开关会先安装。该开关仅在 macOS 14 及以上可用；其他系统上保持关闭且不可操作。开启后，点击这一行可打开它在**插件**页中的详情页。相关模块和测试位于 `src/upstream-family/` 和 `tests/upstream-family/`。
+**OAR 子智能体。** **插件**页在「Beta 插件」中首先列出 OAR 子智能体。它的开关默认关闭，打开后启用官方 `@deepseek-ai/dsh-experimental-subagent-oar` 提供方。Beta 将它作为可选组合包随安装提供，组合方式与提供方 README 的示例一致，只有 Claude Code 的权限模式不同：Codex 以 `-c sandbox_mode="workspace-write"` 启动，Claude Code 以 `--permission-mode acceptEdits --permission-prompts none` 启动，两者都能修改任务目录里的文件。其他需要确认的操作（例如大多数 shell 命令），Claude Code 一律拒绝，除非它自己的设置已预先放行（`permissions.allow`）；示例中的 `dontAsk` 会让它只能读。模型通过 `subagent_oar` 工具把一个独立文本任务交给其中之一。每个任务都使用本机已安装的 Codex 或 Claude Code 命令行，以及该命令行自己的登录和设置，因此请先安装并登录。这些进程在 DSH 的命令沙箱之外运行，它们自身的审批请求也不会转到 DSH 界面。点卡片标题会打开官方插件页，列出该组合包的三行。在这个页面上，每个提供方行的「配置」入口会打开它的启动选项：Claude Code 可选只读、可改文件（默认）、自动审核或完全放行；Codex 可选只读、可写工作区（默认）或不限制。保存后，官方配置编辑器把选择记录到当前 Profile 的补丁里并重启这一行，之后委派的任务按新设置启动；重新选回默认会删除这条覆盖。这一行必须在运行才能修改。该版本以普通包发布这个提供方；`patches/dsh-experimental-subagent-oar@<version>.patch` 在安装时为已安装的包加上组合包声明。
 
-**更新后的按需插件。** 官方 Codex、Claude Code 子智能体和官方 Computer Use 按需安装到 Profile，版本锁定为安装它们时的 DSH 版本。它们依赖的 DSH 包由 pnpm 放在 Profile 的 `node_modules` 顶层，运行时解析会优先使用这些副本，而不是安装包自带的。更新到其他 DSH 版本后，核心插件会因此加载旧副本，子智能体工具随之消失，或者 Host 无法启动；这些插件本身也不再匹配新版本。因此，Beta 在 Host 解析 Profile 之前，用内置 pnpm 离线移除为其他版本安装的按需插件，效果与在**插件**页移除相同，并在日志中写明移除了哪些。之后**插件**页把它们显示为未安装，打开开关即可安装当前版本。移除失败只记录日志，Host 照常启动，下次启动时重试。
+**官方 Computer Use。** dsh 0.2.2 新增 macOS 上的官方 Computer Use bundle `@deepseek-ai/dsh-cua-bundle`，dsh 0.2.3 又为它加入实验性的 Windows provider `@deepseek-ai/dsh-cua-windows`。官方发布版把它作为可选组合包随安装提供，Beta 同样随安装包提供；0.2.2-alpha.3 到 0.2.2-rc.1 期间则由插件管理器按需安装。Linux 没有它的 provider。`computer-use` 注册服务条目和 provider 条目共用 `computerUse: computer-use-next` 隔离域，因此官方 bundle 可以同时挂载自己的注册服务。官方 provider 用 `cua` 工具服务 PTC 会话；从 dsh 0.2.3 起，它还用 `cua_run_code` 服务其他所有会话，在自己的 Node 运行时上执行 CUA 程序。在它服务的会话中，Computer Use（Next）不加载工具和提示词，也不提供 `/computer-use` 命令；官方 provider 不再服务该会话后（例如会话切换到其他模式，或关闭官方 bundle），命令随即恢复，无需重启。Linux、官方 helper 无法启动的 macOS 14 以下版本、没有带 helper 的 Windows 安装，以及没有加载官方 provider 的会话，继续使用 Computer Use（Next），它支持 macOS、Windows 和 Linux。官方发布的 Windows provider 不带它要启动的 helper，因此 Windows 安装包从固定版本的上游 checkout 发布这个 helper（见下文「Windows x64 本地安装包」）。Computer Use（Next）的插件页提供官方 bundle 的开关行，按平台显示为 macOS Computer Use 或 Windows Computer Use；当前 Profile 还没有安装时，打开开关会先安装。该开关在 macOS 14 及以上和带有 helper 的 Windows 安装中可用；其他情况下保持关闭且不可操作，Linux 不显示这一行。开启后，点击这一行可打开它在**插件**页中的详情页。相关模块和测试位于 `src/upstream-family/` 和 `tests/upstream-family/`。
+
+**更新后的按需插件。** 官方 Codex、Claude Code 子智能体和「Beta 插件」中的官方连接器按需安装到 Profile，版本锁定为安装它们时的 DSH 版本。它们依赖的 DSH 包由 pnpm 放在 Profile 的 `node_modules` 顶层，运行时解析会优先使用这些副本，而不是安装包自带的。更新到其他 DSH 版本后，核心插件会因此加载旧副本，子智能体工具随之消失，或者 Host 无法启动；这些插件本身也不再匹配新版本。因此，Beta 在 Host 解析 Profile 之前，用内置 pnpm 离线移除为其他版本安装的按需插件，效果与在**插件**页移除相同，并在日志中写明移除了哪些。之后**插件**页把它们显示为未安装，打开开关即可安装当前版本。移除失败只记录日志，Host 照常启动，下次启动时重试。
+
+**插件页返回位置。** 在**插件**页从插件详情、组件详情或「更多」页返回时，列表、「更多」页或标签页会回到离开时滚动到的位置。官方页面的所有视图共用一个滚动容器，不为每个视图记录位置，所以返回后列表会回到顶部。打开新页面时仍从顶部显示。该行为由 `patches/dsh-client-ui-plugin-manager@<version>.patch` 加入。
+
+**侧边栏固定状态。** 侧边栏显示哪些导航项、哪些收进「更多」，重启后仍会保留。官方侧边栏只把这些选择保存在内存里；`patches/dsh-client-ui-sidebar@<version>.patch` 借助官方 store 的 localStorage 持久化，把它们保存在 Desktop 自己的键 `dsh-desktop.sidebar.panel-pins` 下。窗口存储位于数据目录中，所以所有 Profile 共用这些选择；通过浏览器访问打开的浏览器各自保存。存储的值如果不是导航项 id 列表，就会被丢弃，所有导航项重新显示。
 
 `dshmarket@1.2.3` 尚未预装，也不是 DSH Desktop 的 dependency。该版本仍从 config/argv 解析 profile，并通过私有 child-process 代码启动 `dsh plugin`；它既不读取 `desktopProfiles`，也不使用 `desktopPnpm`，package exports 也没有 runner injection seam。后续兼容版本必须动态探测 Desktop service，同时在普通 DSH 中保留现有 CLI fallback。此外，`1.2.3` 的源码仓库与 npm tarball 均未包含完整 MIT 许可文本或版权通知，因此该版本尚未通过内置再分发 gate。用户主动安装第三方 package 与 Desktop 将其嵌入 application archive 或 installer 是两个独立边界。
 
@@ -252,7 +258,7 @@ corepack yarn build
 
 ### Windows x64 本地安装包
 
-请使用原生 Windows x64 电脑，并安装 Git 与 x64 Node `22.23.2`（与 CI 使用的版本相同）。打包命令接受官方发行版仍包含所需 Corepack 命令的 Node `22.19+` 与 Node `24.x`。在一个最新的 `v2` checkout 中打开 PowerShell，然后执行：
+请使用原生 Windows x64 电脑，并安装 Git、x64 Node `24.22.3`（与 CI 使用的版本相同）和 .NET 10 SDK。任何 `^24.22.3` 的 Node 版本都可以，其官方发行版包含所需的 Corepack 命令。在一个最新的 `v2` checkout 中打开 PowerShell，然后执行：
 
 ```powershell
 git submodule update --init --recursive
@@ -261,6 +267,8 @@ corepack.cmd yarn dist:win
 ```
 
 该流程不要求 Python 或 Visual Studio C++ Build Tools。Windows 命令会直接使用 `node-pty` 内置的 x64 Node-API 二进制，而不会让 Electron Builder 从源码重新编译；如果安装包 staging tree 缺少这些二进制，packaged-runtime gate 会直接拒绝产物。
+
+官方 Computer Use bundle 的 Windows provider 发布时不带 helper，这个 helper 由 .NET 10 SDK 发布（需要 `dotnet` 在 `PATH` 中）。每次构建 Windows 安装包时，先检查固定版本的上游 checkout 中的 `@deepseek-ai/dsh-cua-windows` 与安装包安装的版本一致，再在它的 `native/` 源码副本上运行 provider 自己的 `dotnet publish` 参数（锁定还原），把自包含的产物保存在 `.desktop-build/cua-windows/<cpu>/`，源码不变时直接复用，然后复制到 provider 的 `native/bin/win-<cpu>/`，该目录解包在归档旁。缺少 SDK 时打包失败。helper 会让安装后的应用增加约 200 MB。`afterPack` 钩子要求安装包只带本 CPU 的 helper 及其运行时文件；因为 Electron 不加载这些文件，它的库中允许出现与架构无关的 IL；最后启动一次 helper。开发启动时，有 SDK 才构建 helper，没有就不带 helper 启动。
 
 `dist:win` 会拒绝非 Windows 或非 x64 宿主，先执行一组 Windows 可运行的 gate，其中包括 build、全部 TypeScript compiler face、打包与原生 shell 聚焦测试，以及 runtime-closure verifier；随后再构建 NSIS 安装向导，并校验生成的两个 PE 文件。完整跨平台 suite 仍由 CI 持有，因为其中部分 POSIX 执行测试不是 Windows 程序。安装向导支持当前用户安装或提升权限后的所有用户安装，可更改安装目录，会创建开始菜单与桌面快捷方式，并且卸载应用时保留 DSH 用户数据。版本 `2.0.5-beta.2` 会输出到 `dsh-plugin-desktop-beta\dist\DSH-Desktop-Beta-2.0.5-beta.2-x64-Setup.exe`；用于 smoke 测试的未封装程序仍位于 `dsh-plugin-desktop-beta\dist\win-unpacked\DSH Desktop Beta.exe`。
 
@@ -307,8 +315,8 @@ corepack.cmd yarn dist:win-portable
 
 追踪不主动采集提示词、模型输出、工具参数/结果、HTTP/IPC 正文或请求头；错误链、进程输出与控制台文本仍可能含插件自行输出的信息，沿用脱敏、长度上限与界面速率限制。关闭开关仍保留错误和原有生命周期日志。Electron 与独立 Host 的日志分别写入现有 logs、logs/host，继续按单文件 10 MiB、每目录 200 MiB 和 7 天轮转；“导出诊断信息”继续生成 ZIP，包含这些日志和原有崩溃证据。未新增操作系统内核或网络抓包。
 
-不打开开发者日志时，Beta 也会记录 Host 和插件的健康状况。MCP 服务每次断线记录首次失败（附最后一次错误）、停止自动重连和恢复（`host.health mcp.*`）。失败的回合，或中途有模型请求失败的回合，记录一条 `host.health turn.summary`，写明失败请求数和最终失败代码，与结束该回合的错误（`host.agent agent.failed`）并列；失败请求本身只在开发者日志中记录。每个结束的插件操作或插件命令记录其结果（`host.plugins operation.*`）。桌面端还会记录超过一分钟没有发来内存样本的 Host 及其恢复（`host.process heartbeat.*`），以及停止响应的主窗口及其恢复（`renderer window.*`）。
+不打开开发者日志时，Beta 也会记录 Host 和插件的健康状况。MCP 服务每次断线记录首次失败（附最后一次错误）、停止自动重连和恢复（`host.health mcp.*`）。缺少凭据、或在等用户完成 OAuth 授权的服务也按同样方式记录，并写明原因。失败的回合，或中途有模型请求失败的回合，记录一条 `host.health turn.summary`，写明失败请求数和最终失败代码，与结束该回合的错误（`host.agent agent.failed`）并列；失败请求本身只在开发者日志中记录。每个结束的插件操作或插件命令记录其结果（`host.plugins operation.*`）。桌面端还会记录超过一分钟没有发来内存样本的 Host 及其恢复（`host.process heartbeat.*`），以及停止响应的主窗口及其恢复（`renderer window.*`）。
 
 Host 每秒采样一次事件循环，对话回合或插件操作进行时改为每 250 毫秒一次。事件循环忙碌期间，采样迟到 500 毫秒（活动时 400 毫秒）即记为卡顿，因此 1.5 秒以上（活动时 650 毫秒以上）的卡顿一定会被记录。事件循环空闲时的迟到（例如进程被挂起之后）不算卡顿。卡顿在现有的 30 秒内存推送时上报：先记 `host.health stall.started` 及延迟，恢复后记 `stall.recovered`，附最大延迟和持续的窗口数。延迟是下限：实际阻塞最多再长一个采样间隔。这次推送还把该窗口的事件循环利用率带进内存样本。与 Host 输出一样，这些记录重复时会折叠。它们不含提示词、工具参数或模型输出，也不会触发自动恢复。
 
-插件清单通过官方 `readPluginInventory()` 获取实际启用状态和生命周期阶段。可选的官方 Inspector 可用时，通过 `ctx.inspector.cordis.getTree()` 获取运行时来源、版本序号、连接状态和截断标记等元数据，桌面端不自行重建其拓扑。会话元数据使用官方 `session/event` 事件，保留原始事件类型、序号和时间，便于与 Session Log 对照。原始会话和聊天数据查看、NodeJS 调试及出站 fetch 抓取由官方开发者工具提供；桌面端保留操作耗时、进程/IPC 诊断、日志留存和诊断导出。开启开发者日志不会自动开启官方抓取工具，也不会将其原始正文复制到导出包。
+插件清单通过官方 `readPluginInventory()` 获取实际启用状态和生命周期阶段。桌面端只把 Loader 交给它，因此它不会读取日志用不到的显示元数据（否则每次调用都要读每个插件的清单文件、语言包和图标）。清单只在固定时机读一次（Host 就绪、插件变更完成、打开开发者日志时），从不按单个插件事件读取。可选的官方 Inspector 可用时，通过 `ctx.inspector.cordis.getTree()` 获取运行时来源、版本序号、连接状态和截断标记等元数据，桌面端不自行重建其拓扑。会话元数据使用官方 `session/event` 事件，保留原始事件类型、序号和时间，便于与 Session Log 对照。原始会话和聊天数据查看、NodeJS 调试及出站 fetch 抓取由官方开发者工具提供；桌面端保留操作耗时、进程/IPC 诊断、日志留存和诊断导出。开启开发者日志不会自动开启官方抓取工具，也不会将其原始正文复制到导出包。

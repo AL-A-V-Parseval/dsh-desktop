@@ -1,10 +1,10 @@
-/** Discover the real archived Office engine and render a private DOCX fixture; never read user documents. */
+/** Test Office service engine discovery and built-in conversion from the real application archive. */
 import assert from 'node:assert/strict'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = process.argv[2]
 if (!root) throw new Error('packaged-office-smoke: expected the packaged application root')
@@ -12,8 +12,10 @@ const { installOfficeEngineResolution } = await import(pathToFileURL(join(root, 
 installOfficeEngineResolution(root)
 const require = createRequire(join(root, 'package.json'))
 const { zipSync, strToU8 } = require('fflate')
-const { discoverRuntime, createConverter } = await import(pathToFileURL(require.resolve('@deepseek-ai/libreoffice-kit')).href)
-const runtime = await discoverRuntime()
+const { OfficeKit } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-office-kit')).href)
+const { createConverter, resolveEnginePackage } = await OfficeKit.prototype.importKit()
+const { discoverRuntime } = await import(pathToFileURL(require.resolve('@deepseek-ai/libreoffice-kit')).href)
+const runtime = await discoverRuntime({ resolveEnginePackage })
 assert.equal(runtime.backend, 'wasm', 'Linux packages carry the shared WASM Office engine')
 const home = mkdtempSync(join(tmpdir(), 'dsh-packaged-office-'))
 let converter
@@ -38,13 +40,17 @@ try {
         </w:body>
       </w:document>`),
   }))
-  converter = await createConverter({ timeoutMs: 120_000 })
+  converter = await createConverter({ timeoutMs: 120_000, resolveEnginePackage })
   const result = await converter.render({ inputPath: input, outputPath: output })
   assert.equal(result.backend, 'wasm')
   assert.equal(result.pageCount, 1)
   const pdf = readFileSync(output)
   assert.equal(pdf.subarray(0, 5).toString(), '%PDF-')
-  console.log(`Packaged Office ${runtime.version}: WASM discovery and DOCX-to-PDF rendering passed (${result.pageCount} page, ${pdf.length} bytes)`)
+  const slides = fileURLToPath(new URL('../../deepseek-harness/scripts/fixtures/office-render/color-blocks.pptx', import.meta.url))
+  const rendered = await converter.renderImages({ inputPath: slides, outputDir: join(home, 'images'), pages: [1] })
+  assert.equal(rendered.images.length, 1)
+  assert.equal(readFileSync(rendered.images[0].path).subarray(0, 8).toString('hex'), '89504e470d0a1a0a')
+  console.log(`Packaged Office ${runtime.version}: WASM discovery, DOCX-to-PDF and PPTX-to-PNG passed`)
 } finally {
   try { if (converter) await converter.dispose() }
   finally { rmSync(home, { recursive: true, force: true }) }

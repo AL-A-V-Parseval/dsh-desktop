@@ -31,8 +31,8 @@ DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harne
 
 本 fork **聚焦 Linux**：维护 Linux 发行与兼容修复，同时跟随上游的跨平台改进，保留本 fork 的 Stable 发布和数据兼容策略。
 
-- 上游合并快照：`9d851bef94`；源码版本为 `2.0.24-next-linux.2`
-- 源码运行时：Linux Stable 工作区 `dsh-desktop-next/` 与 Beta 均使用 `0.2.2-rc.5`；旧工作区保留 `0.2.1-rc.3`。各源码 pin 见 [`upstream.json`](upstream.json)，Linux 发布边界见 [`linux-release-policy.json`](linux-release-policy.json)
+- 上游合并快照：`0790398f44`；源码版本为 `2.0.24-next-linux.2`
+- 源码运行时：Linux Stable 工作区 `dsh-desktop-next/` 与 Beta 均使用 `0.2.3-alpha.2`；旧工作区保留 `0.2.1-rc.3`。各源码 pin 见 [`upstream.json`](upstream.json)，Linux 发布边界见 [`linux-release-policy.json`](linux-release-policy.json)
 - 目标平台：**Linux x64**
 - 产物：AppImage、便携包（tar.gz）与 Debian/Ubuntu 安装包（.deb），随 `SHA256SUMS` 提供校验和，`.deb` 另含 `debsigs` 内部签名
 
@@ -66,7 +66,7 @@ Linux 图像处理使用上游 Sharp 0.35.5 的 WASM 后端。旧的真实 Node 
 
 ### 上游同步与发布范围
 
-Stable 与 Beta 源码使用 DSH `0.2.2-rc.5`，提供聊天导入、原生文件操作、图片拖拽、LiveShare 登录适配、可配置 Host 启动限时和渲染器诊断。DeepSeek API 配置支持删除及重新添加，不影响账号登录。LiveShare、Ralph 与会话搜索在插件页可选启用；官方按需安装的 Computer Use 仅适用于 macOS，Linux 使用默认关闭的 Computer Use（Next）。
+Stable 与 Beta 源码使用 DSH `0.2.3-alpha.2`，提供聊天导入、原生文件操作、图片拖拽、LiveShare 登录适配、可配置 Host 启动限时和渲染器诊断。DeepSeek API 配置支持删除及重新添加，不影响账号登录。LiveShare、Ralph 与会话搜索在插件页可选启用；官方按需安装的 Computer Use 仅适用于 macOS，Linux 使用默认关闭的 Computer Use（Next）。
 
 Linux 使用本 fork 的 Stable 更新提示、手动下载安装、hicolor 图标、GBM/ALSA deb 依赖，以及 `<应用程序> dsh …` CLI。源码已有 arm64 打包入口，但当前 Release 仅提供已验证的 x64 资产。本次新增的 macOS 窗口拖动修复仅进入源码，未发布新安装包；详见[最新同步记录](docs/upstream-sync-2026-11-09.md)和[工作区文档](dsh-desktop-next/README.zh.md)。
 

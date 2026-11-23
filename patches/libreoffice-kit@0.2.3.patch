@@ -25,3 +25,87 @@ diff --git a/lib/editor.js b/lib/editor.js
 +	// Electron ASAR returns null for absent paths; Node returns undefined.
 +	return (require.resolve.paths(name) ?? []).some((directory) => lstatSync(join(directory, name), { throwIfNoEntry: false }) != null);
  }
+diff --git a/lib/worker.js b/lib/worker.js
+index a3f36c0..b3f1004 100644
+--- a/lib/worker.js
++++ b/lib/worker.js
+@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
+ import { parentPort, workerData } from "node:worker_threads";
+ import { closeSync, constants, fstatSync, mkdirSync, openSync, readFileSync, readSync, writeFileSync } from "node:fs";
+ import { basename, extname, join } from "node:path";
+-import { strFromU8, unzipSync, zlibSync } from "fflate";
++import { strFromU8, unzipSync, zipSync, zlibSync } from "fflate";
+ import { SaxesParser } from "saxes";
+ import { create } from "fontkit";
+ import { createHash } from "node:crypto";
+@@ -1429,6 +1429,46 @@ function requireParentPort(port) {
+ 	return port;
+ }
+ const port = requireParentPort(parentPort);
++
++/** Strip presentation effects from a private copy for static WASM output only. */
++function staticPresentation(bytes) {
++	const parts = unzipSync(bytes, { filter: ({ name }) => /^ppt\/(?:slides|slideLayouts|slideMasters)\/[^/]+\.xml$/u.test(name) });
++	const changes = new Map();
++	for (const [name, data] of Object.entries(parts)) {
++		const encoding = data[0] === 255 && data[1] === 254 || data[0] === 60 && data[1] === 0 ? "utf-16le"
++			: data[0] === 254 && data[1] === 255 || data[0] === 0 && data[1] === 60 ? "utf-16be" : "utf-8";
++		const xml = new TextDecoder(encoding, { ignoreBOM: true, fatal: true }).decode(data);
++		const parser = new SaxesParser({ xmlns: true });
++		const kept = [];
++		let start, open, depth = 0, cursor = 0;
++		parser.on("opentagstart", () => { open = xml.lastIndexOf("<", parser.position - 1); });
++		parser.on("opentag", ({ local, uri }) => {
++			if (depth) depth++;
++			else if ((local === "transition" || local === "timing") &&
++				(uri === "http://schemas.openxmlformats.org/presentationml/2006/main" || uri === "http://purl.oclc.org/ooxml/presentationml/main")) {
++				start = open;
++				depth = 1;
++			}
++		});
++		parser.on("closetag", () => {
++			if (depth && --depth === 0) {
++				kept.push(xml.slice(cursor, start));
++				cursor = parser.position;
++			}
++		});
++		parser.write(xml).close();
++		if (cursor) {
++			const text = kept.join("") + xml.slice(cursor);
++			const encoded = Buffer.from(text, encoding === "utf-8" ? "utf8" : "utf16le");
++			changes.set(name, encoding === "utf-16be" ? encoded.swap16() : encoded);
++		}
++	}
++	if (changes.size === 0) return bytes;
++	const files = unzipSync(bytes);
++	for (const [name, data] of changes) files[name] = data;
++	return zipSync(files);
++}
++
+ try {
+ 	const { bytes, extension, operation, options, engine, scratch, fontFaces, fontCache } = workerData;
+ 	const images = "kind" in operation && operation.kind === "images";
+@@ -1439,11 +1479,13 @@ try {
+ 	} : inspectDocument(bytes, extension, options);
+ 	if (engine.backend === "wasm") {
+ 		if (fontFaces.length === 0 && extension !== "pdf") throw new ConversionError("unavailable", "No usable fonts were found. Install fonts or configure fontDirectories before converting documents.");
++		// inspectDocument above enforces the archive bounds before making a static copy.
++		const source = extension === "pptx" && (images || operation.format === "pdf") ? staticPresentation(bytes) : bytes;
+ 		if (images) {
+ 			let cacheEntries = [];
+ 			const result = await renderImagesWithWasm({
+ 				engine,
+-				bytes,
++				bytes: source,
+ 				extension,
+ 				operation,
+ 				options,
+@@ -1465,7 +1507,7 @@ try {
+ 		} else {
+ 			const result = await convertWithWasm({
+ 				engine,
+-				bytes,
++				bytes: source,
+ 				extension,
+ 				operation,
+ 				options,

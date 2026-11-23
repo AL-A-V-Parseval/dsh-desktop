@@ -10,7 +10,7 @@ This repository owns the desktop product around an unmodified DeepSeek Harness c
 
 ## Prerequisites and setup
 
-- Use Node.js `^22.19.0` or `>=24.0.0` and the root Yarn `4.18.0` release through Corepack.
+- Use Node.js `^24.22.3` and the root Yarn `4.18.0` release through Corepack.
 - Initialize the pinned upstream checkout with `git submodule update --init --recursive`.
 - Install root dependencies with `corepack yarn install --immutable`.
 
@@ -35,7 +35,7 @@ This repository owns the desktop product around an unmodified DeepSeek Harness c
 - `dsh-community-fabric/` owns the community interoperability RFC. Until schemas and a reviewed reference adapter exist, it remains a private documentation scaffold and must not declare loadable DSH or package entry points.
 - `dsh-community-market/` owns the loadable Community Market integration and its compatibility patch.
 - `dsh-tokens-anywhere/` owns the Anywhere account plugin, `@agents-anywhere/dsh-tokens-anywhere`: Tokens Anywhere sign-in, its models and usage. No Desktop variant loads it yet; the Next and Beta Host smokes assert that it is not mounted. Keep its `@deepseek-ai/dsh*` peers on Next's runtime version.
-- `dsh-acp-bridge/` owns the Agent Client Protocol (ACP) bridge plugin published as `@agents-anywhere/dsh-acp-bridge`. It loads into a running DSH of the 0.2.2 runtime family, serves ACP to local editors such as Zed through a private MeshCall endpoint and a generated stdio launcher, and drives sessions only through the official Session Controller. It is not part of the Desktop variant mirror; its headless check runs a real in-process DSH Host with a scripted model. Its local RPC is a public interface, contract version 1, with a client in `@agents-anywhere/dsh-acp-bridge/client` that the launcher is built on: within a contract version changes only add fields or methods, and anything else takes the next contract version and a major release (`src/contract.ts`, `tests/unit/contract.test.ts`).
+- `dsh-acp-bridge/` owns the Agent Client Protocol (ACP) bridge plugin published as `@agents-anywhere/dsh-acp-bridge`. It loads into a running DSH of the 0.2.2 or 0.2.3 runtime family, serves ACP to local editors such as Zed through a private MeshCall endpoint and a generated stdio launcher, and drives sessions only through the official Session Controller. It is not part of the Desktop variant mirror; its headless check runs a real in-process 0.2.3 DSH Host with a scripted model. Its local RPC is a public interface, contract version 1, with a client in `@agents-anywhere/dsh-acp-bridge/client` that the launcher is built on: within a contract version changes only add fields or methods, and anything else takes the next contract version and a major release (`src/contract.ts`, `tests/unit/contract.test.ts`).
 - The outer repository and all owned packages use the root Yarn release with `nodeLinker: node-modules`.
 - The upstream submodule keeps its own pnpm workspace. Run upstream commands through the root `upstream:*` scripts, whose Yarn portable-shell commands enter the submodule before invoking Corepack.
 - Compatibility mode must run the upstream default client without overrides. Advanced presentation belongs to desktop-owned client plugins and may replace documented slots or services through profile composition.

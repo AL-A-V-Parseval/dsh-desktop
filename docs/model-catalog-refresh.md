@@ -3,7 +3,7 @@
 `pi-model-catalog.json` records the public npm catalog snapshot bundled with Desktop.
 The catalog refresh changes only `dist/providers/data/*.json` (including its manifest)
 inside `patches/pi-ai@<version>.patch`. Linux Stable (Next) and Beta now both run
-DSH `0.2.2-rc.5` with upstream-patched pi-ai `1.3.0`; their catalog receipt is
+DSH `0.2.3-alpha.2` with upstream-patched pi-ai `1.3.0`; their catalog receipt is
 `pi-model-catalog-1.3.0.json`. Its data comes from the same reviewed public `1.4.0`
 snapshot and additions, without replacing the `1.3.0` protocol/OAuth runtime,
 streaming fix or Gemini tool-call signature replay fix. Stable `v2.0.23-next-linux.2`

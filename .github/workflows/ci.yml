@@ -54,7 +54,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
-          node-version: 24.14.0
+          node-version: 24.22.3
       - name: Classify changed paths
         id: scope
         shell: bash
@@ -96,7 +96,7 @@ jobs:
       - uses: actions/setup-node@v6
         if: needs.changes.outputs.product == 'true'
         with:
-          node-version: 24.14.0
+          node-version: 24.22.3
       - if: needs.changes.outputs.product == 'true'
         run: corepack enable
       - name: Resolve Yarn cache folder
@@ -203,7 +203,7 @@ jobs:
           submodules: recursive
       - uses: actions/setup-node@v6
         with:
-          node-version: 24.14.0
+          node-version: 24.22.3
           architecture: ${{ matrix.arch }}
       - run: corepack enable
       # The portable-shell upstream scripts must resolve the pinned submodule's own pnpm release on Windows.
@@ -256,6 +256,19 @@ jobs:
         run: node scripts/test-platform-specs.mjs
       # Typecheck is platform-neutral and already gated by `check`.
       - run: yarn workspace ${{ env.DSH_WINDOWS_WORKSPACE }} check:win-package:platform
+      # The release publishes the official Computer Use bundle's Windows provider without its helper, so packaging publishes
+      # it from the pinned upstream sources with .NET 10 and reuses the output while those sources and the script stay unchanged.
+      - name: Restore the official Windows Computer Use helper
+        id: cua-windows-helper
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.DSH_WINDOWS_WORKSPACE }}/.desktop-build/cua-windows
+          key: cua-windows-helper-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('deepseek-harness/packages/experimental/cua-windows/native/Directory.Build.props', 'deepseek-harness/packages/experimental/cua-windows/native/protocol.schema.json', 'deepseek-harness/packages/experimental/cua-windows/native/entry/**', 'deepseek-harness/packages/experimental/cua-windows/native/protocol/**', format('{0}/scripts/upstream-family/cua-windows-native.ts', env.DSH_WINDOWS_WORKSPACE)) }}
+      - name: Install .NET 10 for the official Windows Computer Use helper
+        if: steps.cua-windows-helper.outputs.cache-hit != 'true'
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
       - name: Build Windows installer
         env:
           DSH_PACKAGE_CHECK_ALREADY_RAN: '1'
@@ -291,6 +304,12 @@ jobs:
             ~/AppData/Local/electron/Cache
             ~/AppData/Local/electron-builder/Cache
           key: ${{ steps.packaging-cache.outputs.cache-primary-key }}
+      - name: Save the official Windows Computer Use helper
+        if: github.event_name != 'pull_request' && steps.cua-windows-helper.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.DSH_WINDOWS_WORKSPACE }}/.desktop-build/cua-windows
+          key: ${{ steps.cua-windows-helper.outputs.cache-primary-key }}
 
       - name: Write release artifact checksums
         if: github.event_name == 'workflow_dispatch'
@@ -327,7 +346,7 @@ jobs:
           submodules: recursive
       - uses: actions/setup-node@v6
         with:
-          node-version: 24.14.0
+          node-version: 24.22.3
       - run: corepack enable
       - name: Resolve Yarn cache folder
         id: yarn-cache-dir
@@ -411,7 +430,7 @@ jobs:
           submodules: recursive
       - uses: actions/setup-node@v6
         with:
-          node-version: 24.14.0
+          node-version: 24.22.3
       - run: corepack enable
       - name: Resolve Yarn cache folder
         id: yarn-cache-dir
@@ -472,7 +491,7 @@ jobs:
             const { dirname, relative, resolve } = require('node:path')
             try {
               const bundle = createRequire(resolve('dsh-plugin-desktop-beta/package.json')).resolve('@deepseek-ai/dsh-cua-bundle/package.json')
-              console.log(relative(process.cwd(), dirname(createRequire(bundle).resolve('@deepseek-ai/dsh-experimental-cua-macos/package.json'))))
+              console.log(relative(process.cwd(), dirname(createRequire(bundle).resolve('@deepseek-ai/dsh-cua-macos/package.json'))))
             } catch { console.log('') }")
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
           echo "swift=$(xcrun swift --version 2>&1 | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"

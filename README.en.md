@@ -31,8 +31,8 @@ DSH Desktop integrates the official Web UI, Host service, and plugin system of [
 
 This fork is **Linux-focused**: it maintains Linux releases and compatibility fixes while following upstream's cross-platform improvements, retaining this fork's Stable release and data-compatibility policy.
 
-- Merged upstream snapshot: `9d851bef94`; source version `2.0.24-next-linux.2`
-- Source runtimes: Linux Stable workspace `dsh-desktop-next/` and Beta both use `0.2.2-rc.5`; legacy workspace retains `0.2.1-rc.3`. Pins live in [`upstream.json`](upstream.json); Linux release boundaries are defined by [`linux-release-policy.json`](linux-release-policy.json)
+- Merged upstream snapshot: `0790398f44`; source version `2.0.24-next-linux.2`
+- Source runtimes: Linux Stable workspace `dsh-desktop-next/` and Beta both use `0.2.3-alpha.2`; legacy workspace retains `0.2.1-rc.3`. Pins live in [`upstream.json`](upstream.json); Linux release boundaries are defined by [`linux-release-policy.json`](linux-release-policy.json)
 - Target platform: **Linux x64**
 - Artifacts: an AppImage, a portable archive (tar.gz) and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships alongside them, and the `.deb` also carries an internal `debsigs` signature
 
@@ -66,7 +66,7 @@ Packaged builds carry the upstream-pinned, checksum-verified Python, Node.js, pn
 
 ### Upstream sync and release scope
 
-Stable and Beta sources use DSH `0.2.2-rc.5`, with chat import, native file actions, image dragging, LiveShare sign-in integration, configurable Host startup limits and renderer diagnostics. DeepSeek API configuration can be deleted and re-added without affecting account login. LiveShare, Ralph and session search can be enabled from Plugins. On-demand official Computer Use is macOS-only; Linux uses Computer Use (Next), disabled by default.
+Stable and Beta sources use DSH `0.2.3-alpha.2`, with chat import, native file actions, image dragging, LiveShare sign-in integration, configurable Host startup limits and renderer diagnostics. DeepSeek API configuration can be deleted and re-added without affecting account login. LiveShare, Ralph and session search can be enabled from Plugins. On-demand official Computer Use is macOS-only; Linux uses Computer Use (Next), disabled by default.
 
 Linux uses this fork's Stable update notices, manual downloads/installations, hicolor icons, GBM/ALSA deb dependencies and the `<app> dsh …` CLI. Source includes arm64 packaging entry points, but current Releases ship verified x64 assets only. The latest macOS window-drag correction is source-only; no new installers were published. See the [latest sync record](docs/upstream-sync-2026-11-09.md) and [workspace documentation](dsh-desktop-next/README.md).
 

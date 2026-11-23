@@ -421,10 +421,11 @@ try {
   assert.equal(settingsNavScroll.overscrollBehaviorY, 'contain')
   assert.equal(settingsNavScroll.scrollbarGutter, 'stable')
   assert.equal(settingsNavScroll.paddingBottom, '12px')
-  assert.equal(settingsNavScroll.baseWidth, 164)
+  // Items keep the official geometry while the list scrolls; the official width changes between releases.
+  assert.ok(settingsNavScroll.baseWidth > 0)
   assert.equal(settingsNavScroll.baseHeight, 40)
-  assert.ok(settingsNavScroll.buttons.every(box => box.width === 164 && box.height === 40),
-    `Settings nav items must keep 164x40 geometry when overflowing: ${JSON.stringify(settingsNavScroll.buttons)}`)
+  assert.ok(settingsNavScroll.buttons.every(box => box.width === settingsNavScroll.baseWidth && box.height === 40),
+    `Settings nav items must keep their official geometry when overflowing: ${JSON.stringify(settingsNavScroll.buttons)}`)
   assert.ok(settingsNavScroll.scrollHeight > settingsNavScroll.clientHeight,
     `Settings nav list must overflow vertically: ${JSON.stringify(settingsNavScroll)}`)
   assert.ok(settingsNavScroll.scrollTop > 0,
@@ -509,14 +510,17 @@ try {
   assert.equal(await communityChoice.getAttribute('aria-checked'), 'false')
   assert.equal(await remote.isChecked(), true)
   await marketFooter.waitFor({ state: 'hidden' })
-  await openSettingsPanel()
-  await page.getByRole('dialog').getByRole('button', { name: /^(插件市场|Plugin Market)$/ }).click()
+  // dshmarket leaves its Settings entry off by default on a Host whose Plugins page
+  // takes its tab, so the page is opened from that tab, the way users reach it.
+  const pluginViews = page.getByRole('tablist', { name: /^(插件视图|Plugin views)$/ })
+  await pluginViews.getByRole('tab', { name: /^(插件市场|Plugin Market)$/ }).click()
   // Exercise the real third-party page, not just its registration or toggle. Older
   // dshmarket bundles reference removed icon exports and crash only when rendered.
   await page.locator('[data-dsh-market-root]').waitFor({ state: 'visible' })
   assert.ok(await page.locator('[data-dsh-market-root] svg').count() > 0)
   assert.deepEqual(errors, [])
-  await page.getByRole('button', { name: /^(关闭|Close)$/ }).click()
+  await pluginViews.getByRole('tab', { name: /^(已安装|Installed)$/ }).click()
+  await controls.waitFor({ state: 'visible' })
   await assertMarketStyles('after opening and closing dsh-market')
   await communityChoice.click({ position: { x: 10, y: 10 } })
   await waitSelected('[data-next-markets] [role="radio"]:first-child')

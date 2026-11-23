@@ -45,6 +45,8 @@ const cardCount = (tree: Node): number => nodes(tree).filter(node => typeof node
 function fixture() {
   const hookState: unknown[] = []
   let cursor = 0
+  // Layout effects run after each render, before the next one; the page's scroll memory runs there.
+  const layoutEffects: (() => void)[] = []
   let Page: (props: Record<string, unknown>) => Node
   let navigation: any
   let apply: (context: unknown) => void
@@ -54,10 +56,11 @@ function fixture() {
     if (id === 'react') return {
       useState(initial: unknown) {
         const index = cursor++
-        if (!(index in hookState)) hookState[index] = initial
+        if (!(index in hookState)) hookState[index] = typeof initial === 'function' ? (initial as () => unknown)() : initial
         return [hookState[index], (value: unknown) => { hookState[index] = value }]
       },
       useEffect() {}, useId: () => 'description', useRef: () => ({ current: null }),
+      useLayoutEffect(effect: () => void) { layoutEffects.push(effect) },
     }
     if (id === 'react-dom') return {}
     if (id === '@deepseek-ai/dsh-client-ui-primitives') return new Proxy({}, { get: (_, name) => (props: Node['props']) => jsx(String(name), props) })
@@ -97,24 +100,38 @@ function fixture() {
   const state = { status: 'ready', packages: [official, remote], busy: [] as string[], notice: null, highlight: null, confirm: null,
     install: { open: false }, versions: {}, update: null }
   const item = { id: 'desktop-next-computer-use', label: 'Computer Use (Next)' }
-  const ledger = { items: [item], bundles: new Set([remote.name]), rows: new Set(),
+  // dsh 0.2.3 also lists settings sections the Plugins page shows on bundle rows; Desktop adds its bundle groups.
+  const ledger = { items: [item], bundles: new Set([remote.name]), rows: new Set(), sections: [],
+    groups: [] as { id: string; label: string; bundles: string[] }[],
     hiddenBundles: new Set([remote.name]), hiddenItems: new Set([item.id]) }
   let overview: { onOpenBundle(name: string): void; onOpenItem(id: string): void }
+  let tab: { openPackage(name: string): void }
+  // Tabs other plugins contribute through `plugins.tab`.
+  const tabs: { id: string; label: string }[] = []
   const setEnabled = vi.fn()
   const setRowEnabled = vi.fn()
   const props = {
     useStore: (select: (state: unknown) => unknown) => select(navigation.getSnapshot()), actions: navigation.actions,
     t: (key: string) => key, ensure: vi.fn(), resolveText: (text: string) => text,
-    useConfigurations: () => [], usePluginManager: () => state, useConfigLedger: () => ledger, usePluginTabs: () => [], setEnabled, setRowEnabled,
+    useConfigurations: () => [], usePluginManager: () => state, useConfigLedger: () => ledger, usePluginTabs: () => tabs, setEnabled, setRowEnabled,
+    // dsh 0.2.3 reports the page's own plugin synchronization.
+    useClientSync: (select: (sync: { syncing: boolean; failures: unknown[] }) => unknown) => select({ syncing: false, failures: [] }), retryClient: vi.fn(),
     useBundleDetails: (select: (details: unknown) => unknown) => select({}), useLocale: (select: (locale: { active: string }) => unknown) => select({ active: 'en' }),
     createHeaderRef: () => () => {}, ensureVersions: vi.fn(), loadDetail: vi.fn(),
     renderSlot: (name: string, owner: Record<string, unknown>, options?: unknown) => {
       if (name === 'plugins.overview') overview = owner as typeof overview
+      if (name === 'plugins.tab') tab = owner as typeof tab
       return jsx('slot', { name, owner, options })
     },
   }
-  return { state, remote, item, ledger, setEnabled, setRowEnabled,
-    page: () => { cursor = 0; return Page!(props) }, overview: () => overview!,
+  return { state, remote, item, ledger, tabs, actions: navigation.actions, setEnabled, setRowEnabled,
+    page: () => {
+      cursor = 0
+      const tree = Page!(props)
+      for (const effect of layoutEffects.splice(0)) effect()
+      return tree
+    },
+    overview: () => overview!, tab: () => tab!,
   }
 }
 
@@ -233,6 +250,117 @@ it('keeps an official optional bundle in the extensions group with its artwork, 
   const top = component(detail, 'DetailTop')!
   switchOf(component(top.props.actions, 'EnableSwitch')!).props.onChange(false)
   expect(app.setEnabled).toHaveBeenLastCalledWith(name, false)
+})
+
+it('draws a Desktop bundle group like the official experimental group, with its own More page, notice and member pages', () => {
+  const app = fixture()
+  const shipped = { ...app.remote, name: 'shipped-member', enabled: false, rows: [] }
+  const onDemand = { ...app.remote, name: 'on-demand-member', enabled: false, installed: false, availability: 'missing', rows: [] }
+  app.state.packages.push(shipped, onDemand)
+  app.ledger.groups.push({ id: 'beta', label: 'Beta plugins', bundles: [shipped.name, onDemand.name] })
+  const packageCards = (tree: unknown): Node[] => nodes(tree).filter(node => typeof node.type === 'function' && node.type.name === 'PackageCard')
+  const section = (tree: unknown): Node => nodes(tree).find(node => node.props['data-plugin-group'] === 'desktop-beta')!
+  // The members leave the official experimental group; the group's section comes first, with its title and More.
+  const list = app.page()
+  expect(groups(list)).toEqual(['desktop-beta', 'extensions'])
+  expect(nodes(section(list)).some(node => node.type === 'h3' && node.props.children === 'Beta plugins')).toBe(true)
+  expect(packageCards(section(list))).toEqual([])
+  expect(packageCards(list).map(card => card.props.pkg.name)).toEqual(['official-team'])
+  nodes(section(list)).find(node => typeof node.props.onClick === 'function')!.props.onClick()
+  // Its More page is the official one, with the group's title, its notice and its members in group order.
+  const more = app.page()
+  expect(nodes(more).some(node => node.type === 'h1' && node.props.children === 'Beta plugins')).toBe(true)
+  const notice = nodes(more).find(node => node.props.name === 'plugins.group')!
+  expect([notice.props.owner, notice.props.options]).toEqual([{ group: 'beta' }, { only: 'beta' }])
+  expect(packageCards(more).map(card => card.props.pkg.name)).toEqual([shipped.name, onDemand.name])
+  // A member's page names the group in its breadcrumb and returns to the group's More page.
+  packageCards(more)[0]!.props.onOpen()
+  const detail = component(app.page(), 'PackageDetail')!
+  expect([detail.props.inMore, detail.props.moreLabel]).toEqual([true, 'Beta plugins'])
+  const top = component(render(detail), 'DetailTop')!
+  expect(top.props.crumbText).toBe('Beta plugins')
+  top.props.onBack()
+  expect(packageCards(app.page()).map(card => card.props.pkg.name)).toEqual([shipped.name, onDemand.name])
+  // A member the profile enabled joins the group's section on the main list, as an enabled experimental bundle does.
+  shipped.enabled = true
+  nodes(app.page()).find(node => node.props['aria-label'] === 'backToList')!.props.onClick()
+  expect(packageCards(section(app.page())).map(card => card.props.pkg.name)).toEqual([shipped.name])
+  // Without a group the official More page keeps its own title and list.
+  app.ledger.groups.length = 0
+  nodes(app.page()).find(node => typeof node.props.onClick === 'function' && node.props.children?.[0] === 'moreAction')!.props.onClick()
+  const official = app.page()
+  expect(nodes(official).some(node => node.type === 'h1' && node.props.children === 'moreTitle')).toBe(true)
+  expect(nodes(official).some(node => node.props.name === 'plugins.group')).toBe(false)
+})
+
+it('returns from item, plugin and row pages, a More list and a contributed tab to the scroll position each was left at', () => {
+  const app = fixture()
+  app.ledger.hiddenBundles.clear()
+  app.ledger.hiddenItems.clear()
+  // One body scrolls every view of the page. The browser moves it when one view's content replaces another's; the
+  // official page leaves that position as it is.
+  const listeners = new Set<() => void>()
+  const body = {
+    scrollTop: 0,
+    addEventListener: (_type: string, listener: () => void) => { listeners.add(listener) },
+    removeEventListener: (_type: string, listener: () => void) => { listeners.delete(listener) },
+  }
+  const scroll = (top: number) => { body.scrollTop = top; for (const listener of listeners) listener() }
+  const card = (tree: Node, name: string): Node => nodes(tree).find(node => typeof node.type === 'function'
+    && node.type.name === 'PackageCard' && node.props.pkg.name === name)!
+  const back = (tree: Node, name: string): void => { component(render(component(tree, name)!), 'DetailTop')!.props.onBack() }
+  nodes(app.page()).find(node => node.props['data-plugin-body'])!.props.ref(body)
+  // A list left at its top, before it was ever scrolled, comes back at its top.
+  app.overview().onOpenItem(app.item.id)
+  const item = app.page()
+  scroll(700)
+  back(item, 'ItemDetail')
+  app.page()
+  expect(body.scrollTop).toBe(0)
+  // The main list, a plugin's page opened from it, and back; opening a page leaves the position to the browser.
+  scroll(480)
+  card(app.page(), 'official-team').props.onOpen()
+  const official = app.page()
+  expect(body.scrollTop).toBe(480)
+  scroll(0)
+  scroll(260)
+  back(official, 'PackageDetail')
+  app.page()
+  expect(body.scrollTop).toBe(480)
+  // The More list, a plugin's page opened from it, and a component row's page opened from that.
+  nodes(app.page()).find(node => typeof node.props.onClick === 'function' && node.props.children?.[0] === 'moreAction')!.props.onClick()
+  const more = app.page()
+  scroll(0)
+  scroll(150)
+  card(more, app.remote.name).props.onOpen()
+  const remote = app.page()
+  scroll(0)
+  scroll(90)
+  component(remote, 'PackageDetail')!.props.configure.open(app.remote.rows[0])
+  const row = app.page()
+  expect(component(row, 'RowDetail')?.props.row.rowId).toBe('bridge')
+  scroll(0)
+  back(row, 'RowDetail')
+  const remoteAgain = app.page()
+  expect(body.scrollTop).toBe(90)
+  back(remoteAgain, 'PackageDetail')
+  expect(groups(app.page())).toEqual(['more'])
+  expect(body.scrollTop).toBe(150)
+  nodes(app.page()).find(node => node.props['aria-label'] === 'backToList')!.props.onClick()
+  app.page()
+  expect(body.scrollTop).toBe(480)
+  // A plugin's page opened from a contributed tab returns to the tab, where it was left.
+  app.tabs.push({ id: 'discover', label: 'Discover' })
+  app.actions.setTab('discover')
+  app.page()
+  scroll(333)
+  app.tab().openPackage('official-team')
+  const fromTab = app.page()
+  expect(component(fromTab, 'PackageDetail')?.props.pkg.name).toBe('official-team')
+  scroll(0)
+  back(fromTab, 'PackageDetail')
+  expect(nodes(app.page()).some(node => node.props.name === 'plugins.tab' && node.props.options.only === 'discover')).toBe(true)
+  expect(body.scrollTop).toBe(333)
 })
 
 
@@ -437,4 +565,73 @@ it('renders the on-demand /computer-use command sub-switch on the Computer Use d
     node => node.type === 'input' && node.props.label === '按需命令加载（/computer-use）',
   )
   expect(hiddenSwitch).toBeUndefined()
+})
+
+it('reads the dshmarket download region from its status route, so quick configuration selects the Global index', async () => {
+  vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
+  // dshmarket reports its region only on its status route; a path it does not serve answers 404.
+  const fetchMock = vi.fn(async (url: string) => url === '/dsh-market/status'
+    ? { ok: true, json: async () => ({ region: 'global', regions: ['global', 'china'] }) }
+    : { ok: false, status: 404, json: async () => ({ error: 'not found' }) })
+  vi.stubGlobal('fetch', fetchMock)
+  const packages = [
+    { name: 'dsh-community-market', enabled: false },
+    { name: 'dshmarket', enabled: true },
+    { name: '@deepseek-ai/dsh-experimental-plugin-market-bundle', enabled: true },
+  ]
+  const custom = 'https://custom.example.com/index.json'
+  const listIndexes = vi.fn(async () => ({ ok: true as const, value: [{ url: custom }] }))
+  const setIndexes = vi.fn(async (_urls: string[]) => ({ ok: true as const, value: undefined }))
+  let OverviewView: ((props: any) => Node) | undefined
+  const ctx: any = {
+    get: (key: string) => key === 'slots' ? ctx.slots : undefined,
+    on: () => () => {},
+    inject: (_services: unknown, callback: (context: unknown) => void) => { callback(ctx) },
+    remote: {
+      $on: () => () => {},
+      pluginManager: { listBundles: vi.fn(async () => ({ ok: true as const, value: packages })), setBundleEnabled: vi.fn() },
+      pluginMarket: { listIndexes, setIndexes, search: vi.fn(async () => ({ ok: true as const, value: {} })) },
+    },
+    slots: {
+      _core: {
+        entries: (name: string) => name === 'main' ? [{
+          options: { key: 'plugins' },
+          inject: () => ({ hooks: { pluginManager: { getSnapshot: () => ({ status: 'ready', packages }) } } }),
+        }] : [],
+      },
+      inject: (_name: string, callback: () => unknown) => { callback() },
+      register: (options: { name: string }, view: (props: any) => Node) => {
+        if (options.name === 'plugins.overview') OverviewView = view
+        return () => {}
+      },
+    },
+  }
+  registerPluginControls(ctx as Context)
+  const props = { context: ctx, t: (key: string) => key === 'language' ? 'zh' : key, onOpenBundle: vi.fn(), onOpenItem: vi.fn() }
+  const closed = component(render(component(OverviewView!(props), 'MarketSourcesButton')!), 'MarketSourcesDialog')!
+  const Dialog = closed.type as (props: Node['props']) => Node
+  // The overview's own state setters would write into the dialog's hook slots below.
+  const dialogProps = { ...closed.props, open: true, onClose: vi.fn(), onChanged: vi.fn() }
+
+  // Open the source configuration on hook slots of its own and run its mount effects.
+  hooks.states = []
+  hooks.effects = []
+  hooks.cursor = 0
+  Dialog(dialogProps)
+  for (const effect of hooks.effects.splice(0)) effect()
+  await vi.waitFor(() => { expect(listIndexes).toHaveBeenCalledTimes(1) })
+  expect(fetchMock).toHaveBeenCalledExactlyOnceWith('/dsh-market/status', expect.objectContaining({ cache: 'no-store' }))
+
+  hooks.cursor = 0
+  const quick = nodes(Dialog(dialogProps)).find(node => node.type === 'button' && node.props.children === '快速配置')!
+  quick.props.onClick()
+  await vi.waitFor(() => { expect(setIndexes).toHaveBeenCalledTimes(2) })
+  const global = 'https://realguan.github.io/dsh-plugin-market/dsh-index.json'
+  // The selected index is saved alone first, then the full list with it in front.
+  expect(setIndexes).toHaveBeenNthCalledWith(1, [global])
+  expect(setIndexes).toHaveBeenNthCalledWith(2, [global, 'https://api.dshfind.com/market/dsh-index.json', custom])
+  await new Promise(resolve => setTimeout(resolve, 0))
+  expect(dialogProps.onChanged).toHaveBeenCalledTimes(1)
+  hooks.cursor = 0
+  expect(nodes(Dialog(dialogProps)).filter(node => node.props.role === 'alert')).toEqual([])
 })

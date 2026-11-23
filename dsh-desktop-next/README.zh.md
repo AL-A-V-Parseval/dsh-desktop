@@ -2,11 +2,11 @@
 
 [English](README.md) | 中文
 
-基于 DeepSeek Harness **0.2.2-rc.5** 的独立桌面壳。本工作区是 Linux fork 的 **Stable 主线**（源码版本 `2.0.24-next-linux.2`），保留 Next 名称和数据目录锚点以兼容已有安装；已发布安装包见[根 README](../README.md)。Next 与 Beta 现在使用相同 DSH 运行时，仍保留独立产品版本。主窗口直接加载官方发布的 `@deepseek-ai/dsh-web-frontend`，复用官方 Web 应用、插件管理器和基本桌面样式；Next 添加系统托盘、桌面设置和工具、Profile、恢复、Agents Anywhere 手机远控、社区市场和 dshmarket。
+基于 DeepSeek Harness **0.2.3-alpha.2** 的独立桌面壳。本工作区是 Linux fork 的 **Stable 主线**（源码版本 `2.0.24-next-linux.2`），保留 Next 名称和数据目录锚点以兼容已有安装；已发布安装包见[根 README](../README.md)。Next 与 Beta 现在使用相同 DSH 运行时，仍保留独立产品版本。主窗口直接加载官方发布的 `@deepseek-ai/dsh-web-frontend`，复用官方 Web 应用、插件管理器和基本桌面样式；Next 添加系统托盘、桌面设置和工具、Profile、恢复、Agents Anywhere 手机远控、社区市场和 dshmarket。
 
 ## 开发与验证
 
-在外层仓库根目录执行，使用 Node.js `^22.19.0` 或 `>=24.0.0`，以及 Corepack 提供的 Yarn 4.18.0：
+在外层仓库根目录执行，使用 Node.js `^24.22.3`，以及 Corepack 提供的 Yarn 4.18.0：
 
 ```sh
 git submodule update --init --recursive
@@ -76,11 +76,17 @@ Linux 图标集按 hicolor 主题的尺寸，从 16 到 512 像素每档一张 P
 
 **自动化任务**位于官方“插件”分组，沿用上游插图、实验性标记、原生启用开关和组件详情。它是可选插件，默认关闭。Next 保留现有的 Schedule 选择及其旧版 Profile 迁移，不另设独立的“定时任务”卡片。
 
-**OAR 子智能体。** **插件**页在 Computer Use（Next）下方列出 OAR 子智能体。它的开关默认关闭，打开后启用官方 `@deepseek-ai/dsh-experimental-subagent-oar` 提供方。Next 将它作为可选组合包随安装提供，组合方式与提供方 README 的示例一致，只有 Claude Code 的权限模式不同：Codex 以 `-c sandbox_mode="workspace-write"` 启动，Claude Code 以 `--permission-mode acceptEdits --permission-prompts none` 启动，两者都能修改任务目录里的文件。其他需要确认的操作（例如大多数 shell 命令），Claude Code 一律拒绝，除非它自己的设置已预先放行（`permissions.allow`）；示例中的 `dontAsk` 会让它只能读。模型通过 `subagent_oar` 工具把一个独立文本任务交给其中之一。每个任务都使用本机已安装的 Codex 或 Claude Code 命令行，以及该命令行自己的登录和设置，因此请先安装并登录。这些进程在 DSH 的命令沙箱之外运行，它们自身的审批请求也不会转到 DSH 界面。点卡片标题会打开官方插件页，列出该组合包的三行。在这个页面上，每个提供方行的「配置」入口会打开它的启动选项：Claude Code 可选只读、可改文件（默认）、自动审核或完全放行；Codex 可选只读、可写工作区（默认）或不限制。保存后，官方配置编辑器把选择记录到当前 Profile 的补丁里并重启这一行，之后委派的任务按新设置启动；重新选回默认会删除这条覆盖。这一行必须在运行才能修改。该版本以普通包发布这个提供方；`patches/dsh-experimental-subagent-oar@<version>.patch` 在安装时为已安装的包加上组合包声明。
+**Beta 插件。** **插件**页在 Computer Use（Next）下方有一个「Beta 插件」分组，样式与官方「实验性插件」分组相同。点「更多」进入的页面就是官方实验性插件页，另加一句说明：这些插件由官方提供，可按需下载、配置和开启，目前可能还不完善。分组列出上游随包提供或在 npm 发布、却没有列出的插件：OAR 子智能体，以及 Linear、Notion、腾讯文档、飞书、企业微信、腾讯会议和钉钉连接器。OAR 子智能体随 Next 安装提供，默认关闭。连接器显示为「未安装」，打开开关即安装与当前 DSH 版本一致的版本，与官方 Codex、Claude Code 子智能体相同。在当前 Profile 中开启的成员也会显示在主列表的这个分组下。官方发布版只把这些连接器发到 npm，没有为它们建目录条目，因此 `patches/dsh-official-bundles@<version>.patch` 在安装时把它们连同各自的标题、描述和图标加入官方按需安装目录。这个分组通过 `plugins.group` 插槽注册，该插槽由 `patches/dsh-client-ui-plugin-manager@<version>.patch` 加入；两个补丁都由 `scripts/upstream-family/client-seams.mjs` 生成。
+
+**OAR 子智能体。** **插件**页在「Beta 插件」中首先列出 OAR 子智能体。它的开关默认关闭，打开后启用官方 `@deepseek-ai/dsh-experimental-subagent-oar` 提供方。Next 将它作为可选组合包随安装提供，组合方式与提供方 README 的示例一致，只有 Claude Code 的权限模式不同：Codex 以 `-c sandbox_mode="workspace-write"` 启动，Claude Code 以 `--permission-mode acceptEdits --permission-prompts none` 启动，两者都能修改任务目录里的文件。其他需要确认的操作（例如大多数 shell 命令），Claude Code 一律拒绝，除非它自己的设置已预先放行（`permissions.allow`）；示例中的 `dontAsk` 会让它只能读。模型通过 `subagent_oar` 工具把一个独立文本任务交给其中之一。每个任务都使用本机已安装的 Codex 或 Claude Code 命令行，以及该命令行自己的登录和设置，因此请先安装并登录。这些进程在 DSH 的命令沙箱之外运行，它们自身的审批请求也不会转到 DSH 界面。点卡片标题会打开官方插件页，列出该组合包的三行。在这个页面上，每个提供方行的「配置」入口会打开它的启动选项：Claude Code 可选只读、可改文件（默认）、自动审核或完全放行；Codex 可选只读、可写工作区（默认）或不限制。保存后，官方配置编辑器把选择记录到当前 Profile 的补丁里并重启这一行，之后委派的任务按新设置启动；重新选回默认会删除这条覆盖。这一行必须在运行才能修改。该版本以普通包发布这个提供方；`patches/dsh-experimental-subagent-oar@<version>.patch` 在安装时为已安装的包加上组合包声明。
 
 **发布版默认隐藏的官方插件。** DSH 0.2.2 把 LiveShare、Ralph 和会话搜索标为默认不列出，官方插件管理器要等 Profile 启用它们后才会显示。Next 通过版本限定的补丁（`patches/dsh-experimental-liveshare@<version>.patch` 以及 Ralph、会话搜索对应的补丁）在**插件**页像其他可选组合包一样列出它们。包里没有 `meta.detail` 文档时，插件详情页在中文界面显示中文 README 译本（例如 `README.zh.md` 或 `README_CN.md`），在其他语言界面显示英文译本（例如 `README.en.md`），都没有时才回退到 `README.md`（`patches/dsh-plugin-detail@<version>.patch`）。
 
-**更新后的按需插件。** 官方 Codex、Claude Code 子智能体和官方 Computer Use 按需安装到 Profile，版本锁定为安装它们时的 DSH 版本。它们依赖的 DSH 包由 pnpm 放在 Profile 的 `node_modules` 顶层，运行时解析会优先使用这些副本，而不是安装包自带的。更新到其他 DSH 版本后，核心插件会因此加载旧副本，子智能体工具随之消失，或者 Host 无法启动；这些插件本身也不再匹配新版本。因此，Next 在 Host 解析 Profile 之前，用内置 pnpm 离线移除为其他版本安装的按需插件，效果与在**插件**页移除相同，并在日志中写明移除了哪些。之后**插件**页把它们显示为未安装，打开开关即可安装当前版本。移除失败只记录日志，Host 照常启动，下次启动时重试。
+**更新后的按需插件。** 官方 Codex、Claude Code 子智能体和「Beta 插件」中的官方连接器按需安装到 Profile，版本锁定为安装它们时的 DSH 版本。它们依赖的 DSH 包由 pnpm 放在 Profile 的 `node_modules` 顶层，运行时解析会优先使用这些副本，而不是安装包自带的。更新到其他 DSH 版本后，核心插件会因此加载旧副本，子智能体工具随之消失，或者 Host 无法启动；这些插件本身也不再匹配新版本。因此，Next 在 Host 解析 Profile 之前，用内置 pnpm 离线移除为其他版本安装的按需插件，效果与在**插件**页移除相同，并在日志中写明移除了哪些。之后**插件**页把它们显示为未安装，打开开关即可安装当前版本。移除失败只记录日志，Host 照常启动，下次启动时重试。
+
+**插件页返回位置。** 在**插件**页从插件详情、组件详情或「更多」页返回时，列表、「更多」页或标签页会回到离开时滚动到的位置。官方页面的所有视图共用一个滚动容器，不为每个视图记录位置，所以返回后列表会回到顶部。打开新页面时仍从顶部显示。该行为由 `patches/dsh-client-ui-plugin-manager@<version>.patch` 加入。
+
+**侧边栏固定状态。** 侧边栏显示哪些导航项、哪些收进「更多」，重启后仍会保留。官方侧边栏只把这些选择保存在内存里；`patches/dsh-client-ui-sidebar@<version>.patch` 借助官方 store 的 localStorage 持久化，把它们保存在 Desktop 自己的键 `dsh-desktop.sidebar.panel-pins` 下。窗口存储位于数据目录中，所以所有 Profile 共用这些选择；通过浏览器访问打开的浏览器各自保存。存储的值如果不是导航项 id 列表，就会被丢弃，所有导航项重新显示。
 
 ### 浏览器与局域网访问
 
@@ -116,7 +122,7 @@ export async function record(ctx: Context) {
 
 Computer Use（Next）是桌面端自带的电脑操作，基于内置的官方 `@deepseek-ai/dsh-experimental-computer-use-cua-driver-native`，**默认停用**。在**插件**页顶部的 Computer Use（Next）分区中启用，并查看实际加载状态。入口复用官方插件槽位、开关和插件管理服务；Profile 条目 ID 为 `computer-use-cua-driver-native`。操作和截图沿用现有对话工具卡片及图片附件；理解截图需要模型路由声明支持图片输入。开关左侧的齿轮打开授权弹窗。默认情况下，会话运行 `/computer-use` 后才加载其工具和提示词，`/computer-use off` 将其移除；也可在其插件页改为在所有会话中常驻。
 
-**官方 Computer Use。** DSH 0.2.2 新增官方 Computer Use bundle `@deepseek-ai/dsh-cua-bundle`（仅 macOS）。官方发布版不随包提供它，而是由插件管理器从官方目录提供，并按需安装到当前 Profile；Next 同样不随安装包提供。官方目录默认隐藏这个 bundle，因此 `patches/dsh-official-bundles@<version>.patch` 让它显示出来。于是在 macOS 上，**插件**页会像官方的 Codex、Claude Code 子智能体一样把它标为「未安装」；打开开关即可下载并安装，连同官方发布流程构建、签名并公证的 helper 应用一起装好。其他平台仍不显示它。`computer-use` 注册服务条目和 provider 条目共用 `computerUse: computer-use-next` 隔离域，因此官方 bundle 可以同时挂载自己的注册服务。官方 provider 服务 PTC 会话。在它服务的会话中，Computer Use（Next）不加载工具和提示词，也不提供 `/computer-use` 命令；官方 provider 不再服务该会话后（例如会话切换到其他模式，或关闭官方 bundle），命令随即恢复，无需重启。其他会话、Windows 和 Linux、官方 helper 无法启动的 macOS 14 以下版本，以及没有加载官方 provider 的会话，继续使用 Computer Use（Next），它支持 macOS、Windows 和 Linux。Computer Use（Next）的插件页提供 macOS Computer Use 一行，带有官方 bundle 的开关；当前 Profile 还没有安装时，打开开关会先安装。该开关仅在 macOS 14 及以上可用；其他系统上保持关闭且不可操作。开启后，点击这一行可打开它在**插件**页中的详情页。
+**官方 Computer Use。** dsh 0.2.2 新增 macOS 上的官方 Computer Use bundle `@deepseek-ai/dsh-cua-bundle`，dsh 0.2.3 又为它加入实验性的 Windows provider `@deepseek-ai/dsh-cua-windows`。官方发布版把它作为可选组合包随安装提供，Next 同样随安装包提供；0.2.2-alpha.3 到 0.2.2-rc.1 期间则由插件管理器按需安装。Linux 没有它的 provider。`computer-use` 注册服务条目和 provider 条目共用 `computerUse: computer-use-next` 隔离域，因此官方 bundle 可以同时挂载自己的注册服务。官方 provider 用 `cua` 工具服务 PTC 会话；从 dsh 0.2.3 起，它还用 `cua_run_code` 服务其他所有会话，在自己的 Node 运行时上执行 CUA 程序。在它服务的会话中，Computer Use（Next）不加载工具和提示词，也不提供 `/computer-use` 命令；官方 provider 不再服务该会话后（例如会话切换到其他模式，或关闭官方 bundle），命令随即恢复，无需重启。Linux、官方 helper 无法启动的 macOS 14 以下版本、没有带 helper 的 Windows 安装，以及没有加载官方 provider 的会话，继续使用 Computer Use（Next），它支持 macOS、Windows 和 Linux。官方发布的 Windows provider 不带它要启动的 helper，因此 Windows 安装包从固定版本的上游 checkout 发布这个 helper（见下文「打包与更新」）。Computer Use（Next）的插件页提供官方 bundle 的开关行，按平台显示为 macOS Computer Use 或 Windows Computer Use；当前 Profile 还没有安装时，打开开关会先安装。该开关在 macOS 14 及以上和带有 helper 的 Windows 安装中可用；其他情况下保持关闭且不可操作，Linux 不显示这一行。开启后，点击这一行可打开它在**插件**页中的详情页。
 
 版本限定的 Yarn 补丁位于 `patches/dsh-experimental-computer-use-cua-driver-native@<version>.patch`。存在 `desktopPermissions` 时，`check_permissions` 通过桌面服务查询权限；`prompt: true` 为缺失的权限打开授权弹窗，再以 `prompt: false` 由驱动执行只读检查。驱动始终报告其实际权限，不根据桌面返回值假定授权成功。没有桌面服务时保留上游行为。固定的 `@trycua/cua-driver@0.28.0` 二进制、操作工具、图片处理和关闭流程保持上游实现。只能注册一个 provider，但这不会自动串行化多个会话对同一桌面的操作。
 
@@ -139,7 +145,7 @@ corepack yarn workspace dsh-desktop-next verify:host --computer-use
 - **回滚 Profile：** 先备份当前文件、校验备份摘要，再恢复最近一次成功启动 Host 时的配置。范围为 `package.json`、`cordis.patch.yml` 和 Next 功能开关，不包含已安装插件的版本或共享数据。
 - **全局补丁修复：** 单独备份并停用 home 级 `cordis.patch.yml`，会影响所有 Next Profile。修复 Profile 不会自动改动全局补丁。
 
-故障打开恢复助手时，Next 会把这次故障保存为 `home/logs/dsh-desktop-next-failure-<UTC 时间>-<阶段>.log`，供反馈问题时附上。报告包括恢复助手显示的故障、Host 自己报告的诊断或壳层错误的堆栈与 cause 链、启动信息，以及最近 64 KiB 可读日志；插件服务的故障还会在末尾附上壳层保留的插件服务 stderr（64 KiB）。插件服务因没人捕获的错误或拒绝而被官方 fail-loud 结束时，报告会完整重复它退出前打印的错误块。对这个错误块和 Host 自己报告的诊断，报告还会列出堆栈经过的包，以及其中第一个不由 DeepSeek Harness 发布的包，第三方插件通常就出现在这里。基础文件写好后还会追加最近的插件操作记录和渲染层采样，列出当时正在运行的动画、body 直属浮层和观察到的帧率。应用运行期间会在内存中保留最近一次采样，因此页面停止响应后写出的报告仍会给出最后一次采样的内容，以及当前无法采样的原因。Host 启动失败时，报告还包含 `util.inspect` 会省略的配置路径和启动条目，以及 DSH 0.2.2 为失败启动记录的插件状态和缺失服务。报告与日志一样经过脱敏，仅当前用户可读，保留最近 10 份。“快速恢复”页的“诊断报告”可在文件夹中定位该文件；未能保存时，该卡片改为提供“导出诊断信息”。
+故障打开恢复助手时，Next 会把这次故障保存为 `home/logs/dsh-desktop-next-failure-<UTC 时间>-<阶段>.log`，供反馈问题时附上。报告包括恢复助手显示的故障、Host 自己报告的诊断或壳层错误的堆栈与 cause 链、启动信息，以及最近 64 KiB 可读日志；插件服务的故障还会在末尾附上壳层保留的插件服务 stderr（64 KiB）。插件服务因没人捕获的错误或拒绝而被官方 fail-loud 结束时，报告会完整重复它退出前打印的错误块。对这个错误块和 Host 自己报告的诊断，报告还会列出堆栈经过的包，以及其中第一个不由 DeepSeek Harness 发布的包，第三方插件通常就出现在这里。基础文件写好后还会追加最近的插件操作记录和渲染层采样，列出当时正在运行的动画、body 直属浮层和观察到的帧率。应用运行期间会在内存中保留最近一次采样，因此页面停止响应后写出的报告仍会给出最后一次采样的内容，以及当前无法采样的原因。这份每分钟一次的采样不列动画，因为页面留下的动画很多时，列出它们本身就会让页面卡顿；帧率、长任务、DOM 规模和浮层照常记录。Host 启动失败时，报告还包含 `util.inspect` 会省略的配置路径和启动条目，以及 DSH 0.2.2 为失败启动记录的插件状态和缺失服务。报告与日志一样经过脱敏，仅当前用户可读，保留最近 10 份。“快速恢复”页的“诊断报告”可在文件夹中定位该文件；未能保存时，该卡片改为提供“导出诊断信息”。
 
 插件服务启动超时时，报告紧接在故障之后列出当时仍在加载的插件条目：条目 id、模块、阶段（导入、启动或停止）以及条目创建后的等待时长；`host.start.pending` 日志记录同一份列表，时限超过 60 秒时 1 分钟的提示也会以 `host.start.slow` 记录一次。列表来自 `host.cordis.patch.yml` 中的 `desktop-next-startup-entries` 插件行：插件服务要等 Loader 全部结束才就绪，这一行在启动期间读取 Loader 中尚未完成的条目，壳层通过私有 IPC 询问它，最多等待 3 秒。插件都已加载、插件服务仍在完成自身启动时，报告会写明这一点；插件服务没有应答或还没开始加载插件时，报告会写明原因。此时“快速恢复”页的“插件服务（Host）启动时限”卡片会说明这次超时和仍在加载的插件；选择更长的时限后点击“退出并重启”即可生效。
 
@@ -200,7 +206,7 @@ Next 是正式的 Profile bundle，因此上游插件管理器重新组合配置
 
 ## 当前边界
 
-本工作区是本 fork 的 Linux Stable 主线。已发布 `v2.0.22-next-linux.1` 使用 DSH `0.2.2-rc.1`，后续源码改动不替换其不可变资产。Linux 发布 x64 AppImage、deb 和便携归档；ARM64 与 Windows/macOS 原生安装包不在本 fork 当前发行验证范围内。旧架构的增强／扩展窗口模式不是当前功能。Linux 提供 `<应用程序> dsh …` 内置 CLI，不提供托盘终端入口。无图形检查不能替代原生平台或视觉验收。
+本工作区是本 fork 的 Linux Stable 主线。已发布 `v2.0.24-next-linux.2` 使用 DSH `0.2.2-rc.5`，后续源码改动不替换其不可变资产。Linux 发布 x64 AppImage、deb 和便携归档；ARM64 与 Windows/macOS 原生安装包不在本 fork 当前发行验证范围内。旧架构的增强／扩展窗口模式不是当前功能。Linux 提供 `<应用程序> dsh …` 内置 CLI，不提供托盘终端入口。无图形检查不能替代原生平台或视觉验收。
 
 ## 内置运行时载荷
 
@@ -220,7 +226,7 @@ Next 是正式的 Profile bundle，因此上游插件管理器重新组合配置
 
 ## 打包与更新
 
-本 fork 产品版本为 `2.0.22-next-linux.1`。在仓库根目录运行 Linux 入口：
+本 fork 产品版本为 `2.0.24-next-linux.2`。在仓库根目录运行 Linux 入口：
 
 ```sh
 corepack yarn package:dir:next
@@ -253,7 +259,7 @@ Host 挂载上游的 Office 组合：`load_workspace_dependencies` 工具首次�
 
 安装包字节改由 Chromium 的 `net.request` 传输，而不再使用 `net.fetch`：在 `redirect: 'manual'` 下 Electron 的 fetch 会拒绝重定向并抛出 `Redirect was cancelled`，而不是把 3xx 响应交回来，因此服务端指向存储路径的 `302` 永远无法被跟随。新传输层每一跳单独发起一个请求，每一跳都用同一条 HTTPS 与默认端口规则校验，首跳之后不再携带发布选择头，安装包流量走非持久化会话分区，因此不携带任何应用 Cookie。macOS 与 Windows 的下载端点都会重定向到存储路径；只能接受直接 `200` 的客户端无法完成更新。
 
-从 Finder 或 Dock 启动的打包版没有登录 shell 的导出变量。在任何 Host 启动之前，壳层像 Desktop 变体一样运行一次账户的登录 shell（zsh、bash 或 fish），只把 `PATH`、locale 变量、`TZ` 和固定的一组工具链变量合并进自己的环境；凭据、`DSH_*` 值和进程启动钩子不会被导入，shell 失败、超时或不受支持时保留继承的环境。当启动环境和登录 shell 都没有给出 locale 时，壳层按系统语言把 `LANG` 设为第一个已安装的 UTF-8 locale，和 Terminal.app 一样，这样 Host 的终端和工具子进程不会跑在 C locale 下，否则 `ls` 会把非 ASCII 文件名打印成 `?`。诊断日志以 `shell-environment.resolved` 记录结果。
+从 Finder 或 Dock 启动的打包版没有登录 shell 的导出变量。在任何 Host 启动之前，壳层像 Desktop 变体一样运行账户的登录 shell（zsh、bash、fish 或 sh），只把 `PATH`、locale 变量、`TZ` 和固定的一组工具链变量合并进自己的环境；凭据、`DSH_*` 值和进程启动钩子不会被导入。和官方桌面端一样，读到结束标记就算读完，所以启动文件放到后台的程序不会让读取一直挂着；读取时还会关掉 oh-my-zsh 的更新提示和 tmux 自启。这个 shell 失败时，依次再试 `/bin/zsh`、`/bin/bash` 和 `/bin/sh`，总共不超过 10 秒；都没有成功时保留继承的环境。当启动环境和登录 shell 都没有给出 locale 时，壳层按系统语言把 `LANG` 设为第一个已安装的 UTF-8 locale，和 Terminal.app 一样，这样 Host 的终端和工具子进程不会跑在 C locale 下，否则 `ls` 会把非 ASCII 文件名打印成 `?`。诊断日志以 `shell-environment.resolved` 记录结果。
 ## 运行日志与开发者日志
 
 Next 在 `<数据目录>/logs/desktop-next.log` 保存可直接阅读的近期日志，在 `logs/desktop-next-YYYY-MM-DD.<分段>.jsonl` 保存结构化历史。历史按每天和每文件 10 MiB 轮转，保留七天，总量上限 200 MiB，新文件使用私有权限。启动、Host 退出和退出清理阶段不受日志级别过滤；运行标记用于识别上一次未正常结束的启动。错误和强退证据立即写入历史，其余记录约 200 毫秒批量追加一次。可读日志在内容变化期间最多每 5 秒重写一次，本次运行结束或使用“打开日志目录”时立即重写。Host 进程输出和插件 logger 消息按来源限量：与该来源近期某一行重复的行（不计数字）只写入一次，重复次数在该行首次出现 1 分钟后、再过 5 分钟后，以及之后仍在重复时每 15 分钟，写成一条 `<事件>.repeated` 记录，本次运行结束或写失败报告时立即写出；每个来源先可突发写入 200 行，之后每秒 20 行，超出的行数记在一条 `<事件>.dropped` 警告里。工具返回错误结果时记一条警告，工具抛出异常时才记为错误；取消工具或模型请求不算失败。日志写入失败不会阻止应用运行，诊断导出会报告存储故障或丢弃的记录数。
@@ -274,4 +280,4 @@ Next 在 `<数据目录>/logs/desktop-next.log` 保存可直接阅读的近期�
 
 官方启动器没有挂载前的 Context 钩子，因此 Next 回放有限的日志缓冲、记录启动完成后的插件状态，并保留原始进程输出和致命错误；不在官方缓冲中的极早期调试日志无法补录。这是进程及应用日志，不包含操作系统系统调用追踪。Electron Crashpad 另在本地运行且不上传，Electron 进程或 Node 模式 Host 的原生崩溃会在 `electron-user-data/Crashpad` 中留下 minidump。
 
-插件清单通过官方 `readPluginInventory()` 获取实际启用状态和生命周期阶段。可选的官方 Inspector 可用时，通过 `ctx.inspector.cordis.getTree()` 获取运行时来源、版本序号、连接状态和截断标记等元数据，桌面端不自行重建其拓扑。会话元数据使用官方 `session/event` 事件，保留原始事件类型、序号和时间，便于与 Session Log 对照。原始会话和聊天数据查看、NodeJS 调试及出站 fetch 抓取由官方开发者工具提供；桌面端保留操作耗时、进程/IPC 诊断、日志留存和诊断导出。开启开发者日志不会自动开启官方抓取工具，也不会将其原始正文复制到导出包。
+插件清单通过官方 `readPluginInventory()` 获取实际启用状态和生命周期阶段。桌面端只把 Loader 交给它，因此它不会读取日志用不到的显示元数据（否则每次调用都要读每个插件的清单文件、语言包和图标）。清单只在固定时机读一次（Host 就绪、插件变更完成、打开开发者日志时），从不按单个插件事件读取。可选的官方 Inspector 可用时，通过 `ctx.inspector.cordis.getTree()` 获取运行时来源、版本序号、连接状态和截断标记等元数据，桌面端不自行重建其拓扑。会话元数据使用官方 `session/event` 事件，保留原始事件类型、序号和时间，便于与 Session Log 对照。原始会话和聊天数据查看、NodeJS 调试及出站 fetch 抓取由官方开发者工具提供；桌面端保留操作耗时、进程/IPC 诊断、日志留存和诊断导出。开启开发者日志不会自动开启官方抓取工具，也不会将其原始正文复制到导出包。
