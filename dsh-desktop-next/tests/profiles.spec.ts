@@ -359,15 +359,16 @@ it('composes optional AA and Market while retaining the official Web layout', ()
   // Client module discovery requires a package root, not the previous /extensions subpath.
   expect(rows.find(row => row.id === 'desktop-next-capabilities')?.name).toBe('dsh-desktop-next')
   // Desktop-bundled plugins are composed without a profile manifest entry, so
-  // the Next channel offers the Codex sign-in seat too.
-  expect(profile.layers.map(layer => layer.packageName)).toContain('dsh-codex-signin')
-  expect(rows.find(row => row.id === 'codex-signin')?.name).toBe('dsh-codex-signin')
+  // the Subscriptions plugin is available without modifying the user's manifest.
+  expect(profile.layers.map(layer => layer.packageName)).toContain('dsh-plugin-subscriptions')
+  expect(rows.find(row => row.id === 'llm-subscriptions')?.name).toBe('dsh-plugin-subscriptions')
+  expect(rows.some(row => row.id === 'codex-signin')).toBe(false)
   const overlays = [fileURLToPath(new URL('../host.cordis.patch.yml', import.meta.url)),
     join(dir, 'desktop-next.cordis.patch.json')]
   const reread = readNextProfilePatches(dir, manager.home, overlays)
   const reconciled = composeEntries([reread])
   expect(reconciled.some(row => row.name === 'dsh-community-market' && !row.disabled)).toBe(true)
-  expect(reconciled.find(row => row.id === 'codex-signin')?.name).toBe('dsh-codex-signin')
+  expect(reconciled.find(row => row.id === 'llm-subscriptions')?.name).toBe('dsh-plugin-subscriptions')
   expect(reconciled.find(row => row.id === 'webserver')?.disabled).toBe(true)
   expect(reconciled.some(row => row.name === 'dsh-desktop-next/webserver' && !row.disabled)).toBe(true)
   writeFileSync(profile.patchPath, '- id: ui-sidebar-browser\n  disabled: true\n- id: computer-use-cua-driver-native\n  disabled: false\n')
@@ -387,7 +388,7 @@ it('seats a bundled plugin row once when the profile already lists the package',
   const dir = manager.ensure('desktop')
   const manifestPath = join(dir, 'package.json')
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { dsh: { profile: { bundles: string[] } } }
-  manifest.dsh.profile.bundles.push('dsh-codex-signin')
+  manifest.dsh.profile.bundles.push('dsh-plugin-subscriptions')
   writeFileSync(manifestPath, JSON.stringify(manifest, undefined, 2) + '\n')
 
   // A profile copy wins: the launcher only seats what the manifest does not
@@ -396,8 +397,8 @@ it('seats a bundled plugin row once when the profile already lists the package',
   const rows = composeEntries([...profile.layers.map(layer => layer.patches),
     loadOverlayPatches('next', join(dir, 'desktop-next.cordis.patch.json'))])
 
-  expect(profile.layers.filter(layer => layer.packageName === 'dsh-codex-signin')).toHaveLength(1)
-  expect(rows.filter(row => row.id === 'codex-signin')).toHaveLength(1)
+  expect(profile.layers.filter(layer => layer.packageName === 'dsh-plugin-subscriptions')).toHaveLength(1)
+  expect(rows.filter(row => row.id === 'llm-subscriptions')).toHaveLength(1)
 })
 
 it('shares AA defaults across Profiles and replaces legacy generated state overrides', () => {

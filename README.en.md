@@ -31,7 +31,7 @@ DSH Desktop integrates the official Web UI, Host service, and plugin system of [
 
 This fork is **Linux-focused**: it maintains Linux releases and compatibility fixes while following upstream's cross-platform improvements, retaining this fork's Stable release and data-compatibility policy.
 
-- Merged upstream snapshot: `0790398f44`; source version `2.0.24-next-linux.2`
+- Merged upstream snapshot: `0790398f44`; source version `2.0.24-next-linux.3`
 - Source runtimes: Linux Stable workspace `dsh-desktop-next/` and Beta both use `0.2.3-alpha.2`; legacy workspace retains `0.2.1-rc.3`. Pins live in [`upstream.json`](upstream.json); Linux release boundaries are defined by [`linux-release-policy.json`](linux-release-policy.json)
 - Target platform: **Linux x64**
 - Artifacts: an AppImage, a portable archive (tar.gz) and a Debian/Ubuntu package (.deb). `SHA256SUMS` ships alongside them, and the `.deb` also carries an internal `debsigs` signature
@@ -57,6 +57,8 @@ The new framework uses ASAR with native/Office resources unpacked where needed. 
 ### 5. Model catalog, OAuth and plugin markets
 
 Provider sign-in and custom models are preserved. The bundled catalog adds GPT‑6.2 Astra and Sol on OpenAI API and OpenAI Codex OAuth and retains `gpt-6.1-terra`. Catalog updates do not replace protocol/OAuth implementations or alter credentials or default models. See [`docs/model-catalog-refresh.md`](docs/model-catalog-refresh.md) for sources and reproduction. Actual access depends on account entitlement. Plugin installation, toggling, removal and community-plugin updates use the official plugin manager, with Market and AA integration retained.
+
+Next/Beta sources bundle [dsh-plugin-subscriptions](https://github.com/V1ki/dsh-plugin-subscriptions) under **Settings → Subscriptions**, replacing the subscription sign-in controls in Models. It supports ChatGPT (Codex), Claude, Grok, GitHub Copilot, and Google Antigravity. The plugin uses separate credentials and model routes; existing credentials, API keys, and chats are not migrated or deleted. Sign in under Subscriptions and select a model from the plugin in the model picker.
 
 See `.yarn/patches/`, `patches/`, and the commit history for details.
 

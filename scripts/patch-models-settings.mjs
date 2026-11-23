@@ -37,11 +37,6 @@ try {
     assert.ok(at >= 0 && source.indexOf(before, at + before.length) === -1, `Expected unique Models seam: ${before}`)
     code.overwrite(at, at + before.length, after)
   }
-  once('props.credentialOnly===true?null:', `[
-    'anthropic','openai-codex','github-copilot','xai','kimi-coding','meta','openrouter','radius'
-  ].includes(props.provider) ? react_jsx_runtime.jsx('div', {
-    "data-dsh-codex-signin": "mount", "data-provider": props.provider
-  }) : null,props.credentialOnly===true?null:`)
   once('const managedRef=deriveKeyRef(row.entry.provider);',
     "const managedRef=row.entry.provider==='deepseek-official'&&row.entry.settingsPath.length===0&&row.removable?row.apiKeyEnv:deriveKeyRef(row.entry.provider);")
   once('function providerCopy(', `${deepSeekApiRow.toString()}\nfunction providerCopy(`)
@@ -54,7 +49,7 @@ try {
   const diff = git('diff', '--no-ext-diff', '--binary')
   assert.ok(diff.length > 0)
   writeFileSync(join(root, `patches/${name}@${version}.patch`), diff)
-  console.log(`${name}@${version}: OAuth mount and local API removal patch generated with composed source map`)
+  console.log(`${name}@${version}: local API removal patch generated with composed source map`)
 } finally {
   rmSync(temp, { recursive: true, force: true })
 }

@@ -86,6 +86,15 @@ try {
   }))
   writeFileSync(join(shadow, 'index.js'), "throw new Error('Profile shadow must never load')\n")
   let { origin, cookie } = await boot('desktop')
+  // A malformed local envelope checks mounting without requesting account state or contacting providers.
+  const subscriptionRoute = await fetch(`${origin}/api/subscriptions-auth.status`, {
+    method: 'POST', headers: { cookie, origin, 'content-type': 'application/json' },
+    body: JSON.stringify({ rpcId: 'subscriptions-smoke' }),
+  })
+  assert.equal(subscriptionRoute.status, 200)
+  const subscriptionReply = await subscriptionRoute.json()
+  assert.equal(subscriptionReply.rpcId, 'subscriptions-smoke')
+  assert.equal(subscriptionReply.result.ok, false)
   assert.ok(existsSync(join(home, '.agents-anywhere', 'dsh-bridge-next')),
     'AA must resolve its default shared state inside the smoke user home')
   // The real account service drives the embedded Platform page's grant; signed out, it has none to give.

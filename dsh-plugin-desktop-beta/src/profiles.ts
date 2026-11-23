@@ -30,7 +30,7 @@ export const DSH_MARKET_PACKAGE = 'dshmarket'
  * the Market rows, so no profile has to name them; each needs a dependency edge
  * in this package for the installation anchor to resolve it.
  */
-export const BUNDLED_PLUGIN_PACKAGES = Object.freeze(['dsh-codex-signin'])
+export const BUNDLED_PLUGIN_PACKAGES = Object.freeze(['dsh-plugin-subscriptions'])
 export const OFFICIAL_MARKET_PACKAGE = '@deepseek-ai/dsh-experimental-plugin-market-bundle'
 
 /** Legacy shell shape, now projected from the standard Profile bundle selection. */

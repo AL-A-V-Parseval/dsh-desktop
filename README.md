@@ -31,7 +31,7 @@ DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harne
 
 本 fork **聚焦 Linux**：维护 Linux 发行与兼容修复，同时跟随上游的跨平台改进，保留本 fork 的 Stable 发布和数据兼容策略。
 
-- 上游合并快照：`0790398f44`；源码版本为 `2.0.24-next-linux.2`
+- 上游合并快照：`0790398f44`；源码版本为 `2.0.24-next-linux.3`
 - 源码运行时：Linux Stable 工作区 `dsh-desktop-next/` 与 Beta 均使用 `0.2.3-alpha.2`；旧工作区保留 `0.2.1-rc.3`。各源码 pin 见 [`upstream.json`](upstream.json)，Linux 发布边界见 [`linux-release-policy.json`](linux-release-policy.json)
 - 目标平台：**Linux x64**
 - 产物：AppImage、便携包（tar.gz）与 Debian/Ubuntu 安装包（.deb），随 `SHA256SUMS` 提供校验和，`.deb` 另含 `debsigs` 内部签名
@@ -57,6 +57,8 @@ Linux 图像处理使用上游 Sharp 0.35.5 的 WASM 后端。旧的真实 Node 
 ### 5. 模型目录、OAuth 与插件市场
 
 保留服务商登录和自定义模型。内置目录在 OpenAI API 与 OpenAI Codex OAuth 下新增 GPT‑6.2 Astra 和 Sol，并保留 `gpt-6.1-terra`。目录更新不替换协议／OAuth 实现，也不改默认模型或凭据。来源与重建方式见 [`docs/model-catalog-refresh.md`](docs/model-catalog-refresh.md)。实际调用取决于账号权限。插件安装、启停、卸载与社区插件更新使用官方插件管理器，保留 Market 与 AA 集成。
+
+Next/Beta 源码在 **设置 → 订阅** 内置 [dsh-plugin-subscriptions](https://github.com/V1ki/dsh-plugin-subscriptions)，替代原来「模型」页的订阅登录入口。支持 ChatGPT（Codex）、Claude、Grok、GitHub Copilot 和 Google Antigravity。插件使用独立凭据和模型路由；旧凭据、API Key 和聊天记录不会自动迁移或删除。请在新入口登录，再从模型选择器选用插件提供的模型。
 
 具体实现见 `.yarn/patches/`、`patches/` 与提交历史。
 

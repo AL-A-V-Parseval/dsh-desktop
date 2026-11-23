@@ -5,9 +5,9 @@ import { fileURLToPath } from 'node:url'
 import { getBuiltinModels, getBuiltinModelDataGeneratedAt } from '@earendil-works/pi-ai/providers/all'
 import { expect, it } from 'vitest'
 
-it('keeps the provider OAuth mount in the settings package selected by this runtime', () => {
+it('keeps the retired subscription sign-in mount out of Models settings', () => {
   const root = dirname(fileURLToPath(import.meta.resolve('@deepseek-ai/dsh-client-ui-settings-models')))
-  expect(readFileSync(join(root, 'client.js'), 'utf8')).toContain('"data-dsh-codex-signin": "mount"')
+  expect(readFileSync(join(root, 'client.js'), 'utf8')).not.toContain('data-dsh-codex-signin')
 })
 
 it('ships the refreshed public catalog without replacing the protocol/OAuth runtime', () => {

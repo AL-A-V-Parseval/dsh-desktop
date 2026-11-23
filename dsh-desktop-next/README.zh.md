@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-基于 DeepSeek Harness **0.2.3-alpha.2** 的独立桌面壳。本工作区是 Linux fork 的 **Stable 主线**（源码版本 `2.0.24-next-linux.2`），保留 Next 名称和数据目录锚点以兼容已有安装；已发布安装包见[根 README](../README.md)。Next 与 Beta 现在使用相同 DSH 运行时，仍保留独立产品版本。主窗口直接加载官方发布的 `@deepseek-ai/dsh-web-frontend`，复用官方 Web 应用、插件管理器和基本桌面样式；Next 添加系统托盘、桌面设置和工具、Profile、恢复、Agents Anywhere 手机远控、社区市场和 dshmarket。
+基于 DeepSeek Harness **0.2.3-alpha.2** 的独立桌面壳。本工作区是 Linux fork 的 **Stable 主线**（源码版本 `2.0.24-next-linux.3`），保留 Next 名称和数据目录锚点以兼容已有安装；已发布安装包见[根 README](../README.md)。Next 与 Beta 现在使用相同 DSH 运行时，仍保留独立产品版本。主窗口直接加载官方发布的 `@deepseek-ai/dsh-web-frontend`，复用官方 Web 应用、插件管理器和基本桌面样式；Next 添加系统托盘、桌面设置和工具、Profile、恢复、Agents Anywhere 手机远控、社区市场和 dshmarket。
 
 ## 开发与验证
 
@@ -226,7 +226,7 @@ Next 是正式的 Profile bundle，因此上游插件管理器重新组合配置
 
 ## 打包与更新
 
-本 fork 产品版本为 `2.0.24-next-linux.2`。在仓库根目录运行 Linux 入口：
+本 fork 产品版本为 `2.0.24-next-linux.3`。在仓库根目录运行 Linux 入口：
 
 ```sh
 corepack yarn package:dir:next
